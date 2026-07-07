@@ -25,6 +25,8 @@ export interface EntryListItem {
   typeColor: string;
   typeLabel: string;
   topic?: string;
+  parentEntryId?: string | null;
+  parentEntryTitle?: string | null;
 }
 
 export interface NavPanelProps {
@@ -429,6 +431,7 @@ export function NavPanel({
                     onClick={() => onEntrySelect?.(entry.id)}
                     className={cn(
                       "mb-1.5 flex w-full cursor-pointer items-start gap-2.5 rounded-lg border p-2.5 text-left transition-all",
+                      entry.parentEntryId && "ml-3 border-l-2 border-l-accent/30",
                       selectedEntryId === entry.id
                         ? "border-accent/40 bg-accent-dim/60 shadow-[inset_3px_0_0_0_var(--accent)]"
                         : "border-border/50 bg-surface/40 hover:border-border hover:bg-surface-2/80",
@@ -440,6 +443,14 @@ export function NavPanel({
                     />
                     <div className="min-w-0 flex-1">
                       <h3 className="flex items-center gap-1.5 text-[0.82rem] font-medium leading-snug">
+                        {entry.parentEntryId && (
+                          <span
+                            className="shrink-0 text-[0.68rem] text-muted-foreground"
+                            title={entry.parentEntryTitle ?? "Untereintrag"}
+                          >
+                            ↳
+                          </span>
+                        )}
                         <span className="truncate">{entry.title}</span>
                         {recentActivityEntryIds?.has(entry.id) && (
                           <span
@@ -452,6 +463,9 @@ export function NavPanel({
                       </h3>
                       <p className="mt-0.5 text-[0.68rem] text-muted-foreground">
                         {entry.typeLabel}
+                        {entry.parentEntryTitle
+                          ? ` · in ${entry.parentEntryTitle}`
+                          : ""}
                         {entry.topic ? ` · ${entry.topic}` : ""}
                       </p>
                     </div>

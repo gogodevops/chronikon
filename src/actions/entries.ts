@@ -45,6 +45,7 @@ const createEntrySchema = z.object({
   lat: z.number().optional(),
   lng: z.number().optional(),
   topicNames: z.array(z.string()).optional(),
+  parentEntryId: z.string().cuid().optional(),
 });
 
 const updateEntrySchema = createEntrySchema
@@ -154,9 +155,32 @@ export async function createEntry(
   const data = parsed.data;
   const { session } = await requireProjectRole(data.projectId, "editor");
 
+  if (data.parentEntryId) {
+    const parent = await db.entry.findFirst({
+      where: { id: data.parentEntryId, projectId: data.projectId },
+      select: { id: true, type: true, parentEntryId: true },
+    });
+    if (!parent) {
+      return { success: false, error: "Übergeordneter Eintrag nicht gefunden" };
+    }
+    if (parent.type !== "book") {
+      return {
+        success: false,
+        error: "Untereinträge sind nur unter Büchern möglich",
+      };
+    }
+    if (parent.parentEntryId) {
+      return {
+        success: false,
+        error: "Verschachtelte Untereinträge sind nicht unterstützt",
+      };
+    }
+  }
+
   const entry = await db.entry.create({
     data: {
       projectId: data.projectId,
+      parentEntryId: data.parentEntryId,
       type: data.type as EntryType,
       title: data.title,
       summary: data.summary,

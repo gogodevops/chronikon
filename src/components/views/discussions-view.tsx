@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { de } from "date-fns/locale";
-import { ArrowRight, CircleHelp, MessageSquare } from "lucide-react";
+import { ArrowRight, MessageSquare } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ViewFrame } from "@/components/ui/chronikon-shell";
@@ -17,31 +17,34 @@ export function DiscussionsView({
   items: DiscussionFeedItem[];
   projectSlug: string;
 }) {
-  const openCount = items.filter((i) => i.status === "open").length;
+  const openQuestions = items.filter(
+    (i) => i.kind === "question" && i.status === "open",
+  ).length;
 
   return (
     <ViewFrame
       eyebrow="Team-Diskussion"
       title="Diskussionen"
-      description={`${openCount} offene ${openCount === 1 ? "Frage" : "Fragen"} im Projekt`}
+      description={`${items.length} Beiträge · ${openQuestions} offene Fragen`}
       maxWidth="lg"
     >
       {items.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border bg-surface-2/50 px-6 py-10 text-center">
-          <CircleHelp
+          <MessageSquare
             className="mx-auto mb-3 h-8 w-8 text-muted-foreground/60"
             strokeWidth={1.5}
           />
-          <p className="text-sm font-medium">Noch keine Fragen</p>
+          <p className="text-sm font-medium">Noch keine Diskussion</p>
           <p className="mt-1 text-[0.78rem] text-muted-foreground">
-            Fragen zu Einträgen erscheinen hier und im Dashboard-Feed.
+            Beiträge zu Einträgen erscheinen hier und im Diskussions-Tab des
+            Eintrags.
           </p>
         </div>
       ) : (
         <div className="space-y-2.5">
           {items.map((item) => (
             <article
-              key={item.id}
+              key={`${item.kind}-${item.id}`}
               className="rounded-xl border border-border bg-surface-2 p-3.5 transition-colors hover:border-accent/25 hover:bg-surface-3"
             >
               <div className="mb-2.5 flex items-start justify-between gap-3">
@@ -65,10 +68,19 @@ export function DiscussionsView({
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <StatusPill open={item.status === "open"} />
-                  <span className="rounded-md bg-surface-3 px-2 py-0.5 text-[0.65rem] font-medium uppercase tracking-wide text-muted-foreground">
-                    {item.category}
-                  </span>
+                  {item.kind === "question" && item.status && (
+                    <StatusPill open={item.status === "open"} />
+                  )}
+                  {item.kind === "comment" && (
+                    <span className="rounded-full bg-surface-3 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground">
+                      Kommentar
+                    </span>
+                  )}
+                  {item.category && (
+                    <span className="rounded-md bg-surface-3 px-2 py-0.5 text-[0.65rem] font-medium uppercase tracking-wide text-muted-foreground">
+                      {item.category}
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -81,7 +93,7 @@ export function DiscussionsView({
               )}
 
               <div className="flex items-center justify-between gap-2 border-t border-border/60 pt-2.5">
-                {item.answerCount > 0 ? (
+                {item.kind === "question" && item.answerCount > 0 ? (
                   <span className="flex items-center gap-1 text-[0.72rem] text-muted-foreground">
                     <MessageSquare className="h-3 w-3" />
                     {item.answerCount}{" "}
@@ -89,11 +101,13 @@ export function DiscussionsView({
                   </span>
                 ) : (
                   <span className="text-[0.72rem] text-muted-foreground">
-                    Noch keine Antwort
+                    {item.kind === "question"
+                      ? "Noch keine Antwort"
+                      : "Kommentar"}
                   </span>
                 )}
                 <Link
-                  href={`/p/${projectSlug}?entry=${item.entryId}`}
+                  href={`/p/${projectSlug}?entry=${item.entryId}&tab=diskussion`}
                   className="flex items-center gap-1 text-[0.78rem] text-accent hover:underline"
                 >
                   <span className="truncate">{item.entryTitle}</span>

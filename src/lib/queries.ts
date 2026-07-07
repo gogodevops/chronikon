@@ -43,6 +43,19 @@ export type SerializedEntryListItem = {
   sourceCount: number;
   questionCount: number;
   commentCount: number;
+  parentEntryId: string | null;
+  parentEntryTitle: string | null;
+};
+
+export type SerializedChildEntry = {
+  id: string;
+  title: string;
+  typeLabel: string;
+  typeColor: string;
+  yearStart: number;
+  yearEnd: number;
+  questionCount: number;
+  commentCount: number;
 };
 
 export type SerializedSource = {
@@ -134,6 +147,7 @@ export type SerializedEntryDetail = SerializedEntryListItem & {
   createdAt: Date;
   updatedAt: Date;
   createdByName: string | null;
+  childEntries: SerializedChildEntry[];
   versions: SerializedEntryVersion[];
   attachments: Array<{
     id: string;
@@ -167,10 +181,11 @@ export type DashboardStats = {
 
 export type DiscussionFeedItem = {
   id: string;
+  kind: "question" | "comment";
   entryId: string;
   entryTitle: string;
-  status: string;
-  category: string;
+  status: string | null;
+  category: string | null;
   text: string;
   passageRef: string | null;
   createdAt: Date;
@@ -222,6 +237,7 @@ export type SearchResult = {
 function mapEntryListItem(
   entry: Entry & {
     topics: { topic: { name: string } }[];
+    parentEntry?: { id: string; title: string } | null;
     _count: { sources: number; questions: number; comments: number };
   },
 ): SerializedEntryListItem {
@@ -244,6 +260,8 @@ function mapEntryListItem(
     sourceCount: entry._count.sources,
     questionCount: entry._count.questions,
     commentCount: entry._count.comments,
+    parentEntryId: entry.parentEntry?.id ?? null,
+    parentEntryTitle: entry.parentEntry?.title ?? null,
   };
 }
 
@@ -298,6 +316,7 @@ export async function getEntriesForProject(
       orderBy: buildEntryOrderBy(options?.sort),
       include: {
         topics: { include: { topic: true } },
+        parentEntry: { select: { id: true, title: true } },
         _count: { select: { sources: true, questions: true, comments: true } },
       },
     }),
@@ -320,6 +339,13 @@ export async function getEntryDetail(
     where: { id: entryId, projectId },
     include: {
       topics: { include: { topic: true } },
+      parentEntry: { select: { id: true, title: true } },
+      childEntries: {
+        orderBy: { title: "asc" },
+        include: {
+          _count: { select: { questions: true, comments: true } },
+        },
+      },
       attachments: true,
       sources: { include: { linkedEntry: { select: { id: true, title: true } } } },
       claims: {
@@ -400,6 +426,19 @@ export async function getEntryDetail(
     createdAt: entry.createdAt,
     updatedAt: entry.updatedAt,
     createdByName: entry.createdBy?.name ?? null,
+    childEntries: entry.childEntries.map((child) => {
+      const childMeta = TYPE_META[child.type];
+      return {
+        id: child.id,
+        title: child.title,
+        typeLabel: childMeta.label,
+        typeColor: childMeta.color,
+        yearStart: child.yearStart,
+        yearEnd: child.yearEnd,
+        questionCount: child._count.questions,
+        commentCount: child._count.comments,
+      };
+    }),
     versions: (() => {
       const versionsDesc = entry.versions;
       const currentState = currentEntryState({
@@ -623,31 +662,63 @@ export async function getDashboardStats(
 export async function getDiscussions(projectId: string) {
   await requireProjectRole(projectId, "viewer");
 
-  const questions = await db.question.findMany({
-    where: { entry: { projectId } },
-    include: {
-      entry: { select: { id: true, title: true } },
-      author: { select: { name: true, avatarInitials: true } },
-      _count: { select: { answers: true } },
-    },
-    orderBy: { createdAt: "desc" },
-  });
-
-  return questions.map(
-    (q): DiscussionFeedItem => ({
-      id: q.id,
-      entryId: q.entry.id,
-      entryTitle: q.entry.title,
-      status: q.status,
-      category: q.category,
-      text: q.text,
-      passageRef: q.passageRef,
-      createdAt: q.createdAt,
-      authorName: q.author.name ?? "Unbekannt",
-      authorInitials: q.author.avatarInitials,
-      answerCount: q._count.answers,
+  const [questions, comments] = await Promise.all([
+    db.question.findMany({
+      where: { entry: { projectId } },
+      include: {
+        entry: { select: { id: true, title: true } },
+        author: { select: { name: true, avatarInitials: true } },
+        _count: { select: { answers: true } },
+      },
+      orderBy: { createdAt: "desc" },
     }),
-  );
+    db.comment.findMany({
+      where: { entry: { projectId } },
+      include: {
+        entry: { select: { id: true, title: true } },
+        author: { select: { name: true, avatarInitials: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+  ]);
+
+  const items: DiscussionFeedItem[] = [
+    ...questions.map(
+      (q): DiscussionFeedItem => ({
+        id: q.id,
+        kind: "question",
+        entryId: q.entry.id,
+        entryTitle: q.entry.title,
+        status: q.status,
+        category: q.category,
+        text: q.text,
+        passageRef: q.passageRef,
+        createdAt: q.createdAt,
+        authorName: q.author.name ?? "Unbekannt",
+        authorInitials: q.author.avatarInitials,
+        answerCount: q._count.answers,
+      }),
+    ),
+    ...comments.map(
+      (c): DiscussionFeedItem => ({
+        id: c.id,
+        kind: "comment",
+        entryId: c.entry.id,
+        entryTitle: c.entry.title,
+        status: null,
+        category: null,
+        text: c.text,
+        passageRef: null,
+        createdAt: c.createdAt,
+        authorName: c.author.name ?? "Unbekannt",
+        authorInitials: c.author.avatarInitials,
+        answerCount: 0,
+      }),
+    ),
+  ];
+
+  items.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  return items;
 }
 
 export async function searchEntries(

@@ -147,8 +147,6 @@ export function DiscussionFeed({
   onAnswer,
   onDeleteQuestion,
   onDeleteComment,
-  onStartQuestion,
-  onStartComment,
   canDiscuss = true,
 }: {
   questions: SerializedQuestion[];
@@ -156,8 +154,6 @@ export function DiscussionFeed({
   onAnswer?: (questionId: string, text: string) => void;
   onDeleteQuestion?: (questionId: string) => void;
   onDeleteComment?: (commentId: string) => void;
-  onStartQuestion?: () => void;
-  onStartComment?: () => void;
   canDiscuss?: boolean;
 }) {
   const [replyDrafts, setReplyDrafts] = React.useState<Record<string, string>>(
@@ -168,30 +164,9 @@ export function DiscussionFeed({
     return (
       <div className="mb-3">
         <p className="text-[0.82rem] text-muted-foreground">
-          Noch keine Fragen oder Kommentare.
+          Noch keine Beiträge — unten einen Kommentar schreiben oder eine
+          bestehende offene Frage beantworten.
         </p>
-        {canDiscuss && (onStartQuestion || onStartComment) && (
-          <div className="mt-2 flex flex-wrap gap-2">
-            {onStartQuestion && (
-              <button
-                type="button"
-                onClick={onStartQuestion}
-                className="cursor-pointer rounded-full border border-border bg-surface-2 px-2.5 py-1 text-[0.72rem] text-accent hover:border-accent hover:bg-accent-dim"
-              >
-                + Frage stellen
-              </button>
-            )}
-            {onStartComment && (
-              <button
-                type="button"
-                onClick={onStartComment}
-                className="cursor-pointer rounded-full border border-border bg-surface-2 px-2.5 py-1 text-[0.72rem] text-accent hover:border-accent hover:bg-accent-dim"
-              >
-                + Kommentieren
-              </button>
-            )}
-          </div>
-        )}
       </div>
     );
   }

@@ -178,34 +178,37 @@ enum Confidence {
 }
 
 model Entry {
-  id          String     @id @default(cuid())
-  projectId   String
-  legacyId    String?
-  type        EntryType
-  title       String
-  summary     String?
-  body        String?    @db.Text
-  yearStart   Int
-  yearEnd     Int
-  confidence  Confidence @default(likely)
-  language    String?
-  author      String?
-  placeName   String?
-  lat         Float?
-  lng         Float?
-  createdById String?
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  id            String     @id @default(cuid())
+  projectId     String
+  parentEntryId String?
+  legacyId      String?
+  type          EntryType
+  title         String
+  summary       String?
+  body          String?    @db.Text
+  yearStart     Int
+  yearEnd       Int
+  confidence    Confidence @default(likely)
+  language      String?
+  author        String?
+  placeName     String?
+  lat           Float?
+  lng           Float?
+  createdById   String?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
 
-  project     Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  createdBy   User?            @relation("EntryCreator", fields: [createdById], references: [id])
-  topics      EntryTopic[]
-  attachments Attachment[]
-  sources     Source[]
-  claims      Claim[]
-  questions   Question[]
-  comments    Comment[]
-  versions    EntryVersion[]
+  project       Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  parentEntry   Entry?           @relation("EntryChildren", fields: [parentEntryId], references: [id], onDelete: Cascade)
+  childEntries  Entry[]          @relation("EntryChildren")
+  createdBy     User?            @relation("EntryCreator", fields: [createdById], references: [id])
+  topics        EntryTopic[]
+  attachments   Attachment[]
+  sources       Source[]
+  claims        Claim[]
+  questions     Question[]
+  comments      Comment[]
+  versions      EntryVersion[]
   relationsFrom EntryRelation[] @relation("RelationFrom")
   relationsTo   EntryRelation[] @relation("RelationTo")
   sourcesLinked Source[]       @relation("SourceLinkedEntry")
@@ -214,6 +217,7 @@ model Entry {
   @@index([projectId])
   @@index([projectId, type])
   @@index([projectId, confidence])
+  @@index([parentEntryId])
   @@index([title])
 }
 

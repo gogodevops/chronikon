@@ -18,7 +18,6 @@ import {
 } from "@/actions/entries";
 import {
   addComment,
-  addQuestion,
   answerQuestion,
   deleteComment,
   deleteQuestion,
@@ -77,6 +76,8 @@ function toListItem(e: SerializedEntryListItem): EntryListItem {
     typeColor: e.typeColor,
     typeLabel: e.typeLabel,
     topic: e.topic,
+    parentEntryId: e.parentEntryId,
+    parentEntryTitle: e.parentEntryTitle,
   };
 }
 
@@ -109,6 +110,9 @@ function toDetail(e: SerializedEntryDetail): EntryDetail {
     discussionCount: e.questionCount + e.commentCount,
     questionCount: e.questionCount,
     commentCount: e.commentCount,
+    parentEntryId: e.parentEntryId,
+    parentEntryTitle: e.parentEntryTitle,
+    childEntries: e.childEntries,
     sources: e.sources,
     claims: e.claims,
     questions: e.questions,
@@ -144,9 +148,6 @@ export function AppShell({
   const [listLimit, setListLimit] = React.useState(LIST_LIMIT);
   const [searchResults, setSearchResults] = React.useState<CommandResult[]>([]);
   const [activeTab, setActiveTab] = React.useState("inhalt");
-  const [discussionComposerMode, setDiscussionComposerMode] = React.useState<
-    "question" | "comment"
-  >("question");
   const [relationSearchResults, setRelationSearchResults] = React.useState<
     LinkableEntryResult[]
   >([]);
@@ -168,15 +169,8 @@ export function AppShell({
     ];
     if (tab && validTabs.includes(tab)) {
       setActiveTab(tab);
-      if (tab === "diskussion") {
-        const mode = searchParams.get("composer");
-        if (mode === "comment" || mode === "question") {
-          setDiscussionComposerMode(mode);
-        }
-      }
     } else {
       setActiveTab("inhalt");
-      setDiscussionComposerMode("question");
     }
   }, [selectedEntryId, searchParams]);
 
@@ -350,12 +344,7 @@ export function AppShell({
     if (!selectedEntry) return;
 
     switch (action) {
-      case "question":
-        setDiscussionComposerMode("question");
-        setActiveTab("diskussion");
-        break;
-      case "comment":
-        setDiscussionComposerMode("comment");
+      case "discussion":
         setActiveTab("diskussion");
         break;
       case "claim":
@@ -537,24 +526,7 @@ export function AppShell({
       return;
     }
 
-    if (tab === "diskussion" && action === "question" && payload && canDiscussRole) {
-      const ok = await runServerAction(() =>
-        addQuestion({
-          projectId: ctx.id,
-          entryId: selectedEntry.id,
-          category: payload.category ?? "Allgemein",
-          text: payload.text ?? "",
-          passageRef: payload.passageRef,
-        }),
-      );
-      if (ok) {
-        setActiveTab("diskussion");
-        refreshAfterAction();
-      }
-      return;
-    }
-
-    if (tab === "diskussion" && action === "comment" && payload && canDiscussRole) {
+    if (tab === "diskussion" && action === "submit" && payload && canDiscussRole) {
       const ok = await runServerAction(() =>
         addComment({
           projectId: ctx.id,
@@ -697,10 +669,16 @@ export function AppShell({
             onAttachmentDelete={handleAttachmentDelete}
             canEdit={canEdit}
             canDiscuss={canDiscussRole}
-            discussionComposerMode={discussionComposerMode}
-            onDiscussionComposerModeChange={setDiscussionComposerMode}
             canCreateEntry={canEdit}
             onNewEntry={() => router.push(`${basePath}/new`)}
+            onCreateChildEntry={
+              selectedEntry?.type === "book"
+                ? () =>
+                    router.push(
+                      `${basePath}/new?parent=${selectedEntry.id}`,
+                    )
+                : undefined
+            }
             className="max-[900px]:hidden"
           />
         )}

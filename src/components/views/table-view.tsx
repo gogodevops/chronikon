@@ -35,7 +35,13 @@ const columns: ColumnDef<SerializedEntryListItem>[] = [
   },
   { accessorKey: "topic", header: "Thema", size: 140 },
   { accessorKey: "sourceCount", header: "Quellen", size: 70 },
-  { accessorKey: "questionCount", header: "Fragen", size: 70 },
+  {
+    id: "discussionCount",
+    header: "Diskussion",
+    cell: ({ row }) =>
+      row.original.questionCount + row.original.commentCount,
+    size: 80,
+  },
 ];
 
 export function TableView({

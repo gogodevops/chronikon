@@ -52,8 +52,6 @@ export interface EntryTabsProps {
   onAction?: (tab: string, action: string, data?: unknown) => void;
   canEdit?: boolean;
   canDiscuss?: boolean;
-  discussionComposerMode?: "question" | "comment";
-  onDiscussionComposerModeChange?: (mode: "question" | "comment") => void;
 }
 
 export function EntryTabs({
@@ -79,8 +77,6 @@ export function EntryTabs({
   onAction,
   canEdit = true,
   canDiscuss = true,
-  discussionComposerMode = "question",
-  onDiscussionComposerModeChange,
 }: EntryTabsProps) {
   const effectiveDiscussionCount =
     discussionCount > 0
@@ -164,25 +160,11 @@ export function EntryTabs({
             onAction?.("diskussion", "deleteComment", { id })
           }
           canDiscuss={canDiscuss}
-          onStartQuestion={() => {
-            onDiscussionComposerModeChange?.("question");
-            onTabChange?.("diskussion");
-          }}
-          onStartComment={() => {
-            onDiscussionComposerModeChange?.("comment");
-            onTabChange?.("diskussion");
-          }}
         />
         {canDiscuss && (
           <DiscussionComposer
             entryId={entryId}
-            mode={discussionComposerMode}
-            onSubmitQuestion={(data) =>
-              onAction?.("diskussion", "question", data)
-            }
-            onSubmitComment={(data) =>
-              onAction?.("diskussion", "comment", data)
-            }
+            onSubmit={(data) => onAction?.("diskussion", "submit", data)}
           />
         )}
       </TabsContent>

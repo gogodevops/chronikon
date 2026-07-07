@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import {
-  HelpCircle,
   Link2,
   MessageSquare,
   Paperclip,
@@ -14,8 +13,7 @@ import {
 import { cn } from "@/lib/utils";
 
 export type EntryAction =
-  | "question"
-  | "comment"
+  | "discussion"
   | "claim"
   | "source"
   | "relation"
@@ -33,8 +31,7 @@ const ACTION_GROUPS: {
 }[] = [
   {
     actions: [
-      { action: "question", label: "Frage", icon: HelpCircle },
-      { action: "comment", label: "Kommentar", icon: MessageSquare },
+      { action: "discussion", label: "Diskussion", icon: MessageSquare },
     ],
   },
   {
@@ -57,19 +54,16 @@ export interface EntryActionBarProps {
   onAction?: (action: EntryAction) => void;
   canEdit?: boolean;
   canDiscuss?: boolean;
-  questionCount?: number;
-  commentCount?: number;
+  discussionCount?: number;
   className?: string;
 }
 
 function actionLabel(
   action: EntryAction,
   base: string,
-  questionCount: number,
-  commentCount: number,
+  discussionCount: number,
 ): string {
-  if (action === "question" && questionCount === 0) return `+ ${base}`;
-  if (action === "comment" && commentCount === 0) return `+ ${base}`;
+  if (action === "discussion" && discussionCount === 0) return `+ ${base}`;
   return base;
 }
 
@@ -77,14 +71,12 @@ export function EntryActionBar({
   onAction,
   canEdit = true,
   canDiscuss = true,
-  questionCount = 0,
-  commentCount = 0,
+  discussionCount = 0,
   className,
 }: EntryActionBarProps) {
   const disabled = new Set<EntryAction>();
   if (!canDiscuss) {
-    disabled.add("question");
-    disabled.add("comment");
+    disabled.add("discussion");
   }
   if (!canEdit) {
     disabled.add("claim");
@@ -119,7 +111,7 @@ export function EntryActionBar({
               )}
             >
               <Icon className="h-3.5 w-3.5 shrink-0 opacity-80" />
-              {actionLabel(action, label, questionCount, commentCount)}
+              {actionLabel(action, label, discussionCount)}
             </button>
           ))}
         </React.Fragment>

@@ -13,6 +13,7 @@ export default async function NewEntryPage({
   const { slug } = await params;
   const sp = await searchParams;
   const editId = typeof sp.edit === "string" ? sp.edit : undefined;
+  const parentId = typeof sp.parent === "string" ? sp.parent : undefined;
 
   const project = await db.project.findUnique({
     where: { slug },
@@ -20,9 +21,27 @@ export default async function NewEntryPage({
   });
   if (!project) return null;
 
-  const editEntry = editId
-    ? await getEntryDetail(project.id, editId)
-    : null;
+  const [editEntry, parentEntry] = await Promise.all([
+    editId ? getEntryDetail(project.id, editId) : null,
+    parentId ? getEntryDetail(project.id, parentId) : null,
+  ]);
+
+  const childInitialFields =
+    parentEntry && parentEntry.type === "book"
+      ? {
+          type: "text",
+          title: "",
+          yearStart: String(parentEntry.yearStart ?? ""),
+          yearEnd: String(parentEntry.yearEnd ?? ""),
+          confidence: parentEntry.confidence,
+          topic: parentEntry.topics?.[0] ?? "",
+          summary: "",
+          body: "",
+          language: parentEntry.language ?? "",
+          author: parentEntry.author ?? "",
+          placeName: parentEntry.placeName ?? "",
+        }
+      : undefined;
 
   return (
     <AppShell
@@ -36,6 +55,12 @@ export default async function NewEntryPage({
         projectSlug={slug}
         topics={project.topics.map((t) => t.name)}
         editEntryId={editEntry?.id}
+        parentEntryId={
+          parentEntry?.type === "book" ? parentEntry.id : undefined
+        }
+        parentEntryTitle={
+          parentEntry?.type === "book" ? parentEntry.title : undefined
+        }
         initialFields={
           editEntry
             ? {
@@ -51,7 +76,7 @@ export default async function NewEntryPage({
                 author: editEntry.author ?? "",
                 placeName: editEntry.placeName ?? "",
               }
-            : undefined
+            : childInitialFields
         }
       />
     </AppShell>

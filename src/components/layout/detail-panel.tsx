@@ -6,11 +6,12 @@ import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ChildEntriesSection } from "@/components/entry/child-entries-section";
 import { EntryActionBar, type EntryAction } from "@/components/entry/entry-action-bar";
 import { AttachmentsSection, type AttachmentItem } from "@/components/entry/attachments-section";
 import { EntryTabs } from "@/components/entry/entry-tabs";
 import { ChMetaPill } from "@/components/ui/chronikon-shell";
-import type { EntryTitleIndex, LinkableEntryResult } from "@/lib/queries";
+import type { EntryTitleIndex, LinkableEntryResult, SerializedChildEntry } from "@/lib/queries";
 import type {
   SerializedClaim,
   SerializedComment,
@@ -43,6 +44,9 @@ export interface EntryDetail {
   discussionCount?: number;
   questionCount?: number;
   commentCount?: number;
+  parentEntryId?: string | null;
+  parentEntryTitle?: string | null;
+  childEntries?: SerializedChildEntry[];
   sources?: SerializedSource[];
   claims?: SerializedClaim[];
   questions?: SerializedQuestion[];
@@ -68,10 +72,9 @@ export interface DetailPanelProps {
   onAttachmentDelete?: (attachmentId: string) => void;
   canEdit?: boolean;
   canDiscuss?: boolean;
-  discussionComposerMode?: "question" | "comment";
-  onDiscussionComposerModeChange?: (mode: "question" | "comment") => void;
   canCreateEntry?: boolean;
   onNewEntry?: () => void;
+  onCreateChildEntry?: () => void;
 }
 
 function yearLabel(year?: number | null) {
@@ -97,10 +100,9 @@ export function DetailPanel({
   onAttachmentDelete,
   canEdit = true,
   canDiscuss = true,
-  discussionComposerMode = "question",
-  onDiscussionComposerModeChange,
   canCreateEntry = false,
   onNewEntry,
+  onCreateChildEntry,
 }: DetailPanelProps) {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -204,6 +206,19 @@ export function DetailPanel({
             {entry.title}
           </h2>
 
+          {entry.parentEntryId && entry.parentEntryTitle && (
+            <p className="mt-1 text-[0.72rem] text-muted-foreground">
+              Untereintrag von{" "}
+              <button
+                type="button"
+                onClick={() => onNavigateEntry?.(entry.parentEntryId!)}
+                className="cursor-pointer text-accent hover:underline"
+              >
+                {entry.parentEntryTitle}
+              </button>
+            </p>
+          )}
+
           {entry.summary && (
             <p className="mt-1.5 text-[0.82rem] leading-relaxed text-muted-foreground">
               {entry.summary}
@@ -227,8 +242,11 @@ export function DetailPanel({
             onAction={onAction}
             canEdit={canEdit}
             canDiscuss={canDiscuss}
-            questionCount={entry.questionCount ?? entry.questions?.length ?? 0}
-            commentCount={entry.commentCount ?? entry.comments?.length ?? 0}
+            discussionCount={
+              entry.discussionCount ??
+              (entry.questionCount ?? entry.questions?.length ?? 0) +
+                (entry.commentCount ?? entry.comments?.length ?? 0)
+            }
           />
 
         </div>
@@ -245,6 +263,15 @@ export function DetailPanel({
             {entry.author && <ChMetaPill label="Autor" value={entry.author} />}
             {entry.place && <ChMetaPill label="Ort" value={entry.place} />}
           </div>
+
+          {entry.type === "book" && (
+            <ChildEntriesSection
+              children={entry.childEntries ?? []}
+              onNavigate={onNavigateEntry}
+              onCreateChild={onCreateChildEntry}
+              canEdit={canEdit}
+            />
+          )}
 
           <AttachmentsSection
             attachments={entry.attachments ?? []}
@@ -292,8 +319,6 @@ export function DetailPanel({
             onAction={onTabAction}
             canEdit={canEdit}
             canDiscuss={canDiscuss}
-            discussionComposerMode={discussionComposerMode}
-            onDiscussionComposerModeChange={onDiscussionComposerModeChange}
           />
         </div>
       </ScrollArea>

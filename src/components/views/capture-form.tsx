@@ -22,12 +22,16 @@ export function CaptureForm({
   projectSlug,
   topics,
   editEntryId,
+  parentEntryId,
+  parentEntryTitle,
   initialFields,
 }: {
   projectId: string;
   projectSlug: string;
   topics: string[];
   editEntryId?: string;
+  parentEntryId?: string;
+  parentEntryTitle?: string;
   initialFields?: Partial<{
     type: string;
     title: string;
@@ -107,6 +111,7 @@ export function CaptureForm({
         author: fields.author || undefined,
         placeName: fields.placeName || undefined,
         topicNames: fields.topic ? [fields.topic] : [],
+        parentEntryId: parentEntryId || undefined,
       };
 
       const result = isEdit
@@ -132,15 +137,28 @@ export function CaptureForm({
 
   return (
     <ViewFrame
-      title={isEdit ? "Eintrag bearbeiten" : "Neuer Eintrag"}
+      title={
+        isEdit
+          ? "Eintrag bearbeiten"
+          : parentEntryTitle
+            ? "Untereintrag anlegen"
+            : "Neuer Eintrag"
+      }
       description={
         isEdit
           ? "Felder anpassen und speichern"
-          : "Felder ausfüllen — Quelle optional hochladen"
+          : parentEntryTitle
+            ? `Kapitel, Seite oder Abschnitt für „${parentEntryTitle}"`
+            : "Felder ausfüllen — Quelle optional hochladen"
       }
       maxWidth="md"
     >
       <div className="space-y-4">
+        {parentEntryTitle && !isEdit && (
+          <p className="rounded-lg border border-accent/25 bg-accent-dim/40 px-3 py-2 text-[0.78rem] text-accent">
+            Untereintrag von <strong>{parentEntryTitle}</strong>
+          </p>
+        )}
         {!isEdit && (
           <details
             open={uploadOpen}
