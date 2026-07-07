@@ -148,12 +148,12 @@ export function AppHeader({
         {isAppAdmin ? (
           <Link
             href="/app"
-            className="bg-gradient-to-r from-accent to-[#e8d5a0] bg-clip-text text-base font-bold tracking-wide text-transparent transition-opacity hover:opacity-80"
+            className="bg-gradient-to-r from-accent to-accent-light bg-clip-text text-base font-bold tracking-wide text-transparent transition-opacity hover:opacity-80"
           >
             Chronikon
           </Link>
         ) : (
-          <span className="bg-gradient-to-r from-accent to-[#e8d5a0] bg-clip-text text-base font-bold tracking-wide text-transparent">
+          <span className="bg-gradient-to-r from-accent to-accent-light bg-clip-text text-base font-bold tracking-wide text-transparent">
             Chronikon
           </span>
         )}

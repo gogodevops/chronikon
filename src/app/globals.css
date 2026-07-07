@@ -10,6 +10,7 @@
   --muted: #7a756a;
   --muted-foreground: #7a756a;
   --accent: #c4a35a;
+  --accent-light: #dcc88a;
   --accent-dim: rgba(196, 163, 90, 0.12);
   --accent-foreground: #0c0e12;
   --primary: #c4a35a;
@@ -48,6 +49,7 @@
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
+  --color-accent-light: var(--accent-light);
   --color-accent-dim: var(--accent-dim);
   --color-accent-foreground: var(--accent-foreground);
   --color-primary: var(--primary);

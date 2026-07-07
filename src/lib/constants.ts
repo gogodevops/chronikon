@@ -19,7 +19,7 @@ export const CONF_META: Record<
   { label: string; color: string }
 > = {
   verified: { label: "Gesichert", color: "#4caf82" },
-  likely: { label: "Vermutlich", color: "#c4a35a" },
+  likely: { label: "Vermutlich", color: "#7a9ec8" },
   disputed: { label: "Streitig", color: "#e8945a" },
   unknown: { label: "Unbekannt", color: "#8a8478" },
 };

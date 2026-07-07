@@ -44,6 +44,7 @@ const DEFAULT_RELATION_TYPES = (
 ).map(([value, label]) => ({ value, label }));
 
 export function RelationComposer({
+  entryId,
   relationTypes = DEFAULT_RELATION_TYPES,
   searchResults = [],
   searchError = null,
@@ -52,6 +53,9 @@ export function RelationComposer({
   onCancel,
 }: RelationComposerProps) {
   const inputRef = React.useRef<HTMLInputElement>(null);
+  const onSearchRef = React.useRef(onSearch);
+  onSearchRef.current = onSearch;
+
   const [query, setQuery] = React.useState("");
   const [selected, setSelected] = React.useState<{
     id: string;
@@ -64,15 +68,17 @@ export function RelationComposer({
   const [submitting, setSubmitting] = React.useState(false);
 
   React.useEffect(() => {
+    setQuery("");
+    setSelected(null);
     setBrowseActive(true);
-    onSearch?.("");
+    onSearchRef.current?.("");
     inputRef.current?.focus();
-  }, [onSearch]);
+  }, [entryId]);
 
   React.useEffect(() => {
     if (!browseActive && !query.trim()) return;
-    onSearch?.(query);
-  }, [query, browseActive, onSearch]);
+    onSearchRef.current?.(query);
+  }, [query, browseActive]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,7 +113,7 @@ export function RelationComposer({
           value={selected ? selected.title : query}
           onFocus={() => {
             setBrowseActive(true);
-            onSearch?.(query);
+            onSearchRef.current?.(query);
           }}
           onBlur={() => {
             window.setTimeout(() => setBrowseActive(false), 150);

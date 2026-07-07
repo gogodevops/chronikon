@@ -181,6 +181,7 @@ export function AppShell({
   const relationSearchTimer = React.useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
+  const relationSearchRequest = React.useRef(0);
 
   const basePath = `/p/${ctx.slug}`;
 
@@ -332,22 +333,32 @@ export function AppShell({
     router.push(`${basePath}?entry=${result.id}`);
   };
 
+  const selectedEntryIdForSearch = selectedEntry?.id ?? null;
+
+  React.useEffect(() => {
+    relationSearchRequest.current += 1;
+    setRelationSearchResults([]);
+    setRelationSearchError(null);
+  }, [selectedEntryIdForSearch]);
+
   const handleRelationSearch = React.useCallback(
     (query: string) => {
       if (relationSearchTimer.current) {
         clearTimeout(relationSearchTimer.current);
       }
-      if (!selectedEntry) {
+      if (!selectedEntryIdForSearch) {
         setRelationSearchResults([]);
         setRelationSearchError(null);
         return;
       }
+      const requestId = ++relationSearchRequest.current;
       relationSearchTimer.current = setTimeout(async () => {
         const result = await searchLinkableEntries(
           ctx.id,
           query.trim(),
-          selectedEntry.id,
+          selectedEntryIdForSearch,
         );
+        if (requestId !== relationSearchRequest.current) return;
         if (result.success) {
           setRelationSearchResults(result.data);
           setRelationSearchError(null);
@@ -357,7 +368,7 @@ export function AppShell({
         }
       }, 200);
     },
-    [ctx.id, selectedEntry],
+    [ctx.id, selectedEntryIdForSearch],
   );
 
   const handleEntryAction = async (action: EntryAction) => {

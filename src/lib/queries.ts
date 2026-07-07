@@ -6,7 +6,7 @@ import type {
   Project,
 } from "@prisma/client";
 
-import { requireProjectRole } from "@/lib/auth-helpers";
+import { isAppAdmin, requireProjectRole } from "@/lib/auth-helpers";
 import { CONF_META, RELATION_LABELS, TYPE_META } from "@/lib/constants";
 import {
   currentEntryState,
@@ -624,76 +624,108 @@ export async function getEntryTitleIndex(
   });
 }
 
-export async function searchLinkableEntries(
-  projectId: string,
-  userId: string,
-  query: string,
-  excludeEntryId?: string,
-  limit = 8,
-): Promise<LinkableEntryResult[]> {
-  await requireProjectRole(projectId, "viewer");
+const linkableEntrySelect = {
+  id: true,
+  title: true,
+  type: true,
+  project: { select: { id: true, slug: true, name: true, icon: true } },
+} as const;
 
-  const q = query.trim();
-
-  const memberships = await db.projectMember.findMany({
-    where: { userId },
-    select: { projectId: true },
-  });
-  const projectIds = memberships.map((m) => m.projectId);
-  if (!projectIds.length) return [];
-
-  if (!q) {
-    const entries = await db.entry.findMany({
-      where: {
-        projectId,
-        id: excludeEntryId ? { not: excludeEntryId } : undefined,
-      },
-      select: {
-        id: true,
-        title: true,
-        type: true,
-        project: { select: { id: true, slug: true, name: true, icon: true } },
-      },
-      orderBy: { updatedAt: "desc" },
-      take: limit,
-    });
-
-    return entries.map((e) => ({
-      id: e.id,
-      title: e.title,
-      typeColor: TYPE_META[e.type].color,
-      projectSlug: e.project.slug,
-      projectName: e.project.name,
-      projectIcon: e.project.icon,
-      isCurrentProject: e.project.id === projectId,
-    }));
-  }
-
-  const entries = await db.entry.findMany({
-    where: {
-      projectId: { in: projectIds },
-      id: excludeEntryId ? { not: excludeEntryId } : undefined,
-      title: { contains: q, mode: "insensitive" },
-    },
-    select: {
-      id: true,
-      title: true,
-      type: true,
-      project: { select: { id: true, slug: true, name: true, icon: true } },
-    },
-    orderBy: [{ project: { name: "asc" } }, { title: "asc" }],
-    take: limit,
-  });
-
-  return entries.map((e) => ({
+function mapLinkableEntry(
+  e: {
+    id: string;
+    title: string;
+    type: EntryType;
+    project: { id: string; slug: string; name: string; icon: string };
+  },
+  currentProjectId: string,
+): LinkableEntryResult {
+  return {
     id: e.id,
     title: e.title,
     typeColor: TYPE_META[e.type].color,
     projectSlug: e.project.slug,
     projectName: e.project.name,
     projectIcon: e.project.icon,
-    isCurrentProject: e.project.id === projectId,
-  }));
+    isCurrentProject: e.project.id === currentProjectId,
+  };
+}
+
+/** Other projects the user may link to (memberships + all projects for admins). */
+async function getCrossProjectIds(
+  userId: string,
+  excludeProjectId: string,
+): Promise<string[]> {
+  const [memberships, admin] = await Promise.all([
+    db.projectMember.findMany({
+      where: { userId },
+      select: { projectId: true },
+    }),
+    isAppAdmin(userId),
+  ]);
+
+  const ids = new Set(memberships.map((m) => m.projectId));
+  if (admin) {
+    const all = await db.project.findMany({ select: { id: true } });
+    for (const p of all) ids.add(p.id);
+  }
+  ids.delete(excludeProjectId);
+  return [...ids];
+}
+
+export async function searchLinkableEntries(
+  projectId: string,
+  userId: string,
+  query: string,
+  excludeEntryId?: string,
+  limit = 20,
+): Promise<LinkableEntryResult[]> {
+  await requireProjectRole(projectId, "viewer");
+
+  const q = query.trim();
+  const excludeSelf = excludeEntryId ? { not: excludeEntryId } : undefined;
+
+  const currentEntries = await db.entry.findMany({
+    where: {
+      projectId,
+      id: excludeSelf,
+      ...(q ? { title: { contains: q, mode: "insensitive" } } : {}),
+    },
+    select: linkableEntrySelect,
+    orderBy: q ? { title: "asc" } : { updatedAt: "desc" },
+    take: limit,
+  });
+
+  const results = currentEntries.map((e) => mapLinkableEntry(e, projectId));
+  const seen = new Set(results.map((r) => r.id));
+
+  if (!q || results.length >= limit) {
+    return results;
+  }
+
+  const otherProjectIds = await getCrossProjectIds(userId, projectId);
+  if (!otherProjectIds.length) {
+    return results;
+  }
+
+  const otherEntries = await db.entry.findMany({
+    where: {
+      projectId: { in: otherProjectIds },
+      id: excludeSelf,
+      title: { contains: q, mode: "insensitive" },
+    },
+    select: linkableEntrySelect,
+    orderBy: [{ project: { name: "asc" } }, { title: "asc" }],
+    take: limit - results.length,
+  });
+
+  for (const entry of otherEntries) {
+    if (seen.has(entry.id)) continue;
+    seen.add(entry.id);
+    results.push(mapLinkableEntry(entry, projectId));
+  }
+
+  return results;
 }
 
 export async function getDashboardStats(
