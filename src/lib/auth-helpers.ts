@@ -56,15 +56,26 @@ export async function requireProjectRole(
     },
   });
 
-  if (!membership) {
-    throw new Error("Kein Zugriff auf dieses Projekt");
+  if (membership) {
+    if (PROJECT_ROLE_RANK[membership.role] < PROJECT_ROLE_RANK[minRole]) {
+      throw new Error("Unzureichende Berechtigung");
+    }
+    return { session, membership };
   }
 
-  if (PROJECT_ROLE_RANK[membership.role] < PROJECT_ROLE_RANK[minRole]) {
-    throw new Error("Unzureichende Berechtigung");
+  if (await isAppAdmin(session.user.id)) {
+    return {
+      session,
+      membership: {
+        projectId,
+        userId: session.user.id,
+        role: "owner" as ProjectRole,
+        joinedAt: new Date(0),
+      },
+    };
   }
 
-  return { session, membership };
+  throw new Error("Kein Zugriff auf dieses Projekt");
 }
 
 export async function getUserProjectRole(
@@ -77,7 +88,9 @@ export async function getUserProjectRole(
     },
     select: { role: true },
   });
-  return membership?.role ?? null;
+  if (membership) return membership.role;
+  if (await isAppAdmin(userId)) return "owner";
+  return null;
 }
 
 export async function isAppAdmin(userId: string): Promise<boolean> {

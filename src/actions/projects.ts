@@ -166,6 +166,7 @@ export async function getActiveProjectId(): Promise<string | null> {
   const session = await requireAuth().catch(() => null);
   if (!session) return null;
 
+  const admin = await isAppAdmin(session.user.id);
   const cookieStore = await cookies();
   const cookieProjectId = cookieStore.get(PROJECT_COOKIE)?.value;
 
@@ -179,6 +180,14 @@ export async function getActiveProjectId(): Promise<string | null> {
       },
     });
     if (membership) return cookieProjectId;
+
+    if (admin) {
+      const project = await db.project.findUnique({
+        where: { id: cookieProjectId },
+        select: { id: true },
+      });
+      if (project) return cookieProjectId;
+    }
   }
 
   const firstMembership = await db.projectMember.findFirst({
@@ -187,7 +196,17 @@ export async function getActiveProjectId(): Promise<string | null> {
     select: { projectId: true },
   });
 
-  return firstMembership?.projectId ?? null;
+  if (firstMembership) return firstMembership.projectId;
+
+  if (admin) {
+    const firstProject = await db.project.findFirst({
+      orderBy: { updatedAt: "desc" },
+      select: { id: true },
+    });
+    return firstProject?.id ?? null;
+  }
+
+  return null;
 }
 
 export async function acceptInvite(
@@ -263,6 +282,21 @@ export async function listProjectMembers(projectId: string) {
 
 export async function listUserProjects() {
   const session = await requireAuth();
+
+  if (await isAppAdmin(session.user.id)) {
+    const projects = await db.project.findMany({
+      orderBy: { name: "asc" },
+      select: { id: true, slug: true, name: true, icon: true },
+    });
+    return projects.map((project) => ({
+      projectId: project.id,
+      userId: session.user.id,
+      role: "owner" as const,
+      joinedAt: new Date(0),
+      project,
+    }));
+  }
+
   return db.projectMember.findMany({
     where: { userId: session.user.id },
     include: {

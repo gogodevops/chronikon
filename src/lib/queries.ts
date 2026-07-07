@@ -6,7 +6,7 @@ import type {
   Project,
 } from "@prisma/client";
 
-import { requireProjectRole } from "@/lib/auth-helpers";
+import { isAppAdmin, requireProjectRole } from "@/lib/auth-helpers";
 import { CONF_META, RELATION_LABELS, TYPE_META } from "@/lib/constants";
 import {
   currentEntryState,
@@ -272,25 +272,32 @@ export async function getProjectBySlug(
   slug: string,
   userId: string,
 ): Promise<ProjectWithTopics | null> {
+  const projectInclude = {
+    topics: { select: { id: true, name: true }, orderBy: { name: "asc" as const } },
+    savedViews: {
+      select: { id: true, label: true, filter: true },
+      orderBy: { createdAt: "asc" as const },
+    },
+  };
+
   const membership = await db.projectMember.findFirst({
     where: {
       userId,
       project: { slug },
     },
     include: {
-      project: {
-        include: {
-          topics: { select: { id: true, name: true }, orderBy: { name: "asc" } },
-          savedViews: {
-            select: { id: true, label: true, filter: true },
-            orderBy: { createdAt: "asc" },
-          },
-        },
-      },
+      project: { include: projectInclude },
     },
   });
 
-  return membership?.project ?? null;
+  if (membership) return membership.project;
+
+  if (!(await isAppAdmin(userId))) return null;
+
+  return db.project.findUnique({
+    where: { slug },
+    include: projectInclude,
+  });
 }
 
 export async function getEntriesForProject(
