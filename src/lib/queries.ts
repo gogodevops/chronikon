@@ -6,7 +6,7 @@ import type {
   Project,
 } from "@prisma/client";
 
-import { isAppAdmin, requireProjectRole } from "@/lib/auth-helpers";
+import { requireProjectRole } from "@/lib/auth-helpers";
 import { CONF_META, RELATION_LABELS, TYPE_META } from "@/lib/constants";
 import {
   currentEntryState,
@@ -291,8 +291,6 @@ export async function getProjectBySlug(
   });
 
   if (membership) return membership.project;
-
-  if (!(await isAppAdmin(userId))) return null;
 
   return db.project.findUnique({
     where: { slug },

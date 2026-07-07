@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
+import type { ProjectRole } from "@prisma/client";
 import { z } from "zod";
 
 import type { ActionResult } from "@/actions/auth";
@@ -44,6 +45,15 @@ export async function getUserLandingPath(userId: string): Promise<string> {
 
   if (firstMembership) {
     return `/p/${firstMembership.project.slug}/dashboard`;
+  }
+
+  const firstProject = await db.project.findFirst({
+    orderBy: { name: "asc" },
+    select: { slug: true },
+  });
+
+  if (firstProject) {
+    return `/p/${firstProject.slug}/dashboard`;
   }
 
   return "/app";
@@ -166,28 +176,15 @@ export async function getActiveProjectId(): Promise<string | null> {
   const session = await requireAuth().catch(() => null);
   if (!session) return null;
 
-  const admin = await isAppAdmin(session.user.id);
   const cookieStore = await cookies();
   const cookieProjectId = cookieStore.get(PROJECT_COOKIE)?.value;
 
   if (cookieProjectId) {
-    const membership = await db.projectMember.findUnique({
-      where: {
-        projectId_userId: {
-          projectId: cookieProjectId,
-          userId: session.user.id,
-        },
-      },
+    const project = await db.project.findUnique({
+      where: { id: cookieProjectId },
+      select: { id: true },
     });
-    if (membership) return cookieProjectId;
-
-    if (admin) {
-      const project = await db.project.findUnique({
-        where: { id: cookieProjectId },
-        select: { id: true },
-      });
-      if (project) return cookieProjectId;
-    }
+    if (project) return cookieProjectId;
   }
 
   const firstMembership = await db.projectMember.findFirst({
@@ -198,15 +195,11 @@ export async function getActiveProjectId(): Promise<string | null> {
 
   if (firstMembership) return firstMembership.projectId;
 
-  if (admin) {
-    const firstProject = await db.project.findFirst({
-      orderBy: { updatedAt: "desc" },
-      select: { id: true },
-    });
-    return firstProject?.id ?? null;
-  }
-
-  return null;
+  const firstProject = await db.project.findFirst({
+    orderBy: { updatedAt: "desc" },
+    select: { id: true },
+  });
+  return firstProject?.id ?? null;
 }
 
 export async function acceptInvite(
@@ -282,29 +275,41 @@ export async function listProjectMembers(projectId: string) {
 
 export async function listUserProjects() {
   const session = await requireAuth();
+  const admin = await isAppAdmin(session.user.id);
 
-  if (await isAppAdmin(session.user.id)) {
-    const projects = await db.project.findMany({
+  const [projects, memberships] = await Promise.all([
+    db.project.findMany({
       orderBy: { name: "asc" },
       select: { id: true, slug: true, name: true, icon: true },
-    });
-    return projects.map((project) => ({
+    }),
+    db.projectMember.findMany({
+      where: { userId: session.user.id },
+      select: { projectId: true, role: true, joinedAt: true },
+    }),
+  ]);
+
+  const membershipByProject = new Map(
+    memberships.map((m) => [m.projectId, m]),
+  );
+
+  return projects.map((project) => {
+    const membership = membershipByProject.get(project.id);
+    if (membership) {
+      return {
+        projectId: project.id,
+        userId: session.user.id,
+        role: membership.role,
+        joinedAt: membership.joinedAt,
+        project,
+      };
+    }
+    return {
       projectId: project.id,
       userId: session.user.id,
-      role: "owner" as const,
+      role: (admin ? "owner" : "viewer") as ProjectRole,
       joinedAt: new Date(0),
       project,
-    }));
-  }
-
-  return db.projectMember.findMany({
-    where: { userId: session.user.id },
-    include: {
-      project: {
-        select: { id: true, slug: true, name: true, icon: true },
-      },
-    },
-    orderBy: { joinedAt: "asc" },
+    };
   });
 }
 
