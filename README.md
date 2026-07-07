@@ -58,15 +58,15 @@ Mit `STORAGE_MODE=local` (Standard, wenn kein S3 konfiguriert) landen Uploads in
 
 ---
 
-## Demo-Zugang (nach Seed)
+## Admin-Zugang (nach Seed)
 
-| E-Mail | Passwort | Rolle |
-|--------|----------|-------|
-| max@chronikon.dev | demo123 | Owner |
-| sarah@chronikon.dev | demo123 | Editor |
-| thomas@chronikon.dev | demo123 | Commenter |
+| E-Mail | Passwort | Hinweis |
+|--------|----------|---------|
+| `admin@chronikon.dev` | `Chronikon-Admin-2026!` | Einziger Benutzer; kein Demo-Inhalt |
 
-Projekte: `/p/bibel` · `/p/byzanz`
+Passwort per Umgebungsvariable `SEED_ADMIN_PASSWORD` beim Seed änderbar.
+
+Nach dem Login das erste **Ober-Thema** unter dem Projekt-Dropdown („+ Neues Ober-Thema…") oder auf `/projects/new` anlegen.
 
 ---
 

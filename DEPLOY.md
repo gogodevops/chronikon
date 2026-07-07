@@ -38,7 +38,8 @@ cp .env.production.example .env.production
 npm run deploy:db
 ```
 
-Demo-Login danach: `max@chronikon.dev` / `demo123`
+Admin-Login danach: `admin@chronikon.dev` / `Chronikon-Admin-2026!`  
+Erstes Ober-Thema im App-Header unter „+ Neues Ober-Thema…" anlegen.
 
 ---
 

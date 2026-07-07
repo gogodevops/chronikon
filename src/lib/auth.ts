@@ -1,4 +1,3 @@
-import { PrismaAdapter } from "@auth/prisma-adapter";
 import bcrypt from "bcryptjs";
 import type { NextAuthConfig } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
@@ -11,12 +10,18 @@ const credentialsSchema = z.object({
   password: z.string().min(6),
 });
 
+function authSecret(): string | undefined {
+  const secret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET;
+  if (!secret || secret.includes("change-me")) return undefined;
+  return secret;
+}
+
 export const authConfig = {
-  secret: process.env.AUTH_SECRET,
-  adapter: PrismaAdapter(db),
-  session: { strategy: "jwt" },
+  secret: authSecret(),
+  session: { strategy: "jwt" as const },
   pages: {
     signIn: "/login",
+    error: "/login",
   },
   providers: [
     Credentials({

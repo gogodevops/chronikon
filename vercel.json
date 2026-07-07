@@ -1,9 +1,9 @@
 {
-  "buildCommand": "npm run db:generate && npm run build",
+  "buildCommand": "npm run db:generate && npx prisma db push && npm run build",
   "framework": "nextjs",
   "regions": ["fra1"],
   "env": {
     "AI_MOCK_MODE": "true",
-    "STORAGE_MODE": "s3"
+    "AUTH_TRUST_HOST": "true"
   }
 }

@@ -7,7 +7,11 @@ import {
   downloadFile as downloadFromS3,
   uploadFile as uploadToS3,
 } from "@/lib/s3";
-import { filePublicUrl, storageMode } from "@/lib/storage-config";
+import {
+  filePublicUrl,
+  hasS3Config,
+  storageMode,
+} from "@/lib/storage-config";
 
 export type StoredFile = {
   storageKey: string;
@@ -38,6 +42,11 @@ export async function storeFile(
   filename: string,
   mimeType: string,
 ): Promise<StoredFile> {
+  if (process.env.VERCEL === "1" && !hasS3Config()) {
+    throw new Error(
+      "Datei-Upload auf Vercel erfordert R2/S3 (S3_ENDPOINT, S3_ACCESS_KEY, S3_SECRET_KEY).",
+    );
+  }
   if (storageMode() === "local") {
     return uploadLocal(file, filename);
   }

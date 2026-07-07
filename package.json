@@ -12,6 +12,7 @@
     "db:seed": "tsx prisma/seed.ts",
     "deploy:check": "node scripts/check-deploy-env.mjs",
     "deploy:db": "node scripts/deploy-db.mjs",
+    "setup:online": "powershell -ExecutionPolicy Bypass -File scripts/setup-online.ps1",
     "docker:up": "docker compose up -d"
   },
   "prisma": {

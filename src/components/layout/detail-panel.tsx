@@ -111,14 +111,28 @@ export function DetailPanel({
   if (!entry) {
     return (
       <aside className={panelClass}>
+        <header className="shrink-0 border-b border-border/80 bg-surface-2/30 px-4 py-2.5">
+          <div className="flex items-center gap-2">
+            <span className="flex h-5 w-5 items-center justify-center rounded-md bg-accent-dim text-[0.65rem] font-bold text-accent">
+              3
+            </span>
+            <span className="text-[0.8rem] font-semibold text-foreground">
+              Detailansicht
+            </span>
+          </div>
+          <p className="mt-1 pl-7 text-[0.68rem] text-muted-foreground">
+            Wähle links einen Eintrag aus der Liste.
+          </p>
+        </header>
         <div className="flex flex-1 flex-col items-center justify-center p-8 text-center">
           <FileSearch
             className="mb-3 h-10 w-10 text-muted-foreground/40"
             strokeWidth={1.25}
           />
-          <p className="text-sm font-medium text-foreground">Eintrag auswählen</p>
-          <p className="mt-1 max-w-[220px] text-[0.78rem] text-muted-foreground">
-            Wähle links einen Eintrag, um Details, Quellen und Diskussion zu sehen.
+          <p className="text-sm font-medium text-foreground">Noch kein Eintrag gewählt</p>
+          <p className="mt-1 max-w-[240px] text-[0.78rem] text-muted-foreground">
+            Schritt 2 links: Eintrag anklicken — hier erscheinen Inhalt, Quellen
+            und Diskussion.
           </p>
         </div>
       </aside>
@@ -135,6 +149,19 @@ export function DetailPanel({
 
   return (
     <aside className={panelClass}>
+      <header className="shrink-0 border-b border-border/80 bg-surface-2/30 px-4 py-2.5">
+        <div className="flex items-center gap-2">
+          <span className="flex h-5 w-5 items-center justify-center rounded-md bg-accent-dim text-[0.65rem] font-bold text-accent">
+            3
+          </span>
+          <span className="text-[0.8rem] font-semibold text-foreground">
+            Detailansicht
+          </span>
+        </div>
+        <p className="mt-0.5 truncate pl-7 text-[0.68rem] text-muted-foreground">
+          {entry.title}
+        </p>
+      </header>
       <ScrollArea className="flex-1">
         <div className="border-b border-border/80 bg-surface-2/30 px-5 py-4">
           <div className="mb-2 flex flex-wrap items-center gap-2">

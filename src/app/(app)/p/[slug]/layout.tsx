@@ -1,11 +1,11 @@
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 
+import { getUserLandingPath, listUserProjects } from "@/actions/projects";
 import { auth } from "@/auth";
 import { ProjectProvider } from "@/context/project-context";
 import { getUserProjectRole } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { getNotifications, getProjectBySlug } from "@/lib/queries";
-import { listUserProjects } from "@/actions/projects";
 
 export default async function ProjectLayout({
   children,
@@ -22,7 +22,7 @@ export default async function ProjectLayout({
 
   const project = await getProjectBySlug(slug, session.user.id);
   if (!project) {
-    notFound();
+    redirect(await getUserLandingPath(session.user.id));
   }
 
   const [memberships, role, user, notifications] = await Promise.all([

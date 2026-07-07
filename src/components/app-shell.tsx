@@ -295,6 +295,16 @@ export function AppShell({
     });
   };
 
+  const handleClearFilters = () => {
+    updateParams((params) => {
+      params.delete("q");
+      params.delete("topic");
+      params.delete("type");
+      params.delete("confidence");
+      params.delete("savedView");
+    });
+  };
+
   const handlePaletteSearch = React.useCallback(
     async (query: string) => {
       if (!query.trim()) {
@@ -659,6 +669,7 @@ export function AppShell({
         userInitials={ctx.userInitials}
         notifications={ctx.notifications}
         showTeamNav={canManageTeam(ctx.userRole)}
+        canCreateProject
         onViewChange={handleViewChange}
         onProjectChange={handleProjectChange}
         onCommandPaletteOpen={() => setPaletteOpen(true)}
@@ -698,6 +709,7 @@ export function AppShell({
             onEntrySelect={handleEntrySelect}
             onExpandList={() => setListLimit((l) => l + LIST_LIMIT)}
             onCommandPaletteOpen={() => setPaletteOpen(true)}
+            onClearFilters={handleClearFilters}
           />
         )}
 

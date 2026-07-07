@@ -8,8 +8,95 @@ import { z } from "zod";
 import type { ActionResult } from "@/actions/auth";
 import { requireAuth, requireProjectRole } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
+import { slugify } from "@/lib/slug";
+import { uniqueProjectSlug } from "@/lib/slugify";
 
 const PROJECT_COOKIE = "chronikon_project";
+
+const createProjectSchema = z.object({
+  name: z.string().min(1, "Name erforderlich").max(120),
+  slug: z
+    .string()
+    .min(1)
+    .max(60)
+    .regex(/^[a-z0-9-]+$/, "Nur Kleinbuchstaben, Zahlen und Bindestriche")
+    .optional(),
+  icon: z.string().min(1).max(8).default("✦"),
+  description: z.string().max(500).optional(),
+});
+
+export async function getUserLandingPath(userId: string): Promise<string> {
+  const firstMembership = await db.projectMember.findFirst({
+    where: { userId },
+    orderBy: { joinedAt: "asc" },
+    include: { project: { select: { slug: true } } },
+  });
+
+  if (firstMembership) {
+    return `/p/${firstMembership.project.slug}/dashboard`;
+  }
+
+  return "/projects/new";
+}
+
+export async function createProject(
+  input: z.infer<typeof createProjectSchema>,
+): Promise<ActionResult<{ slug: string }>> {
+  const parsed = createProjectSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: parsed.error.issues[0]?.message ?? "Ungültige Eingabe",
+    };
+  }
+
+  const session = await requireAuth();
+  const { name, icon, description } = parsed.data;
+
+  const slug = parsed.data.slug
+    ? parsed.data.slug
+    : await uniqueProjectSlug(name, async (candidate) => {
+        const existing = await db.project.findUnique({
+          where: { slug: candidate },
+        });
+        return Boolean(existing);
+      });
+
+  const existing = await db.project.findUnique({ where: { slug } });
+  if (existing) {
+    return { success: false, error: "Diese Kurz-URL ist bereits vergeben" };
+  }
+
+  const project = await db.$transaction(async (tx) => {
+    const created = await tx.project.create({
+      data: {
+        slug,
+        name,
+        icon,
+        description: description || null,
+      },
+    });
+    await tx.projectMember.create({
+      data: {
+        projectId: created.id,
+        userId: session.user.id,
+        role: "owner",
+      },
+    });
+    return created;
+  });
+
+  const cookieStore = await cookies();
+  cookieStore.set(PROJECT_COOKIE, project.id, {
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 365,
+  });
+
+  revalidatePath("/");
+  return { success: true, data: { slug: project.slug } };
+}
 
 const inviteSchema = z.object({
   projectId: z.string().cuid(),
@@ -76,7 +163,10 @@ export async function inviteMember(
 ): Promise<ActionResult<{ inviteId: string; token: string }>> {
   const parsed = inviteSchema.safeParse(input);
   if (!parsed.success) {
-    return { success: false, error: parsed.error.issues[0]?.message ?? "Ungültige Eingabe" };
+    return {
+      success: false,
+      error: parsed.error.issues[0]?.message ?? "Ungültige Eingabe",
+    };
   }
 
   const { session } = await requireProjectRole(parsed.data.projectId, "owner");
@@ -114,7 +204,9 @@ export async function inviteMember(
   };
 }
 
-export async function acceptInvite(token: string): Promise<ActionResult<{ projectId: string }>> {
+export async function acceptInvite(
+  token: string,
+): Promise<ActionResult<{ projectId: string }>> {
   const session = await requireAuth();
 
   const invite = await db.projectInvite.findUnique({

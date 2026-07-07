@@ -8,9 +8,15 @@ import { loginAction, type LoginState } from "@/actions/login";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
+function sanitizeCallbackUrl(url: string | null): string {
+  if (!url) return "/";
+  if (url.startsWith("/p/")) return "/";
+  return url;
+}
+
 function LoginForm() {
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") ?? "/p/bibel/dashboard";
+  const callbackUrl = sanitizeCallbackUrl(searchParams.get("callbackUrl"));
 
   const [state, formAction, pending] = useActionState<LoginState, FormData>(
     loginAction,
@@ -32,7 +38,6 @@ function LoginForm() {
             name="email"
             type="email"
             required
-            defaultValue="max@chronikon.dev"
             autoComplete="email"
           />
         </div>
@@ -44,13 +49,18 @@ function LoginForm() {
             name="password"
             type="password"
             required
-            defaultValue="demo123"
             autoComplete="current-password"
           />
         </div>
-        {state.error && (
-          <p className="text-sm text-destructive">{state.error}</p>
-        )}
+          {state.error && (
+            <p className="text-sm text-destructive">{state.error}</p>
+          )}
+          {searchParams.get("error") === "Configuration" && !state.error && (
+            <p className="text-sm text-destructive">
+              Server-Konfiguration: AUTH_SECRET fehlt in Vercel Environment
+              Variables.
+            </p>
+          )}
         <Button type="submit" className="w-full" disabled={pending}>
           {pending ? "Anmelden…" : "Anmelden"}
         </Button>

@@ -51,16 +51,12 @@ if (!process.env.AUTH_URL) {
   warnings.push("AUTH_URL — nach Deploy auf https://deine-app.vercel.app setzen");
 }
 
-const storage = (process.env.STORAGE_MODE ?? "").toLowerCase();
 const hasS3 =
   process.env.S3_ENDPOINT &&
   process.env.S3_ACCESS_KEY &&
   process.env.S3_SECRET_KEY;
 
-if (storage === "s3" || hasS3) {
-  req("S3_ENDPOINT");
-  req("S3_ACCESS_KEY");
-  req("S3_SECRET_KEY");
+if (hasS3) {
   if (!process.env.S3_BUCKET) {
     warnings.push("S3_BUCKET — Standard: chronikon-attachments");
   }
@@ -70,7 +66,9 @@ if (storage === "s3" || hasS3) {
     );
   }
 } else if (process.env.VERCEL === "1") {
-  errors.push("Auf Vercel: STORAGE_MODE=s3 + Cloudflare R2 konfigurieren");
+  warnings.push(
+    "R2/S3 nicht konfiguriert — App läuft, Datei-Uploads erst nach S3_* Variablen",
+  );
 }
 
 if (!process.env.OPENAI_API_KEY && process.env.AI_MOCK_MODE !== "true") {

@@ -50,17 +50,17 @@ console.log("  → prisma db push");
 const push = spawnSync("npx", ["prisma", "db", "push"], {
   cwd: root,
   stdio: "inherit",
-  shell: true,
   env: process.env,
+  shell: process.platform === "win32",
 });
 if (push.status !== 0) process.exit(push.status ?? 1);
 
-console.log("\n  → prisma db seed");
-const seed = spawnSync("npx", ["prisma", "db", "seed"], {
+console.log("\n  → seed (tsx prisma/seed.ts)");
+const seed = spawnSync("npm", ["run", "db:seed"], {
   cwd: root,
   stdio: "inherit",
-  shell: true,
   env: process.env,
+  shell: process.platform === "win32",
 });
 if (seed.status !== 0) process.exit(seed.status ?? 1);
 

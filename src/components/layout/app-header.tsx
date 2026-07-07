@@ -7,8 +7,10 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { CreateProjectDialog } from "@/components/create-project-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { NotificationBell } from "@/components/notification-bell";
 import type { SerializedNotification } from "@/lib/queries";
@@ -40,6 +42,7 @@ export interface AppHeaderProps {
   userInitials?: string;
   notifications?: SerializedNotification[];
   showTeamNav?: boolean;
+  canCreateProject?: boolean;
   onViewChange?: (view: AppView) => void;
   onProjectChange?: (projectId: string) => void;
   onCommandPaletteOpen?: () => void;
@@ -66,24 +69,27 @@ function buildNavItems(showTeamNav: boolean) {
   return items;
 }
 
-const DEFAULT_PROJECTS: ProjectOption[] = [
-  { id: "bibel", name: "Frühes Christentum / Bibel", icon: "✦" },
-  { id: "byzanz", name: "Byzantinisches Reich", icon: "◆" },
-];
-
 export function AppHeader({
-  projects = DEFAULT_PROJECTS,
-  currentProject = DEFAULT_PROJECTS[0],
+  projects = [],
+  currentProject,
   activeView = "dashboard",
   userName = "Max Forscher",
   userImage,
   userInitials = "MF",
   notifications = [],
   showTeamNav = false,
+  canCreateProject = false,
   onViewChange,
   onProjectChange,
   onCommandPaletteOpen,
 }: AppHeaderProps) {
+  const [createOpen, setCreateOpen] = React.useState(false);
+  const activeProject = currentProject ?? projects[0] ?? {
+    id: "",
+    name: "Kein Projekt",
+    icon: "✦",
+  };
+
   React.useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
@@ -109,8 +115,8 @@ export function AppHeader({
             type="button"
             className="flex min-w-[200px] cursor-pointer items-center gap-2 rounded-lg border border-border/80 bg-surface-2/80 px-3 py-1.5 text-[0.82rem] transition-colors hover:border-accent/30 hover:bg-surface-3"
           >
-            <span>{currentProject.icon}</span>
-            <span className="truncate">{currentProject.name}</span>
+            <span>{activeProject.icon}</span>
+            <span className="truncate">{activeProject.name}</span>
             <span className="ml-auto text-muted">▾</span>
           </button>
         </DropdownMenuTrigger>
@@ -119,7 +125,7 @@ export function AppHeader({
             <DropdownMenuItem
               key={project.id}
               className={cn(
-                project.id === currentProject.id && "text-accent",
+                project.id === activeProject.id && "text-accent",
               )}
               onClick={() => onProjectChange?.(project.id)}
             >
@@ -127,8 +133,21 @@ export function AppHeader({
               {project.name}
             </DropdownMenuItem>
           ))}
+          {canCreateProject && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setCreateOpen(true)}>
+                <span className="text-accent">+</span>
+                Neues Ober-Thema…
+              </DropdownMenuItem>
+            </>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {canCreateProject && (
+        <CreateProjectDialog open={createOpen} onOpenChange={setCreateOpen} />
+      )}
 
       <nav className="flex flex-1 gap-1 overflow-x-auto rounded-lg bg-surface-2/40 p-0.5">
         {navItems.map(({ view, label }) => (
@@ -165,7 +184,7 @@ export function AppHeader({
 
         <NotificationBell
           notifications={notifications}
-          projectSlug={currentProject.id}
+          projectSlug={activeProject.id}
         />
 
         <Avatar title={userName} className="h-[30px] w-[30px] cursor-pointer">
