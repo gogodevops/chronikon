@@ -30,7 +30,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { runServerAction } from "@/lib/action-feedback";
 import { PROJECT_ROLES, ROLE_META } from "@/lib/constants";
 import { ViewFrame } from "@/components/ui/chronikon-shell";
 
@@ -71,52 +70,75 @@ export function TeamView({
   const [email, setEmail] = React.useState("");
   const [role, setRole] = React.useState<string>("commenter");
   const [pending, setPending] = React.useState(false);
+  const [actionError, setActionError] = React.useState<string | null>(null);
+  const [copiedInviteId, setCopiedInviteId] = React.useState<string | null>(null);
+
+  const runAction = async (
+    action: () => Promise<{ success: boolean; error?: string }>,
+    onSuccess?: () => void,
+  ) => {
+    setActionError(null);
+    try {
+      const result = await action();
+      if (!result.success) {
+        setActionError(result.error ?? "Aktion fehlgeschlagen");
+        return false;
+      }
+      onSuccess?.();
+      return true;
+    } catch (error) {
+      setActionError(
+        error instanceof Error ? error.message : "Unbekannter Fehler",
+      );
+      return false;
+    }
+  };
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     setPending(true);
 
-    const ok = await runServerAction(() =>
-      addProjectMember({
-        projectId,
-        email,
-        role: role as TeamMember["role"],
-      }),
+    const ok = await runAction(
+      () =>
+        addProjectMember({
+          projectId,
+          email,
+          role: role as TeamMember["role"],
+        }),
+      () => setEmail(""),
     );
 
     setPending(false);
-    if (ok) {
-      setEmail("");
-      router.refresh();
-    }
+    if (ok) router.refresh();
   };
 
   const handleRoleChange = async (memberId: string, newRole: string) => {
-    await runServerAction(() =>
+    const ok = await runAction(() =>
       updateMemberRole({
         projectId,
         memberId,
         role: newRole as TeamMember["role"],
       }),
     );
-    router.refresh();
+    if (ok) router.refresh();
   };
 
   const handleRemove = async (memberId: string, memberName: string) => {
     if (!window.confirm(`${memberName} aus dem Projekt entfernen?`)) return;
-    await runServerAction(() => removeProjectMember(projectId, memberId));
-    router.refresh();
+    const ok = await runAction(() => removeProjectMember(projectId, memberId));
+    if (ok) router.refresh();
   };
 
   const handleRevokeInvite = async (inviteId: string) => {
-    await runServerAction(() => revokeProjectInvite(projectId, inviteId));
-    router.refresh();
+    const ok = await runAction(() => revokeProjectInvite(projectId, inviteId));
+    if (ok) router.refresh();
   };
 
-  const copyInviteLink = async (token: string) => {
+  const copyInviteLink = async (inviteId: string, token: string) => {
     const link = `${window.location.origin}/invite/${token}`;
     await navigator.clipboard.writeText(link);
-    window.alert("Einladungslink kopiert");
+    setCopiedInviteId(inviteId);
+    window.setTimeout(() => setCopiedInviteId(null), 2000);
   };
 
   return (
@@ -126,6 +148,15 @@ export function TeamView({
       description="Registrierte Nutzer zum Projekt hinzufügen, Rollen vergeben und Zugriffsrechte verwalten."
       maxWidth="xl"
     >
+        {actionError && (
+          <p
+            role="alert"
+            className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+          >
+            {actionError}
+          </p>
+        )}
+
         <section className="mb-8 rounded-xl border border-border bg-surface-2/80 p-5">
           <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold">
             <Shield className="h-4 w-4 text-accent" />
@@ -271,10 +302,18 @@ export function TeamView({
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8"
-                        onClick={() => copyInviteLink(invite.token)}
-                        title="Link kopieren"
+                        onClick={() => copyInviteLink(invite.id, invite.token)}
+                        title={
+                          copiedInviteId === invite.id
+                            ? "Kopiert!"
+                            : "Link kopieren"
+                        }
                       >
-                        <Copy className="h-3.5 w-3.5" />
+                        {copiedInviteId === invite.id ? (
+                          <Check className="h-3.5 w-3.5 text-green" />
+                        ) : (
+                          <Copy className="h-3.5 w-3.5" />
+                        )}
                       </Button>
                       <Button
                         variant="ghost"

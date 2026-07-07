@@ -22,10 +22,24 @@ const updateRoleSchema = z.object({
   role: roleSchema,
 });
 
-async function countOwners(projectId: string): Promise<number> {
-  return db.projectMember.count({
-    where: { projectId, role: "owner" },
+/** True when no project owner would remain and no app admin exists as fallback. */
+async function wouldLeaveProjectWithoutAdmin(
+  projectId: string,
+  options?: { excludeMemberId?: string },
+): Promise<boolean> {
+  const remainingOwners = await db.projectMember.count({
+    where: {
+      projectId,
+      role: "owner",
+      ...(options?.excludeMemberId
+        ? { id: { not: options.excludeMemberId } }
+        : {}),
+    },
   });
+  if (remainingOwners > 0) return false;
+
+  const appAdmins = await findAppAdminUsers();
+  return appAdmins.length === 0;
 }
 
 export async function getTeamData(projectId: string) {
@@ -166,21 +180,17 @@ export async function updateMemberRole(
   }
 
   if (member.role === "owner" && parsed.data.role !== "owner") {
-    const owners = await countOwners(parsed.data.projectId);
-    if (owners <= 1) {
+    if (
+      await wouldLeaveProjectWithoutAdmin(parsed.data.projectId, {
+        excludeMemberId: parsed.data.memberId,
+      })
+    ) {
+      const isSelf = member.userId === session.user.id;
       return {
         success: false,
-        error: "Mindestens ein Admin muss im Projekt bleiben",
-      };
-    }
-  }
-
-  if (member.userId === session.user.id && parsed.data.role !== "owner") {
-    const owners = await countOwners(parsed.data.projectId);
-    if (owners <= 1 && member.role === "owner") {
-      return {
-        success: false,
-        error: "Du bist der einzige Admin — Rolle kann nicht geändert werden",
+        error: isSelf
+          ? "Du bist der einzige Projekt-Admin — ohne App-Administrator kann die Rolle nicht geändert werden."
+          : "Mindestens ein Projekt-Admin muss bleiben — kein App-Administrator als Fallback vorhanden.",
       };
     }
   }
@@ -209,11 +219,15 @@ export async function removeProjectMember(
   }
 
   if (member.role === "owner") {
-    const owners = await countOwners(projectId);
-    if (owners <= 1) {
+    if (
+      await wouldLeaveProjectWithoutAdmin(projectId, {
+        excludeMemberId: memberId,
+      })
+    ) {
       return {
         success: false,
-        error: "Der letzte Admin kann nicht entfernt werden",
+        error:
+          "Der letzte Projekt-Admin kann nicht entfernt werden — kein App-Administrator als Fallback vorhanden.",
       };
     }
   }
