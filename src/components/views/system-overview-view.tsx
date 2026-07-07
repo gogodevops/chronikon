@@ -13,182 +13,236 @@ import {
   Users,
 } from "lucide-react";
 
-import { ActivityFeed } from "@/components/activity-feed";
+import {
+  AppHeader,
+  type ProjectOption,
+} from "@/components/layout/app-header";
+import { CreateProjectDialog } from "@/components/create-project-dialog";
+import { SystemActivityFeed } from "@/components/system-activity-feed";
 import { Button } from "@/components/ui/button";
 import { ViewFrame } from "@/components/ui/chronikon-shell";
 import { CHANGELOG } from "@/lib/changelog";
-import type { SystemOverview } from "@/lib/queries";
+import type { SerializedNotification } from "@/lib/queries";
+import type {
+  SystemActivityItem,
+  SystemOverviewStats,
+  SystemProjectRow,
+  SystemUserRow,
+} from "@/lib/system-queries";
+
+export type SystemOverviewViewProps = {
+  projects: ProjectOption[];
+  userName: string;
+  userInitials: string;
+  userImage?: string | null;
+  notifications: SerializedNotification[];
+  isAppAdmin: boolean;
+  stats: SystemOverviewStats;
+  users: SystemUserRow[];
+  systemProjects: SystemProjectRow[];
+  activity: SystemActivityItem[];
+};
 
 export function SystemOverviewView({
-  overview,
-  onCreateProject,
-}: {
-  overview: SystemOverview;
-  onCreateProject?: () => void;
-}) {
-  const firstProjectSlug = overview.projects[0]?.slug ?? "";
+  projects,
+  userName,
+  userInitials,
+  userImage,
+  notifications,
+  stats,
+  users,
+  systemProjects,
+  activity,
+}: SystemOverviewViewProps) {
+  const [createOpen, setCreateOpen] = React.useState(false);
 
   return (
-    <ViewFrame
-      eyebrow="Chronikon"
-      title="System-Übersicht"
-      description="Plattformweite Kennzahlen, Nutzer und letzte Aktivität."
-      maxWidth="full"
-      fixedBody
-    >
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-5 py-3">
-        <div className="mb-3 flex flex-wrap gap-2">
-          {onCreateProject && (
-            <Button size="sm" className="gap-1.5" onClick={onCreateProject}>
-              <Plus className="h-3.5 w-3.5" />
-              Neues Ober-Thema
-            </Button>
-          )}
-          <Button size="sm" variant="outline" className="gap-1.5" asChild>
-            <Link href="/admin/users">
-              <UserPlus className="h-3.5 w-3.5" />
-              Nutzer einladen
-            </Link>
-          </Button>
-          <Button size="sm" variant="outline" className="gap-1.5" asChild>
-            <Link href="/admin/users">
-              <Users className="h-3.5 w-3.5" />
-              Nutzer verwalten
-            </Link>
-          </Button>
-        </div>
+    <div className="flex h-screen flex-col overflow-hidden bg-background">
+      <AppHeader
+        projects={projects}
+        activeView="dashboard"
+        userName={userName}
+        userImage={userImage ?? undefined}
+        userInitials={userInitials}
+        notifications={notifications}
+        canCreateProject
+        isAppAdmin
+        isSystemView
+        navDisabled
+        createDialogOpen={createOpen}
+        onCreateDialogOpenChange={setCreateOpen}
+        onProjectChange={(slug) => {
+          window.location.href = `/p/${slug}/dashboard`;
+        }}
+      />
+      <CreateProjectDialog open={createOpen} onOpenChange={setCreateOpen} />
 
-        <div className="mb-3 grid shrink-0 grid-cols-2 gap-2 md:grid-cols-4">
-          <KpiCard label="Nutzer" value={overview.userCount} />
-          <KpiCard label="Ober-Themen" value={overview.projectCount} />
-          <KpiCard
-            label="Einträge gesamt"
-            value={overview.projects.reduce((sum, p) => sum + p.entryCount, 0)}
-          />
-          <KpiCard label="Aktivitäten" value={overview.recentActivity.length} />
-        </div>
-
-        <div className="grid min-h-0 flex-1 gap-3 overflow-hidden lg:grid-cols-5">
-          <section className="flex min-h-0 flex-col overflow-hidden lg:col-span-3">
-            <SectionCard
-              title="Letzte Aktivität"
-              subtitle="Über alle Ober-Themen"
-              icon={Sparkles}
-              scroll
-            >
-              <ActivityFeed
-                items={overview.recentActivity}
-                projectSlug={firstProjectSlug}
-                compact
-              />
-            </SectionCard>
-          </section>
-
-          <aside className="flex min-h-0 flex-col gap-3 overflow-y-auto lg:col-span-2">
-            <SectionCard title="Nutzer im System" subtitle={`${overview.userCount} gesamt`}>
-              <ul className="space-y-2">
-                {overview.users.map((user) => (
-                  <li
-                    key={user.id}
-                    className="flex items-center gap-2 rounded-lg border border-border/60 bg-surface-2/50 px-2.5 py-2"
-                  >
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-surface-3 text-[0.65rem] font-medium">
-                      {user.avatarInitials ?? "?"}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-[0.78rem] font-medium">
-                        {user.name ?? user.email}
-                      </p>
-                      <p className="truncate text-[0.68rem] text-muted-foreground">
-                        {user.projectCount} Ober-Thema
-                        {user.projectCount === 1 ? "" : "n"}
-                        {" · "}
-                        {format(new Date(user.createdAt), "d. MMM yyyy", {
-                          locale: de,
-                        })}
-                      </p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-              <Link
-                href="/admin/users"
-                className="mt-2 inline-flex items-center gap-1 text-[0.72rem] text-accent hover:underline"
+      <main className="min-h-0 flex-1 overflow-hidden">
+        <ViewFrame
+          eyebrow="Chronikon"
+          title="System-Übersicht"
+          description="Plattformweite Kennzahlen, Nutzer und letzte Aktivität."
+          maxWidth="full"
+          fixedBody
+        >
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-5 py-3">
+            <div className="mb-3 flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                className="gap-1.5"
+                onClick={() => setCreateOpen(true)}
               >
-                Alle Nutzer
-                <ArrowRight className="h-3 w-3" />
-              </Link>
-            </SectionCard>
+                <Plus className="h-3.5 w-3.5" />
+                Neues Ober-Thema
+              </Button>
+              <Button size="sm" variant="outline" className="gap-1.5" asChild>
+                <Link href="/admin/users">
+                  <UserPlus className="h-3.5 w-3.5" />
+                  Nutzer einladen
+                </Link>
+              </Button>
+              <Button size="sm" variant="outline" className="gap-1.5" asChild>
+                <Link href="/admin/users">
+                  <Users className="h-3.5 w-3.5" />
+                  Nutzer verwalten
+                </Link>
+              </Button>
+            </div>
 
-            <SectionCard
-              title="Ober-Themen"
-              subtitle={`${overview.projectCount} Projekte`}
-              icon={FolderOpen}
-            >
-              <ul className="space-y-1.5">
-                {overview.projects.map((project) => (
-                  <li key={project.id}>
-                    <Link
-                      href={`/p/${project.slug}/dashboard`}
-                      className="flex items-center gap-2 rounded-lg border border-border/60 bg-surface-2/50 px-2.5 py-2 transition-colors hover:border-accent/30 hover:bg-surface-3/40"
-                    >
-                      <span className="text-base" aria-hidden>
-                        {project.icon}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-[0.78rem] font-medium">
-                          {project.name}
+            <div className="mb-3 grid shrink-0 grid-cols-2 gap-2 md:grid-cols-4">
+              <KpiCard label="Nutzer" value={stats.userCount} />
+              <KpiCard label="Ober-Themen" value={stats.projectCount} />
+              <KpiCard label="Einträge gesamt" value={stats.entryCount} />
+              <KpiCard label="Offene Einladungen" value={stats.pendingInvites} />
+            </div>
+
+            <div className="grid min-h-0 flex-1 gap-3 overflow-hidden lg:grid-cols-5">
+              <section className="flex min-h-0 flex-col overflow-hidden lg:col-span-3">
+                <SectionCard
+                  title="Letzte Aktivität"
+                  subtitle="Über alle Ober-Themen"
+                  icon={Sparkles}
+                  scroll
+                >
+                  <SystemActivityFeed items={activity} compact />
+                </SectionCard>
+              </section>
+
+              <aside className="flex min-h-0 flex-col gap-3 overflow-y-auto lg:col-span-2">
+                <SectionCard
+                  title="Nutzer im System"
+                  subtitle={`${stats.userCount} gesamt`}
+                >
+                  <ul className="space-y-2">
+                    {users.map((user) => (
+                      <li
+                        key={user.id}
+                        className="flex items-center gap-2 rounded-lg border border-border/60 bg-surface-2/50 px-2.5 py-2"
+                      >
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-surface-3 text-[0.65rem] font-medium">
+                          {user.avatarInitials ?? "?"}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-[0.78rem] font-medium">
+                            {user.name ?? user.email}
+                            {user.isAdmin && (
+                              <span className="ml-1.5 text-[0.62rem] font-normal text-accent">
+                                Admin
+                              </span>
+                            )}
+                          </p>
+                          <p className="truncate text-[0.68rem] text-muted-foreground">
+                            {user.projectCount} Ober-Thema
+                            {user.projectCount === 1 ? "" : "n"}
+                            {" · "}
+                            {format(new Date(user.createdAt), "d. MMM yyyy", {
+                              locale: de,
+                            })}
+                          </p>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                  <Link
+                    href="/admin/users"
+                    className="mt-2 inline-flex items-center gap-1 text-[0.72rem] text-accent hover:underline"
+                  >
+                    Alle Nutzer
+                    <ArrowRight className="h-3 w-3" />
+                  </Link>
+                </SectionCard>
+
+                <SectionCard
+                  title="Ober-Themen"
+                  subtitle={`${stats.projectCount} Projekte`}
+                  icon={FolderOpen}
+                >
+                  <ul className="space-y-1.5">
+                    {systemProjects.map((project) => (
+                      <li key={project.id}>
+                        <Link
+                          href={`/p/${project.slug}/dashboard`}
+                          className="flex items-center gap-2 rounded-lg border border-border/60 bg-surface-2/50 px-2.5 py-2 transition-colors hover:border-accent/30 hover:bg-surface-3/40"
+                        >
+                          <span className="text-base" aria-hidden>
+                            {project.icon}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-[0.78rem] font-medium">
+                              {project.name}
+                            </p>
+                            <p className="text-[0.68rem] text-muted-foreground">
+                              {project.memberCount} Mitglieder · {project.entryCount}{" "}
+                              Einträge
+                              {project.lastActivityAt && (
+                                <>
+                                  {" · "}
+                                  {formatDistanceToNow(
+                                    new Date(project.lastActivityAt),
+                                    { addSuffix: true, locale: de },
+                                  )}
+                                </>
+                              )}
+                            </p>
+                          </div>
+                          <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </SectionCard>
+
+                <SectionCard title="Was ist neu" subtitle="Chronikon Updates">
+                  <div className="space-y-3">
+                    {CHANGELOG.map((entry) => (
+                      <div
+                        key={entry.version}
+                        className="rounded-lg border border-border/60 bg-surface-2/40 px-3 py-2.5"
+                      >
+                        <p className="text-[0.78rem] font-medium">
+                          v{entry.version} — {entry.title}
                         </p>
                         <p className="text-[0.68rem] text-muted-foreground">
-                          {project.memberCount} Mitglieder · {project.entryCount}{" "}
-                          Einträge
-                          {project.lastActivityAt && (
-                            <>
-                              {" · "}
-                              {formatDistanceToNow(
-                                new Date(project.lastActivityAt),
-                                { addSuffix: true, locale: de },
-                              )}
-                            </>
-                          )}
+                          {entry.date}
                         </p>
+                        <ul className="mt-2 space-y-1 text-[0.72rem] text-muted-foreground">
+                          {entry.items.map((item) => (
+                            <li key={item} className="flex gap-1.5">
+                              <span className="text-accent">·</span>
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                        </ul>
                       </div>
-                      <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </SectionCard>
-
-            <SectionCard title="Was ist neu" subtitle="Chronikon Updates">
-              <div className="space-y-3">
-                {CHANGELOG.map((entry) => (
-                  <div
-                    key={entry.version}
-                    className="rounded-lg border border-border/60 bg-surface-2/40 px-3 py-2.5"
-                  >
-                    <p className="text-[0.78rem] font-medium">
-                      v{entry.version} — {entry.title}
-                    </p>
-                    <p className="text-[0.68rem] text-muted-foreground">
-                      {entry.date}
-                    </p>
-                    <ul className="mt-2 space-y-1 text-[0.72rem] text-muted-foreground">
-                      {entry.items.map((item) => (
-                        <li key={item} className="flex gap-1.5">
-                          <span className="text-accent">·</span>
-                          <span>{item}</span>
-                        </li>
-                      ))}
-                    </ul>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </SectionCard>
-          </aside>
-        </div>
-      </div>
-    </ViewFrame>
+                </SectionCard>
+              </aside>
+            </div>
+          </div>
+        </ViewFrame>
+      </main>
+    </div>
   );
 }
 

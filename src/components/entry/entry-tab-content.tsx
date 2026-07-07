@@ -3,7 +3,7 @@
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Trash2 } from "lucide-react";
+import { ChevronDown, Trash2 } from "lucide-react";
 import { SOURCE_TYPE_LABELS } from "@/lib/constants";
 import type {
   SerializedClaim,
@@ -337,8 +337,8 @@ export function RelationsList({
               className="h-1.5 w-1.5 shrink-0 rounded-full"
               style={{ background: r.otherEntryTypeColor }}
             />
-            <span className="min-w-0 flex-1">
-              {r.typeLabel}: <strong>{r.otherEntryTitle}</strong>
+            <span className="min-w-0 flex-1 truncate">
+              {r.typeLabel}: <strong className="font-medium">{r.otherEntryTitle}</strong>
               {r.isCrossProject && r.otherEntryProjectName && (
                 <span className="ml-1.5 text-[0.68rem] font-normal text-accent">
                   {r.otherEntryProjectIcon} {r.otherEntryProjectName}
@@ -362,11 +362,31 @@ export function RelationsList({
   );
 }
 
+function formatVersionDate(date: Date | string, style: "short" | "long") {
+  return new Intl.DateTimeFormat("de-DE", {
+    day: "numeric",
+    month: style === "long" ? "long" : "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(date));
+}
+
+function versionAuthorLabel(version: SerializedEntryVersion) {
+  if (version.changedByName) return version.changedByName;
+  if (version.changedByEmail) return version.changedByEmail;
+  return "Unbekannt";
+}
+
 export function VersionsList({
   versions,
 }: {
   versions: SerializedEntryVersion[];
 }) {
+  const [expandedIds, setExpandedIds] = React.useState<Set<string>>(
+    () => new Set(),
+  );
+
   if (versions.length === 0) {
     return (
       <p className="text-[0.82rem] text-muted-foreground">
@@ -375,23 +395,79 @@ export function VersionsList({
     );
   }
 
-  return (
-    <ul className="space-y-3">
-      {versions.map((version) => {
-        const { snapshot } = version;
-        const eventLabel =
-          version.eventKind === "created" ? "Eintrag angelegt" : "Bearbeitet";
+  const allExpanded = expandedIds.size === versions.length;
 
-        return (
-          <li
-            key={version.id}
-            className="rounded-xl border border-border/70 bg-surface-2/50 px-3.5 py-3"
+  const toggleVersion = (id: string) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const expandAll = () => {
+    setExpandedIds(new Set(versions.map((v) => v.id)));
+  };
+
+  const collapseAll = () => {
+    setExpandedIds(new Set());
+  };
+
+  return (
+    <div className="space-y-2">
+      {versions.length > 1 && (
+        <div className="flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={expandAll}
+            disabled={allExpanded}
+            className="cursor-pointer text-[0.72rem] text-accent hover:underline disabled:cursor-default disabled:text-muted-foreground disabled:no-underline"
           >
-            <div className="flex flex-wrap items-start justify-between gap-2">
-              <div className="flex flex-wrap items-center gap-2">
+            Alle aufklappen
+          </button>
+          <span className="text-[0.72rem] text-muted-foreground">·</span>
+          <button
+            type="button"
+            onClick={collapseAll}
+            disabled={expandedIds.size === 0}
+            className="cursor-pointer text-[0.72rem] text-accent hover:underline disabled:cursor-default disabled:text-muted-foreground disabled:no-underline"
+          >
+            Alle einklappen
+          </button>
+        </div>
+      )}
+
+      <ul className="space-y-2">
+        {versions.map((version) => {
+          const { snapshot } = version;
+          const isOpen = expandedIds.has(version.id);
+          const eventLabel =
+            version.eventKind === "created" ? "Eintrag angelegt" : "Bearbeitet";
+
+          return (
+            <li
+              key={version.id}
+              className={cn(
+                "overflow-hidden rounded-xl border border-border/70 bg-surface-2/50 transition-colors",
+                isOpen && "border-border",
+              )}
+            >
+              <button
+                type="button"
+                onClick={() => toggleVersion(version.id)}
+                aria-expanded={isOpen}
+                className="flex w-full cursor-pointer items-center gap-2 px-3.5 py-2.5 text-left transition-colors hover:bg-surface-3/30"
+              >
+                <ChevronDown
+                  className={cn(
+                    "h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform duration-200",
+                    !isOpen && "-rotate-90",
+                  )}
+                />
                 <span
                   className={cn(
-                    "rounded-md px-2 py-0.5 text-[0.68rem] font-medium",
+                    "shrink-0 rounded-md px-2 py-0.5 text-[0.68rem] font-medium",
                     version.eventKind === "created"
                       ? "bg-green/15 text-green"
                       : "bg-accent-dim/60 text-accent",
@@ -400,94 +476,98 @@ export function VersionsList({
                   {eventLabel}
                 </span>
                 <time
-                  className="text-[0.68rem] text-muted-foreground"
+                  className="min-w-0 shrink truncate text-[0.72rem] text-muted-foreground"
                   dateTime={new Date(version.createdAt).toISOString()}
                 >
-                  {new Intl.DateTimeFormat("de-DE", {
-                    day: "numeric",
-                    month: "short",
-                    year: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  }).format(new Date(version.createdAt))}
+                  {formatVersionDate(version.createdAt, "short")}
                 </time>
-              </div>
-            </div>
+                <span className="min-w-0 flex-1 truncate text-[0.72rem] text-muted-foreground">
+                  {versionAuthorLabel(version)}
+                </span>
+                <span className="shrink-0 text-[0.68rem] text-accent">
+                  {isOpen ? "Einklappen" : "Aufklappen"}
+                </span>
+              </button>
 
-            <p className="mt-2 text-[0.75rem] text-muted-foreground">
-              {version.changedByName
-                ? `von ${version.changedByName}`
-                : version.changedByEmail
-                  ? `von ${version.changedByEmail}`
-                  : "von Unbekannt"}
-            </p>
-
-            <div className="mt-3 rounded-lg border border-border/50 bg-surface-1/40 px-3 py-2.5">
-              <p className="text-[0.68rem] font-medium uppercase tracking-wide text-muted-foreground">
-                Version vom{" "}
-                {new Intl.DateTimeFormat("de-DE", {
-                  day: "numeric",
-                  month: "long",
-                  year: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                }).format(new Date(version.createdAt))}
-              </p>
-              <dl className="mt-2 space-y-1.5 text-[0.78rem]">
-                <div className="grid grid-cols-[5.5rem_1fr] gap-x-2">
-                  <dt className="text-muted-foreground">Titel</dt>
-                  <dd className="font-medium">{snapshot.title}</dd>
-                </div>
-                <div className="grid grid-cols-[5.5rem_1fr] gap-x-2">
-                  <dt className="text-muted-foreground">Typ</dt>
-                  <dd>{snapshot.typeLabel}</dd>
-                </div>
-                <div className="grid grid-cols-[5.5rem_1fr] gap-x-2">
-                  <dt className="text-muted-foreground">Zeitraum</dt>
-                  <dd>{snapshot.yearRangeLabel}</dd>
-                </div>
-                <div className="grid grid-cols-[5.5rem_1fr] gap-x-2">
-                  <dt className="text-muted-foreground">Vertrauen</dt>
-                  <dd>{snapshot.confidenceLabel}</dd>
-                </div>
-                <div className="grid grid-cols-[5.5rem_1fr] gap-x-2">
-                  <dt className="text-muted-foreground">Thema</dt>
-                  <dd>{snapshot.topics.length > 0 ? snapshot.topics.join(", ") : "—"}</dd>
-                </div>
-                {snapshot.summaryPreview && (
-                  <div className="grid grid-cols-[5.5rem_1fr] gap-x-2">
-                    <dt className="text-muted-foreground">Kurztext</dt>
-                    <dd className="text-muted-foreground">{snapshot.summaryPreview}</dd>
-                  </div>
+              <div
+                className={cn(
+                  "grid transition-[grid-template-rows] duration-200 ease-out",
+                  isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
                 )}
-              </dl>
-            </div>
+              >
+                <div className="overflow-hidden">
+                  <div className="space-y-3 border-t border-border/50 px-3.5 pb-3.5 pt-2">
+                    <div className="rounded-lg border border-border/50 bg-surface-1/40 px-3 py-2.5">
+                      <p className="text-[0.68rem] font-medium uppercase tracking-wide text-muted-foreground">
+                        Version vom {formatVersionDate(version.createdAt, "long")}
+                      </p>
+                      <dl className="mt-2 space-y-1.5 text-[0.78rem]">
+                        <div className="grid grid-cols-[5.5rem_1fr] gap-x-2">
+                          <dt className="text-muted-foreground">Titel</dt>
+                          <dd className="min-w-0 font-medium break-words">
+                            {snapshot.title}
+                          </dd>
+                        </div>
+                        <div className="grid grid-cols-[5.5rem_1fr] gap-x-2">
+                          <dt className="text-muted-foreground">Typ</dt>
+                          <dd>{snapshot.typeLabel}</dd>
+                        </div>
+                        <div className="grid grid-cols-[5.5rem_1fr] gap-x-2">
+                          <dt className="text-muted-foreground">Zeitraum</dt>
+                          <dd>{snapshot.yearRangeLabel}</dd>
+                        </div>
+                        <div className="grid grid-cols-[5.5rem_1fr] gap-x-2">
+                          <dt className="text-muted-foreground">Vertrauen</dt>
+                          <dd>{snapshot.confidenceLabel}</dd>
+                        </div>
+                        <div className="grid grid-cols-[5.5rem_1fr] gap-x-2">
+                          <dt className="text-muted-foreground">Thema</dt>
+                          <dd className="min-w-0 break-words">
+                            {snapshot.topics.length > 0
+                              ? snapshot.topics.join(", ")
+                              : "—"}
+                          </dd>
+                        </div>
+                        {snapshot.summaryPreview && (
+                          <div className="grid grid-cols-[5.5rem_1fr] gap-x-2">
+                            <dt className="text-muted-foreground">Kurztext</dt>
+                            <dd className="min-w-0 break-words text-muted-foreground">
+                              {snapshot.summaryPreview}
+                            </dd>
+                          </div>
+                        )}
+                      </dl>
+                    </div>
 
-            {version.changes.length > 0 && (
-              <div className="mt-3">
-                <p className="text-[0.68rem] font-medium uppercase tracking-wide text-muted-foreground">
-                  Geändert zu
-                </p>
-                <ul className="mt-1.5 space-y-1.5">
-                  {version.changes.map((change) => (
-                    <li
-                      key={`${version.id}-${change.field}`}
-                      className="rounded-md bg-surface-3/40 px-2.5 py-1.5 text-[0.75rem]"
-                    >
-                      <span className="font-medium">{change.label}:</span>{" "}
-                      <span className="text-muted-foreground line-through">
-                        {change.before}
-                      </span>
-                      <span className="mx-1 text-muted-foreground">→</span>
-                      <span>{change.after}</span>
-                    </li>
-                  ))}
-                </ul>
+                    {version.changes.length > 0 && (
+                      <div>
+                        <p className="text-[0.68rem] font-medium uppercase tracking-wide text-muted-foreground">
+                          Geändert zu
+                        </p>
+                        <ul className="mt-1.5 space-y-1.5">
+                          {version.changes.map((change) => (
+                            <li
+                              key={`${version.id}-${change.field}`}
+                              className="rounded-md bg-surface-3/40 px-2.5 py-1.5 text-[0.75rem]"
+                            >
+                              <span className="font-medium">{change.label}:</span>{" "}
+                              <span className="text-muted-foreground line-through">
+                                {change.before}
+                              </span>
+                              <span className="mx-1 text-muted-foreground">→</span>
+                              <span className="break-words">{change.after}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
-            )}
-          </li>
-        );
-      })}
-    </ul>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
   );
 }

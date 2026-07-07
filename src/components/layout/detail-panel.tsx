@@ -296,6 +296,7 @@ export function DetailPanel({
             questions={entry.questions}
             comments={entry.comments}
             relations={entry.relations}
+            relationCount={entry.relations?.length ?? 0}
             versions={entry.versions}
             entryIndex={entryIndex}
             activeTab={activeTab}

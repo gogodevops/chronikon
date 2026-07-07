@@ -197,6 +197,8 @@ export type ActivityItem = {
   authorInitials: string | null;
   summary: string;
   meta?: string;
+  projectSlug?: string;
+  projectName?: string;
 };
 
 export type SerializedNotification = {

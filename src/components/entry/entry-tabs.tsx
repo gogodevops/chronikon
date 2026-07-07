@@ -45,6 +45,7 @@ export interface EntryTabsProps {
   entryIndex?: EntryTitleIndex[];
   activeTab?: string;
   onTabChange?: (tab: string) => void;
+  relationCount?: number;
   relationSearchResults?: LinkableEntryResult[];
   onRelationSearch?: (query: string) => void;
   onNavigateEntry?: (entryId: string, projectSlug?: string) => void;
@@ -71,6 +72,7 @@ export function EntryTabs({
   entryIndex = [],
   activeTab = "inhalt",
   onTabChange,
+  relationCount,
   relationSearchResults = [],
   onRelationSearch,
   onNavigateEntry,
@@ -84,10 +86,11 @@ export function EntryTabs({
     discussionCount > 0
       ? discussionCount
       : questions.length + comments.length;
+  const effectiveRelationCount = relationCount ?? relations.length;
 
   return (
     <Tabs value={activeTab} onValueChange={onTabChange} className="mt-2">
-      <TabsList>
+      <TabsList className="overflow-x-auto">
         <TabsTrigger value="inhalt">Inhalt</TabsTrigger>
         <TabsTrigger value="quellen">Quellen ({sourceCount})</TabsTrigger>
         <TabsTrigger value="behauptungen">
@@ -96,7 +99,9 @@ export function EntryTabs({
         <TabsTrigger value="diskussion">
           Diskussion ({effectiveDiscussionCount})
         </TabsTrigger>
-        <TabsTrigger value="verknuepfungen">Verknüpfungen</TabsTrigger>
+        <TabsTrigger value="verknuepfungen">
+          Verknüpfungen ({effectiveRelationCount})
+        </TabsTrigger>
         <TabsTrigger value="historie">Historie ({versions.length})</TabsTrigger>
       </TabsList>
 

@@ -18,6 +18,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       "Einladungsbasierte Registrierung",
       "System-Übersicht für App-Administratoren",
       "Schwarz-Weiß- / Farb-Umschalter auf der Karte",
+      "Einklappbare Versionshistorie im Historie-Tab",
     ],
   },
 ];

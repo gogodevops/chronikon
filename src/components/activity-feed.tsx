@@ -38,6 +38,7 @@ export function ActivityFeed({
         const meta = ACTIVITY_META[item.kind];
         const Icon = meta.icon;
         const isLast = index === items.length - 1;
+        const slug = item.projectSlug ?? projectSlug;
 
         return (
           <li key={item.id} className="relative flex gap-3">
@@ -56,7 +57,7 @@ export function ActivityFeed({
             </div>
 
             <Link
-              href={`/p/${projectSlug}?entry=${item.entryId}`}
+              href={`/p/${slug}?entry=${item.entryId}`}
               className={cn(
                 "group mb-2 min-w-0 flex-1 rounded-xl border border-border bg-surface-2 transition-all hover:border-accent/30 hover:bg-surface-3 hover:shadow-[0_2px_12px_rgba(0,0,0,0.18)]",
                 compact ? "px-3 py-2.5" : "px-4 py-3",
@@ -106,6 +107,11 @@ export function ActivityFeed({
                   {item.meta ? ` · ${item.meta}` : ""}
                 </span>
                 <span className="flex min-w-0 items-center gap-1 text-[0.75rem] text-accent opacity-80 transition-opacity group-hover:opacity-100">
+                  {item.projectName && (
+                    <span className="shrink-0 text-[0.68rem] text-muted-foreground">
+                      {item.projectName} ·
+                    </span>
+                  )}
                   <span className="truncate">{item.entryTitle}</span>
                   <ArrowRight className="h-3 w-3 shrink-0 transition-transform group-hover:translate-x-0.5" />
                 </span>
