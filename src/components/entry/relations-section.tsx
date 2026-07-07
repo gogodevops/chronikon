@@ -17,6 +17,7 @@ export function RelationsSection({
   entryId,
   relations = [],
   relationSearchResults = [],
+  relationSearchError = null,
   onRelationSearch,
   onNavigateEntry,
   onRelationSubmit,
@@ -26,9 +27,12 @@ export function RelationsSection({
   entryId: string;
   relations?: SerializedRelation[];
   relationSearchResults?: LinkableEntryResult[];
+  relationSearchError?: string | null;
   onRelationSearch?: (query: string) => void;
   onNavigateEntry?: (entryId: string, projectSlug?: string) => void;
-  onRelationSubmit?: (data: unknown) => void;
+  onRelationSubmit?: (
+    data: unknown,
+  ) => boolean | void | Promise<boolean | void>;
   onRelationDelete?: (
     relationId: string,
     otherEntryTitle?: string,
@@ -91,10 +95,12 @@ export function RelationsSection({
           <RelationComposer
             entryId={entryId}
             searchResults={relationSearchResults}
+            searchError={relationSearchError}
             onSearch={onRelationSearch}
-            onSubmit={(data) => {
-              onRelationSubmit(data);
-              setShowComposer(false);
+            onSubmit={async (data) => {
+              const ok = await onRelationSubmit(data);
+              if (ok !== false) setShowComposer(false);
+              return ok;
             }}
             onCancel={() => setShowComposer(false)}
           />

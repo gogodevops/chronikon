@@ -175,6 +175,9 @@ export function AppShell({
   const [relationSearchResults, setRelationSearchResults] = React.useState<
     LinkableEntryResult[]
   >([]);
+  const [relationSearchError, setRelationSearchError] = React.useState<
+    string | null
+  >(null);
   const relationSearchTimer = React.useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
@@ -336,6 +339,7 @@ export function AppShell({
       }
       if (!selectedEntry) {
         setRelationSearchResults([]);
+        setRelationSearchError(null);
         return;
       }
       relationSearchTimer.current = setTimeout(async () => {
@@ -346,8 +350,10 @@ export function AppShell({
         );
         if (result.success) {
           setRelationSearchResults(result.data);
+          setRelationSearchError(null);
         } else {
           setRelationSearchResults([]);
+          setRelationSearchError(result.error ?? "Suche fehlgeschlagen");
         }
       }, 200);
     },
@@ -549,11 +555,11 @@ export function AppShell({
   };
 
   const handleRelationSubmit = async (data: unknown) => {
-    if (!selectedEntry || !canEdit) return;
+    if (!selectedEntry || !canEdit) return false;
     const payload = data as Record<string, string>;
     if (!payload.targetEntryId) {
       window.alert("Bitte Ziel-Eintrag wählen");
-      return;
+      return false;
     }
     const ok = await runServerAction(() =>
       addRelation({
@@ -564,6 +570,7 @@ export function AppShell({
       }),
     );
     if (ok) refreshAfterAction();
+    return ok;
   };
 
   const handleRelationDelete = async (
@@ -672,6 +679,7 @@ export function AppShell({
             projectSlug={ctx.slug}
             entryIndex={entryIndex}
             relationSearchResults={relationSearchResults}
+            relationSearchError={relationSearchError}
             onRelationSearch={handleRelationSearch}
             onAction={handleEntryAction}
             onNavigateEntry={handleNavigateEntry}

@@ -33,8 +33,9 @@ export interface RelationComposerProps {
     projectIcon?: string;
     isCurrentProject?: boolean;
   }[];
+  searchError?: string | null;
   onSearch?: (query: string) => void;
-  onSubmit?: (data: RelationFormData) => void;
+  onSubmit?: (data: RelationFormData) => boolean | void | Promise<boolean | void>;
   onCancel?: () => void;
 }
 
@@ -45,10 +46,12 @@ const DEFAULT_RELATION_TYPES = (
 export function RelationComposer({
   relationTypes = DEFAULT_RELATION_TYPES,
   searchResults = [],
+  searchError = null,
   onSearch,
   onSubmit,
   onCancel,
 }: RelationComposerProps) {
+  const inputRef = React.useRef<HTMLInputElement>(null);
   const [query, setQuery] = React.useState("");
   const [selected, setSelected] = React.useState<{
     id: string;
@@ -57,32 +60,49 @@ export function RelationComposer({
   const [relationType, setRelationType] = React.useState<RelationType>(
     relationTypes[0]?.value ?? "discusses",
   );
-  const [browseActive, setBrowseActive] = React.useState(false);
+  const [browseActive, setBrowseActive] = React.useState(true);
+  const [submitting, setSubmitting] = React.useState(false);
+
+  React.useEffect(() => {
+    setBrowseActive(true);
+    onSearch?.("");
+    inputRef.current?.focus();
+  }, [onSearch]);
 
   React.useEffect(() => {
     if (!browseActive && !query.trim()) return;
     onSearch?.(query);
   }, [query, browseActive, onSearch]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selected) return;
-    onSubmit?.({
-      targetEntryId: selected.id,
-      targetTitle: selected.title,
-      relationType,
-    });
-    setQuery("");
-    setSelected(null);
+    if (!selected || submitting) return;
+
+    setSubmitting(true);
+    try {
+      const ok = await onSubmit?.({
+        targetEntryId: selected.id,
+        targetTitle: selected.title,
+        relationType,
+      });
+      if (ok !== false) {
+        setQuery("");
+        setSelected(null);
+      }
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const showResults =
-    !selected && browseActive && searchResults.length > 0;
+  const showResults = !selected && browseActive;
+  const showEmptyHint =
+    showResults && !searchError && searchResults.length === 0;
 
   return (
     <ChComposer title="Verknüpfung hinzufügen" icon={Link2} onSubmit={handleSubmit}>
       <div className="mb-2 flex items-start gap-2">
         <Input
+          ref={inputRef}
           placeholder="Eintrag suchen (Titel)…"
           value={selected ? selected.title : query}
           onFocus={() => {
@@ -113,7 +133,11 @@ export function RelationComposer({
         )}
       </div>
 
-      {showResults && (
+      {searchError && (
+        <p className="mb-2 text-[0.72rem] text-destructive">{searchError}</p>
+      )}
+
+      {showResults && searchResults.length > 0 && (
         <div className="mb-2 max-h-[180px] overflow-y-auto rounded-lg border border-border/60 bg-surface-3/30 p-1">
           {!query.trim() && (
             <p className="px-2 py-1 text-[0.68rem] text-muted-foreground">
@@ -124,6 +148,7 @@ export function RelationComposer({
             <button
               key={result.id}
               type="button"
+              onMouseDown={(e) => e.preventDefault()}
               onClick={() => setSelected({ id: result.id, title: result.title })}
               className="mb-0.5 flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-left text-[0.78rem] transition-colors last:mb-0 hover:bg-accent-dim/50 hover:text-accent"
             >
@@ -144,6 +169,14 @@ export function RelationComposer({
         </div>
       )}
 
+      {showEmptyHint && (
+        <p className="mb-2 text-[0.72rem] text-muted-foreground">
+          {query.trim()
+            ? "Keine passenden Einträge — anderen Suchbegriff versuchen."
+            : "Keine weiteren Einträge in diesem Projekt verfügbar."}
+        </p>
+      )}
+
       <Select
         value={relationType}
         onValueChange={(v) => setRelationType(v as RelationType)}
@@ -160,8 +193,8 @@ export function RelationComposer({
         </SelectContent>
       </Select>
 
-      <Button type="submit" size="sm" disabled={!selected}>
-        Verknüpfung speichern
+      <Button type="submit" size="sm" disabled={!selected || submitting}>
+        {submitting ? "Speichern…" : "Verknüpfung speichern"}
       </Button>
     </ChComposer>
   );

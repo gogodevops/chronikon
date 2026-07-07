@@ -43,6 +43,7 @@ export interface EntryDetailSectionsProps {
   versions?: SerializedEntryVersion[];
   entryIndex?: EntryTitleIndex[];
   relationSearchResults?: LinkableEntryResult[];
+  relationSearchError?: string | null;
   onRelationSearch?: (query: string) => void;
   onNavigateEntry?: (entryId: string, projectSlug?: string) => void;
   onEditBody?: () => void;
@@ -55,7 +56,9 @@ export interface EntryDetailSectionsProps {
   onSourceDelete?: (sourceId: string) => void;
   onClaimSubmit?: (data: unknown) => void;
   onClaimDelete?: (claimId: string) => void;
-  onRelationSubmit?: (data: unknown) => void;
+  onRelationSubmit?: (
+    data: unknown,
+  ) => boolean | void | Promise<boolean | void>;
   onRelationDelete?: (
     relationId: string,
     otherEntryTitle?: string,
@@ -83,6 +86,7 @@ export function EntryDetailSections({
   versions = [],
   entryIndex = [],
   relationSearchResults = [],
+  relationSearchError = null,
   onRelationSearch,
   onNavigateEntry,
   onEditBody,
@@ -173,6 +177,7 @@ export function EntryDetailSections({
           entryId={entryId}
           relations={relations}
           relationSearchResults={relationSearchResults}
+          relationSearchError={relationSearchError}
           onRelationSearch={onRelationSearch}
           onNavigateEntry={onNavigateEntry}
           onRelationSubmit={onRelationSubmit}

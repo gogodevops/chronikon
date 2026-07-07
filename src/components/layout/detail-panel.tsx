@@ -85,6 +85,7 @@ export interface DetailPanelProps {
   projectSlug?: string;
   entryIndex?: EntryTitleIndex[];
   relationSearchResults?: LinkableEntryResult[];
+  relationSearchError?: string | null;
   onRelationSearch?: (query: string) => void;
   className?: string;
   onAction?: (action: EntryAction) => void;
@@ -101,7 +102,9 @@ export interface DetailPanelProps {
   onSourceDelete?: (sourceId: string) => void;
   onClaimSubmit?: (data: unknown) => void;
   onClaimDelete?: (claimId: string) => void;
-  onRelationSubmit?: (data: unknown) => void;
+  onRelationSubmit?: (
+    data: unknown,
+  ) => boolean | void | Promise<boolean | void>;
   onRelationDelete?: (
     relationId: string,
     otherEntryTitle?: string,
@@ -131,6 +134,7 @@ export function DetailPanel({
   projectSlug = "",
   entryIndex = [],
   relationSearchResults = [],
+  relationSearchError = null,
   onRelationSearch,
   className,
   onAction,
@@ -365,6 +369,7 @@ export function DetailPanel({
               versions={entry.versions}
               entryIndex={entryIndex}
               relationSearchResults={relationSearchResults}
+              relationSearchError={relationSearchError}
               onRelationSearch={onRelationSearch}
               onNavigateEntry={onNavigateEntry}
               onEditBody={onEditBody}
