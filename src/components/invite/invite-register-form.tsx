@@ -1,9 +1,12 @@
 "use client";
 
-import * as React from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { useActionState } from "react";
 
-import { registerViaInvite } from "@/actions/invites";
+import {
+  registerViaInviteAction,
+  type InviteRegisterState,
+} from "@/actions/invites";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -16,37 +19,15 @@ export function InviteRegisterForm({
   email: string;
   projectName?: string;
 }) {
-  const router = useRouter();
-  const [name, setName] = React.useState("");
-  const [password, setPassword] = React.useState("");
-  const [confirmPassword, setConfirmPassword] = React.useState("");
-  const [pending, setPending] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setPending(true);
-    setError(null);
-
-    const result = await registerViaInvite({
-      token,
-      name: name.trim(),
-      password,
-      confirmPassword,
-    });
-
-    setPending(false);
-    if (!result.success) {
-      setError(result.error ?? "Registrierung fehlgeschlagen");
-      return;
-    }
-
-    router.push(result.data.redirectTo);
-    router.refresh();
-  };
+  const [state, formAction, pending] = useActionState<
+    InviteRegisterState,
+    FormData
+  >(registerViaInviteAction, {});
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 text-left">
+    <form action={formAction} className="space-y-4 text-left">
+      <input type="hidden" name="token" value={token} />
+
       {projectName && (
         <p className="text-center text-[0.82rem] text-muted-foreground">
           Projekt: <strong className="text-foreground">{projectName}</strong>
@@ -65,8 +46,7 @@ export function InviteRegisterForm({
           Name
         </label>
         <Input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
+          name="name"
           placeholder="Vor- und Nachname"
           required
           autoComplete="name"
@@ -78,9 +58,8 @@ export function InviteRegisterForm({
           Passwort
         </label>
         <Input
+          name="password"
           type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
           minLength={8}
           required
           autoComplete="new-password"
@@ -92,16 +71,27 @@ export function InviteRegisterForm({
           Passwort bestätigen
         </label>
         <Input
+          name="confirmPassword"
           type="password"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
           minLength={8}
           required
           autoComplete="new-password"
         />
       </div>
 
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {state.error && <p className="text-sm text-destructive">{state.error}</p>}
+
+      {state.accountCreatedLoginUrl && (
+        <p className="text-sm text-muted-foreground">
+          Konto angelegt — bitte{" "}
+          <Link
+            href={state.accountCreatedLoginUrl}
+            className="text-accent hover:underline"
+          >
+            anmelden
+          </Link>
+        </p>
+      )}
 
       <Button type="submit" className="w-full" disabled={pending}>
         {pending ? "Konto wird erstellt…" : "Registrieren und fortfahren"}

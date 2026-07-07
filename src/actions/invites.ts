@@ -2,6 +2,7 @@
 
 import type { ProjectRole } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { AuthError } from "next-auth";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -229,9 +230,16 @@ export async function acceptUserInvite(
   return { success: true, data: { redirectTo } };
 }
 
-export async function registerViaInvite(
+export type InviteRegisterState = {
+  error?: string;
+  accountCreatedLoginUrl?: string;
+};
+
+async function createAccountViaInvite(
   input: z.infer<typeof registerViaInviteSchema>,
-): Promise<ActionResult<{ redirectTo: string }>> {
+): Promise<
+  ActionResult<{ email: string; password: string; redirectTo: string }>
+> {
   const parsed = registerViaInviteSchema.safeParse(input);
   if (!parsed.success) {
     return {
@@ -331,17 +339,70 @@ export async function registerViaInvite(
           ).id,
         );
 
+  return { success: true, data: { email, password, redirectTo } };
+}
+
+export async function registerViaInviteAction(
+  _prev: InviteRegisterState,
+  formData: FormData,
+): Promise<InviteRegisterState> {
+  const result = await createAccountViaInvite({
+    token: String(formData.get("token") ?? ""),
+    name: String(formData.get("name") ?? ""),
+    password: String(formData.get("password") ?? ""),
+    confirmPassword: String(formData.get("confirmPassword") ?? ""),
+  });
+
+  if (!result.success) {
+    return { error: result.error };
+  }
+
+  const { email, password, redirectTo } = result.data;
+
   try {
     await signIn("credentials", {
       email,
       password,
       redirectTo,
     });
-  } catch {
-    return {
-      success: true,
-      data: { redirectTo: `/login?callbackUrl=${encodeURIComponent(redirectTo)}` },
-    };
+  } catch (error) {
+    if (error instanceof AuthError) {
+      return {
+        accountCreatedLoginUrl: `/login?callbackUrl=${encodeURIComponent(redirectTo)}`,
+      };
+    }
+    throw error;
+  }
+
+  return {};
+}
+
+export async function registerViaInvite(
+  input: z.infer<typeof registerViaInviteSchema>,
+): Promise<ActionResult<{ redirectTo: string }>> {
+  const result = await createAccountViaInvite(input);
+  if (!result.success) {
+    return result;
+  }
+
+  const { email, password, redirectTo } = result.data;
+
+  try {
+    await signIn("credentials", {
+      email,
+      password,
+      redirectTo,
+    });
+  } catch (error) {
+    if (error instanceof AuthError) {
+      return {
+        success: true,
+        data: {
+          redirectTo: `/login?callbackUrl=${encodeURIComponent(redirectTo)}`,
+        },
+      };
+    }
+    throw error;
   }
 
   return { success: true, data: { redirectTo } };
