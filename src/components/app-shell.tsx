@@ -17,9 +17,8 @@ import {
   updateEntry,
 } from "@/actions/entries";
 import {
-  addComment,
+  addQuestion,
   answerQuestion,
-  deleteComment,
   deleteQuestion,
 } from "@/actions/discussions";
 import type { RelationType } from "@prisma/client";
@@ -152,7 +151,6 @@ export function AppShell({
   const [paletteOpen, setPaletteOpen] = React.useState(false);
   const [listLimit, setListLimit] = React.useState(LIST_LIMIT);
   const [searchResults, setSearchResults] = React.useState<CommandResult[]>([]);
-  const [activeTab, setActiveTab] = React.useState("inhalt");
   const [relationSearchResults, setRelationSearchResults] = React.useState<
     LinkableEntryResult[]
   >([]);
@@ -162,22 +160,9 @@ export function AppShell({
 
   const basePath = `/p/${ctx.slug}`;
 
-  React.useEffect(() => {
-    const tab = searchParams.get("tab");
-    const validTabs = [
-      "inhalt",
-      "quellen",
-      "behauptungen",
-      "diskussion",
-      "verknuepfungen",
-      "historie",
-    ];
-    if (tab && validTabs.includes(tab)) {
-      setActiveTab(tab);
-    } else {
-      setActiveTab("inhalt");
-    }
-  }, [selectedEntryId, searchParams]);
+  const scrollToSection = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   const projects: ProjectOption[] = ctx.projects.map((p) => ({
     id: p.slug,
@@ -350,16 +335,12 @@ export function AppShell({
 
     switch (action) {
       case "discussion":
-        setActiveTab("diskussion");
+        scrollToSection("entry-section-offen");
         break;
       case "claim":
-        setActiveTab("behauptungen");
-        break;
       case "source":
-        setActiveTab("quellen");
-        break;
       case "relation":
-        setActiveTab("verknuepfungen");
+        scrollToSection("entry-section-offen");
         break;
       case "attachment":
         document
@@ -436,144 +417,123 @@ export function AppShell({
     if (ok) refreshAfterAction();
   };
 
-  const handleTabAction = async (
-    tab: string,
-    action: string,
-    data?: unknown,
-  ) => {
-    if (!selectedEntry) return;
-    const payload = data as Record<string, string> | undefined;
+  const handleEditBody = () => {
+    if (!selectedEntry || !canEdit) return;
+    router.push(`${basePath}/new?edit=${selectedEntry.id}`);
+  };
 
-    if (tab === "inhalt" && action === "edit") {
-      if (!canEdit) return;
-      router.push(`${basePath}/new?edit=${selectedEntry.id}`);
+  const handleLanguageChange = async (language: string) => {
+    if (!selectedEntry || !canEdit) return;
+    const ok = await runServerAction(() =>
+      updateEntry({
+        id: selectedEntry.id,
+        projectId: ctx.id,
+        language,
+      }),
+    );
+    if (ok) refreshAfterAction();
+  };
+
+  const handleOpenPointAdd = async (text: string) => {
+    if (!selectedEntry || !canDiscussRole) return;
+    const ok = await runServerAction(() =>
+      addQuestion({
+        projectId: ctx.id,
+        entryId: selectedEntry.id,
+        category: "Allgemein",
+        text,
+      }),
+    );
+    if (ok) refreshAfterAction();
+  };
+
+  const handleOpenPointAnswer = async (questionId: string, text: string) => {
+    if (!selectedEntry || !canDiscussRole) return;
+    const ok = await runServerAction(() =>
+      answerQuestion({
+        projectId: ctx.id,
+        questionId,
+        text,
+      }),
+    );
+    if (ok) refreshAfterAction();
+  };
+
+  const handleOpenPointDelete = async (questionId: string) => {
+    if (!window.confirm("Offenen Punkt wirklich löschen?")) return;
+    const ok = await runServerAction(() =>
+      deleteQuestion(ctx.id, questionId),
+    );
+    if (ok) refreshAfterAction();
+  };
+
+  const handleSourceSubmit = async (data: unknown) => {
+    if (!selectedEntry || !canEdit) return;
+    const payload = data as Record<string, string>;
+    const ok = await runServerAction(() =>
+      addSource({
+        projectId: ctx.id,
+        entryId: selectedEntry.id,
+        title: payload.title ?? "",
+        type: (payload.type as "primary" | "secondary" | "tertiary") ?? "secondary",
+        note: payload.note,
+        ref: payload.year,
+      }),
+    );
+    if (ok) refreshAfterAction();
+  };
+
+  const handleSourceDelete = async (sourceId: string) => {
+    if (!canEdit) return;
+    if (!window.confirm("Quelle wirklich löschen?")) return;
+    const ok = await runServerAction(() => deleteSource(ctx.id, sourceId));
+    if (ok) refreshAfterAction();
+  };
+
+  const handleClaimSubmit = async (data: unknown) => {
+    if (!selectedEntry || !canEdit) return;
+    const payload = data as Record<string, string>;
+    const ok = await runServerAction(() =>
+      addClaim({
+        projectId: ctx.id,
+        entryId: selectedEntry.id,
+        text: payload.text ?? "",
+        confidence: (payload.confidence as Confidence) ?? "likely",
+      }),
+    );
+    if (ok) refreshAfterAction();
+  };
+
+  const handleClaimDelete = async (claimId: string) => {
+    if (!canEdit) return;
+    if (!window.confirm("Behauptung wirklich löschen?")) return;
+    const ok = await runServerAction(() => deleteClaim(ctx.id, claimId));
+    if (ok) refreshAfterAction();
+  };
+
+  const handleRelationSubmit = async (data: unknown) => {
+    if (!selectedEntry || !canEdit) return;
+    const payload = data as Record<string, string>;
+    if (!payload.targetEntryId) {
+      window.alert("Bitte Ziel-Eintrag wählen");
       return;
     }
+    const ok = await runServerAction(() =>
+      addRelation({
+        projectId: ctx.id,
+        fromEntryId: selectedEntry.id,
+        toEntryId: payload.targetEntryId ?? "",
+        type: payload.relationType as RelationType,
+      }),
+    );
+    if (ok) refreshAfterAction();
+  };
 
-    if (tab === "quellen" && action === "submit" && payload && canEdit) {
-      const ok = await runServerAction(() =>
-        addSource({
-          projectId: ctx.id,
-          entryId: selectedEntry.id,
-          title: payload.title ?? "",
-          type: (payload.type as "primary" | "secondary" | "tertiary") ?? "secondary",
-          note: payload.note,
-          ref: payload.year,
-        }),
-      );
-      if (ok) {
-        setActiveTab("quellen");
-        refreshAfterAction();
-      }
-      return;
-    }
-
-    if (tab === "quellen" && action === "delete" && payload?.id && canEdit) {
-      if (!window.confirm("Quelle wirklich löschen?")) return;
-      const ok = await runServerAction(() =>
-        deleteSource(ctx.id, payload.id),
-      );
-      if (ok) refreshAfterAction();
-      return;
-    }
-
-    if (tab === "behauptungen" && action === "submit" && payload && canEdit) {
-      const ok = await runServerAction(() =>
-        addClaim({
-          projectId: ctx.id,
-          entryId: selectedEntry.id,
-          text: payload.text ?? "",
-          confidence: (payload.confidence as Confidence) ?? "likely",
-        }),
-      );
-      if (ok) {
-        setActiveTab("behauptungen");
-        refreshAfterAction();
-      }
-      return;
-    }
-
-    if (tab === "behauptungen" && action === "delete" && payload?.id && canEdit) {
-      if (!window.confirm("Behauptung wirklich löschen?")) return;
-      const ok = await runServerAction(() =>
-        deleteClaim(ctx.id, payload.id),
-      );
-      if (ok) refreshAfterAction();
-      return;
-    }
-
-    if (tab === "verknuepfungen" && action === "submit" && payload && canEdit) {
-      if (!payload.targetEntryId) {
-        window.alert("Bitte Ziel-Eintrag wählen");
-        return;
-      }
-      const ok = await runServerAction(() =>
-        addRelation({
-          projectId: ctx.id,
-          fromEntryId: selectedEntry.id,
-          toEntryId: payload.targetEntryId ?? "",
-          type: payload.relationType as RelationType,
-        }),
-      );
-      if (ok) {
-        setActiveTab("verknuepfungen");
-        refreshAfterAction();
-      }
-      return;
-    }
-
-    if (tab === "verknuepfungen" && action === "delete" && payload?.id && canEdit) {
-      if (!window.confirm("Verknüpfung wirklich löschen?")) return;
-      const ok = await runServerAction(() =>
-        deleteRelation(ctx.id, payload.id),
-      );
-      if (ok) refreshAfterAction();
-      return;
-    }
-
-    if (tab === "diskussion" && action === "submit" && payload && canDiscussRole) {
-      const ok = await runServerAction(() =>
-        addComment({
-          projectId: ctx.id,
-          entryId: selectedEntry.id,
-          text: payload.text ?? "",
-        }),
-      );
-      if (ok) {
-        setActiveTab("diskussion");
-        refreshAfterAction();
-      }
-      return;
-    }
-
-    if (tab === "diskussion" && action === "answer" && payload && canDiscussRole) {
-      const ok = await runServerAction(() =>
-        answerQuestion({
-          projectId: ctx.id,
-          questionId: payload.questionId ?? "",
-          text: payload.text ?? "",
-        }),
-      );
-      if (ok) refreshAfterAction();
-      return;
-    }
-
-    if (tab === "diskussion" && action === "deleteQuestion" && payload?.id) {
-      if (!window.confirm("Frage wirklich löschen?")) return;
-      const ok = await runServerAction(() =>
-        deleteQuestion(ctx.id, payload.id),
-      );
-      if (ok) refreshAfterAction();
-      return;
-    }
-
-    if (tab === "diskussion" && action === "deleteComment" && payload?.id) {
-      if (!window.confirm("Kommentar wirklich löschen?")) return;
-      const ok = await runServerAction(() =>
-        deleteComment(ctx.id, payload.id),
-      );
-      if (ok) refreshAfterAction();
-    }
+  const handleRelationDelete = async (relationId: string) => {
+    if (!canEdit) return;
+    if (!window.confirm("Verknüpfung wirklich löschen?")) return;
+    const ok = await runServerAction(() => deleteRelation(ctx.id, relationId));
+    if (ok) refreshAfterAction();
   };
 
   const recentActivitySet = React.useMemo(
@@ -663,15 +623,23 @@ export function AppShell({
             entry={selectedEntry ? toDetail(selectedEntry) : null}
             projectSlug={ctx.slug}
             entryIndex={entryIndex}
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
             relationSearchResults={relationSearchResults}
             onRelationSearch={handleRelationSearch}
             onAction={handleEntryAction}
-            onTabAction={handleTabAction}
             onNavigateEntry={handleNavigateEntry}
             onAttachmentUpload={handleAttachmentUpload}
             onAttachmentDelete={handleAttachmentDelete}
+            onLanguageChange={handleLanguageChange}
+            onEditBody={handleEditBody}
+            onOpenPointAdd={handleOpenPointAdd}
+            onOpenPointAnswer={handleOpenPointAnswer}
+            onOpenPointDelete={handleOpenPointDelete}
+            onSourceSubmit={handleSourceSubmit}
+            onSourceDelete={handleSourceDelete}
+            onClaimSubmit={handleClaimSubmit}
+            onClaimDelete={handleClaimDelete}
+            onRelationSubmit={handleRelationSubmit}
+            onRelationDelete={handleRelationDelete}
             canEdit={canEdit}
             canDiscuss={canDiscussRole}
             canCreateEntry={canEdit}

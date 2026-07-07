@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 
-import { createEntry, updateEntry } from "@/actions/entries";
+import { addAttachmentMetadata, createEntry, updateEntry } from "@/actions/entries";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,6 +17,20 @@ import {
 import { TYPE_META } from "@/lib/constants";
 import { ViewFrame } from "@/components/ui/chronikon-shell";
 import { ENTRY_TYPE_HINTS } from "@/lib/ki-templates";
+import {
+  DEFAULT_ENTRY_LANGUAGE,
+  ENTRY_LANGUAGES,
+  normalizeEntryLanguage,
+  type EntryLanguageCode,
+} from "@/lib/languages";
+
+type PendingUpload = {
+  storageKey: string;
+  url?: string;
+  mimeType: string;
+  name: string;
+  text?: string;
+};
 
 export function CaptureForm({
   projectId,
@@ -51,6 +65,9 @@ export function CaptureForm({
   const isEdit = !!editEntryId;
   const [uploadOpen, setUploadOpen] = React.useState(false);
   const [uploading, setUploading] = React.useState(false);
+  const [pendingUpload, setPendingUpload] = React.useState<PendingUpload | null>(
+    null,
+  );
   const [extractedText, setExtractedText] = React.useState("");
   const [saving, setSaving] = React.useState(false);
 
@@ -63,7 +80,9 @@ export function CaptureForm({
     topic: initialFields?.topic ?? topics[0] ?? "",
     summary: initialFields?.summary ?? "",
     body: initialFields?.body ?? "",
-    language: initialFields?.language ?? "",
+    language: normalizeEntryLanguage(
+      initialFields?.language || DEFAULT_ENTRY_LANGUAGE,
+    ),
     author: initialFields?.author ?? "",
     placeName: initialFields?.placeName ?? "",
   });
@@ -77,12 +96,24 @@ export function CaptureForm({
       fd.append("file", file);
       const res = await fetch("/api/upload", { method: "POST", body: fd });
       const data = await res.json();
+      if (!res.ok) {
+        window.alert(data.error ?? "Upload fehlgeschlagen");
+        return;
+      }
+      setPendingUpload({
+        storageKey: data.storageKey,
+        url: data.url,
+        mimeType: data.mimeType,
+        name: data.name,
+        text: data.text,
+      });
       if (data.text) {
         setExtractedText(data.text);
-        setUploadOpen(true);
       }
+      setUploadOpen(true);
     } finally {
       setUploading(false);
+      e.target.value = "";
     }
   };
 
@@ -108,7 +139,7 @@ export function CaptureForm({
         yearStart: parseInt(fields.yearStart, 10) || 0,
         yearEnd: parseInt(fields.yearEnd, 10) || 2025,
         confidence: fields.confidence as "likely",
-        language: fields.language || undefined,
+        language: fields.language || DEFAULT_ENTRY_LANGUAGE,
         author: fields.author || undefined,
         placeName: fields.placeName || undefined,
         topicNames: fields.topic ? [fields.topic] : [],
@@ -125,6 +156,26 @@ export function CaptureForm({
       }
 
       const entryId = isEdit ? editEntryId! : result.data!.id;
+
+      if (!isEdit && pendingUpload) {
+        const attachmentResult = await addAttachmentMetadata({
+          projectId,
+          entryId,
+          name: pendingUpload.name,
+          mimeType: pendingUpload.mimeType,
+          storageKey: pendingUpload.storageKey,
+          publicUrl: pendingUpload.url,
+          label: "Bei Anlage hochgeladen",
+          extractedText: pendingUpload.text || extractedText || undefined,
+        });
+        if (!attachmentResult.success) {
+          window.alert(
+            attachmentResult.error ??
+              "Eintrag gespeichert, aber Anhang konnte nicht verknüpft werden",
+          );
+        }
+      }
+
       router.push(`/p/${projectSlug}?entry=${entryId}`);
       router.refresh();
     } catch (error) {
@@ -172,7 +223,8 @@ export function CaptureForm({
             <div className="space-y-3 border-t border-border/60 px-4 py-3">
               <p className="text-[0.78rem] text-muted-foreground">
                 PDF oder Bild hochladen — bei PDFs wird Text per OCR extrahiert
-                und kann in den Inhalt übernommen werden.
+                (optimiert für Deutsch und Englisch). Der Anhang wird beim
+                Speichern automatisch mit dem Eintrag verknüpft.
               </p>
               <Input
                 type="file"
@@ -183,6 +235,12 @@ export function CaptureForm({
               {uploading && (
                 <p className="text-sm text-muted-foreground">Wird hochgeladen…</p>
               )}
+              {pendingUpload && (
+                <p className="text-[0.78rem] text-green">
+                  ✓ {pendingUpload.name} bereit — wird beim Speichern als Anhang
+                  angelegt
+                </p>
+              )}
               {extractedText && (
                 <div className="space-y-2">
                   <Textarea
@@ -192,7 +250,7 @@ export function CaptureForm({
                     className="font-mono text-xs"
                   />
                   <Button size="sm" variant="outline" onClick={insertExtractedText}>
-                    Text in Inhalt übernehmen
+                    Text optional in Inhalt übernehmen
                   </Button>
                 </div>
               )}
@@ -248,6 +306,29 @@ export function CaptureForm({
             />
           </Field>
         </div>
+
+        <Field label="Sprache">
+          <Select
+            value={fields.language}
+            onValueChange={(v) =>
+              setFields((f) => ({
+                ...f,
+                language: v as EntryLanguageCode,
+              }))
+            }
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {ENTRY_LANGUAGES.map((lang) => (
+                <SelectItem key={lang.value} value={lang.value}>
+                  {lang.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
 
         <Field label="Thema">
           <Select

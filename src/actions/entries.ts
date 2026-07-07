@@ -470,6 +470,7 @@ export async function addAttachmentMetadata(
       publicUrl: parsed.data.publicUrl,
       label: parsed.data.label,
       extractedText: parsed.data.extractedText,
+      ocrStatus: parsed.data.extractedText?.trim() ? "done" : "pending",
       uploadedById: session.user.id,
     },
   });

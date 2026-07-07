@@ -31,7 +31,7 @@ const ACTION_GROUPS: {
 }[] = [
   {
     actions: [
-      { action: "discussion", label: "Diskussion", icon: MessageSquare },
+      { action: "discussion", label: "Offene Punkte", icon: MessageSquare },
     ],
   },
   {

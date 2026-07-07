@@ -1,3 +1,5 @@
+import { entryLanguageLabel } from "@/lib/languages";
+
 export type KiAttachmentInput = {
   name: string;
   label?: string | null;
@@ -11,6 +13,8 @@ export type KiChildEntryInput = {
   typeLabel: string;
   yearStart?: number;
   yearEnd?: number;
+  pageStart?: number | null;
+  pageEnd?: number | null;
 };
 
 export type KiTemplateVars = {
@@ -18,13 +22,18 @@ export type KiTemplateVars = {
   ENTRY_TITLE: string;
   ENTRY_BODY: string;
   ENTRY: string;
+  LANGUAGE: string;
+  PAGE_START: string;
+  PAGE_END: string;
   OCR_TEXT: string;
+  PARENT_OCR_TEXT: string;
   ATTACHMENTS_LIST: string;
   CHILD_ENTRIES: string;
   ENTRIES: string;
 };
 
 const OCR_TRUNCATE = 12000;
+const PAGE_EXCERPT_TRUNCATE = 8000;
 
 export function buildAttachmentsList(
   attachments: KiAttachmentInput[],
@@ -36,13 +45,14 @@ export function buildAttachmentsList(
   return attachments
     .map((attachment, index) => {
       const label = attachment.label ? ` — ${attachment.label}` : "";
-      const ocr =
-        attachment.ocrStatus === "done" && attachment.extractedText?.trim()
-          ? " · OCR vorhanden"
+      const textStatus = attachment.extractedText?.trim()
+        ? " · Text extrahiert"
+        : attachment.ocrStatus === "failed"
+          ? " · Extraktion fehlgeschlagen"
           : attachment.ocrStatus === "pending"
-            ? " · OCR ausstehend"
+            ? " · ausstehend"
             : "";
-      return `${index + 1}. ${attachment.name}${label} (${attachment.mimeType ?? "unbekannt"})${ocr}`;
+      return `${index + 1}. ${attachment.name}${label} (${attachment.mimeType ?? "unbekannt"})${textStatus}`;
     })
     .join("\n");
 }
@@ -54,16 +64,53 @@ export function buildOcrText(attachments: KiAttachmentInput[]): string {
       const text = attachment.extractedText!.trim();
       const truncated =
         text.length > OCR_TRUNCATE
-          ? `${text.slice(0, OCR_TRUNCATE)}\n\n[… OCR gekürzt …]`
+          ? `${text.slice(0, OCR_TRUNCATE)}\n\n[… Text gekürzt …]`
           : text;
       return `### ${attachment.name}\n\n${truncated}`;
     });
 
   if (blocks.length === 0) {
-    return "(kein OCR-Text verfügbar — PDF-Anhänge hochladen oder ZIP-Export für vollständige OCR-Korpusnutzung)";
+    return "(kein extrahierter PDF-Text — digitales PDF am Buch-Anhang hochladen)";
   }
 
   return blocks.join("\n\n---\n\n");
+}
+
+export function buildParentOcrExcerpt(
+  parentAttachments: KiAttachmentInput[],
+  pageStart?: number | null,
+  pageEnd?: number | null,
+): string {
+  const fullText = parentAttachments
+    .map((a) => a.extractedText?.trim())
+    .filter(Boolean)
+    .join("\n\n");
+
+  if (!fullText) {
+    return "(kein Buch-PDF-Text am übergeordneten Buch — zuerst PDF hochladen und Text extrahieren lassen)";
+  }
+
+  let excerpt = fullText;
+  if (pageStart != null && pageEnd != null && pageStart > 0) {
+    const approxCharsPerPage = Math.max(
+      1200,
+      Math.floor(fullText.length / Math.max(pageEnd, pageStart)),
+    );
+    const startIdx = Math.max(0, (pageStart - 1) * approxCharsPerPage);
+    const endIdx = Math.min(
+      fullText.length,
+      pageEnd * approxCharsPerPage,
+    );
+    excerpt = fullText.slice(startIdx, endIdx);
+    if (excerpt.length < fullText.length) {
+      excerpt = `[Seiten ${pageStart}–${pageEnd}, geschätzter Ausschnitt]\n\n${excerpt}`;
+    }
+  }
+
+  if (excerpt.length > PAGE_EXCERPT_TRUNCATE) {
+    return `${excerpt.slice(0, PAGE_EXCERPT_TRUNCATE)}\n\n[… Ausschnitt gekürzt …]`;
+  }
+  return excerpt;
 }
 
 export function buildChildEntriesList(
@@ -75,11 +122,15 @@ export function buildChildEntriesList(
 
   return children
     .map((child, index) => {
+      const pages =
+        child.pageStart != null && child.pageEnd != null
+          ? ` S. ${child.pageStart}–${child.pageEnd}`
+          : "";
       const years =
         child.yearStart != null && child.yearEnd != null
           ? ` (${child.yearStart}–${child.yearEnd})`
           : "";
-      return `${index + 1}. ${child.title} [${child.typeLabel}]${years}`;
+      return `${index + 1}. ${child.title} [${child.typeLabel}]${pages || years}`;
     })
     .join("\n");
 }
@@ -88,11 +139,16 @@ export function buildEntryKiVars(input: {
   project: string;
   entryTitle: string;
   entryMarkdown: string;
+  language?: string | null;
+  pageStart?: number | null;
+  pageEnd?: number | null;
   attachments?: KiAttachmentInput[];
+  parentAttachments?: KiAttachmentInput[];
   childEntries?: KiChildEntryInput[];
   entriesPlaceholder?: string;
 }): KiTemplateVars {
   const attachments = input.attachments ?? [];
+  const parentAttachments = input.parentAttachments ?? [];
   const entryBody = input.entryMarkdown;
 
   return {
@@ -100,8 +156,17 @@ export function buildEntryKiVars(input: {
     ENTRY_TITLE: input.entryTitle,
     ENTRY_BODY: entryBody,
     ENTRY: entryBody,
+    LANGUAGE: entryLanguageLabel(input.language),
+    PAGE_START:
+      input.pageStart != null ? String(input.pageStart) : "(nicht angegeben)",
+    PAGE_END: input.pageEnd != null ? String(input.pageEnd) : "(nicht angegeben)",
     ATTACHMENTS_LIST: buildAttachmentsList(attachments),
     OCR_TEXT: buildOcrText(attachments),
+    PARENT_OCR_TEXT: buildParentOcrExcerpt(
+      parentAttachments,
+      input.pageStart,
+      input.pageEnd,
+    ),
     CHILD_ENTRIES: buildChildEntriesList(input.childEntries ?? []),
     ENTRIES:
       input.entriesPlaceholder ??
@@ -111,4 +176,12 @@ export function buildEntryKiVars(input: {
 
 export function hasOcrContent(attachments: KiAttachmentInput[]): boolean {
   return attachments.some((attachment) => attachment.extractedText?.trim());
+}
+
+export function isBookSubEntry(input: {
+  parentEntryType?: string | null;
+  pageStart?: number | null;
+  pageEnd?: number | null;
+}): boolean {
+  return input.parentEntryType === "book";
 }

@@ -22,7 +22,7 @@ export function ExportView({
 }) {
   return (
     <ViewFrame
-      eyebrow="Export & Online-KI"
+      eyebrow="Export & externe KI"
       title="Wissen exportieren"
       description="ZIP herunterladen, dann Vorlagen in ChatGPT, Claude o.ä. einfügen. Chronikon hat keine eingebaute KI."
       maxWidth="md"
@@ -86,7 +86,7 @@ export function ExportView({
           >
             Detailansicht
           </Link>{" "}
-          unter „Für Online-KI" — Vorlage wählen, OCR wird automatisch
+          unter „Für externe KI" — Vorlage wählen, OCR wird automatisch
           eingefügt.
         </p>
       </div>

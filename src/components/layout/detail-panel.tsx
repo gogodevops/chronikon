@@ -7,11 +7,23 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ChildEntriesSection } from "@/components/entry/child-entries-section";
+import { EntryDetailSections } from "@/components/entry/entry-detail-sections";
 import { OnlineKiSection } from "@/components/entry/online-ki-section";
 import { EntryActionBar, type EntryAction } from "@/components/entry/entry-action-bar";
-import { AttachmentsSection, type AttachmentItem } from "@/components/entry/attachments-section";
-import { EntryTabs } from "@/components/entry/entry-tabs";
+import type { AttachmentItem } from "@/components/entry/attachments-section";
 import { ChMetaPill } from "@/components/ui/chronikon-shell";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  ENTRY_LANGUAGES,
+  entryLanguageLabel,
+  normalizeEntryLanguage,
+} from "@/lib/languages";
 import type { EntryTitleIndex, LinkableEntryResult, SerializedChildEntry } from "@/lib/queries";
 import type {
   SerializedClaim,
@@ -61,16 +73,24 @@ export interface DetailPanelProps {
   expanded?: boolean;
   projectSlug?: string;
   entryIndex?: EntryTitleIndex[];
-  activeTab?: string;
-  onTabChange?: (tab: string) => void;
   relationSearchResults?: LinkableEntryResult[];
   onRelationSearch?: (query: string) => void;
   className?: string;
   onAction?: (action: EntryAction) => void;
-  onTabAction?: (tab: string, action: string, data?: unknown) => void;
   onNavigateEntry?: (entryId: string, projectSlug?: string) => void;
   onAttachmentUpload?: (file: File) => void;
   onAttachmentDelete?: (attachmentId: string) => void;
+  onLanguageChange?: (language: string) => void;
+  onEditBody?: () => void;
+  onOpenPointAdd?: (text: string) => void;
+  onOpenPointAnswer?: (questionId: string, text: string) => void;
+  onOpenPointDelete?: (questionId: string) => void;
+  onSourceSubmit?: (data: unknown) => void;
+  onSourceDelete?: (sourceId: string) => void;
+  onClaimSubmit?: (data: unknown) => void;
+  onClaimDelete?: (claimId: string) => void;
+  onRelationSubmit?: (data: unknown) => void;
+  onRelationDelete?: (relationId: string) => void;
   canEdit?: boolean;
   canDiscuss?: boolean;
   canCreateEntry?: boolean;
@@ -90,16 +110,24 @@ export function DetailPanel({
   expanded = false,
   projectSlug = "",
   entryIndex = [],
-  activeTab = "inhalt",
-  onTabChange,
   relationSearchResults = [],
   onRelationSearch,
   className,
   onAction,
-  onTabAction,
   onNavigateEntry,
   onAttachmentUpload,
   onAttachmentDelete,
+  onLanguageChange,
+  onEditBody,
+  onOpenPointAdd,
+  onOpenPointAnswer,
+  onOpenPointDelete,
+  onSourceSubmit,
+  onSourceDelete,
+  onClaimSubmit,
+  onClaimDelete,
+  onRelationSubmit,
+  onRelationDelete,
   canEdit = true,
   canDiscuss = true,
   canCreateEntry = false,
@@ -138,8 +166,8 @@ export function DetailPanel({
           />
           <p className="text-sm font-medium text-foreground">Noch kein Eintrag gewählt</p>
           <p className="mt-1 max-w-[240px] text-[0.78rem] text-muted-foreground">
-            Schritt 2 links: Eintrag anklicken — hier erscheinen Inhalt, Quellen
-            und Diskussion.
+            Schritt 2 links: Eintrag anklicken — hier erscheinen Kern, Material
+            und offene Punkte.
           </p>
           {canCreateEntry && onNewEntry && (
             <Button
@@ -155,6 +183,9 @@ export function DetailPanel({
       </aside>
     );
   }
+
+  const openQuestionCount = entry.questions?.filter((q) => q.status === "open").length ?? 0;
+  const languageCode = normalizeEntryLanguage(entry.language);
 
   const handleAttachmentAdd = () => {
     if (onAttachmentUpload) {
@@ -222,12 +253,6 @@ export function DetailPanel({
             </p>
           )}
 
-          {entry.summary && (
-            <p className="mt-1.5 text-[0.82rem] leading-relaxed text-muted-foreground">
-              {entry.summary}
-            </p>
-          )}
-
           {entry.topics && entry.topics.length > 0 && (
             <div className="mt-2.5 flex flex-wrap gap-1">
               {entry.topics.map((t) => (
@@ -245,13 +270,8 @@ export function DetailPanel({
             onAction={onAction}
             canEdit={canEdit}
             canDiscuss={canDiscuss}
-            discussionCount={
-              entry.discussionCount ??
-              (entry.questionCount ?? entry.questions?.length ?? 0) +
-                (entry.commentCount ?? entry.comments?.length ?? 0)
-            }
+            discussionCount={openQuestionCount}
           />
-
         </div>
 
         <div className="px-5 py-4">
@@ -260,9 +280,32 @@ export function DetailPanel({
               label="Zeitraum"
               value={`${yearLabel(entry.yearStart)} – ${yearLabel(entry.yearEnd)}`}
             />
-            {entry.language && (
-              <ChMetaPill label="Sprache" value={entry.language} />
-            )}
+            <div className="rounded-lg border border-border/60 bg-surface-2/50 px-2.5 py-2">
+              <p className="text-[0.62rem] uppercase tracking-wide text-muted-foreground">
+                Sprache
+              </p>
+              {canEdit && onLanguageChange ? (
+                <Select
+                  value={languageCode}
+                  onValueChange={onLanguageChange}
+                >
+                  <SelectTrigger className="mt-0.5 h-7 border-0 bg-transparent px-0 text-[0.78rem] shadow-none">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ENTRY_LANGUAGES.map((lang) => (
+                      <SelectItem key={lang.value} value={lang.value}>
+                        {lang.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <p className="mt-0.5 text-[0.78rem] font-medium">
+                  {entryLanguageLabel(entry.language)}
+                </p>
+              )}
+            </div>
             {entry.author && <ChMetaPill label="Autor" value={entry.author} />}
             {entry.place && <ChMetaPill label="Ort" value={entry.place} />}
           </div>
@@ -280,13 +323,37 @@ export function DetailPanel({
             />
           )}
 
-          <AttachmentsSection
-            attachments={entry.attachments ?? []}
+          <EntryDetailSections
             entryId={entry.id}
-            onAdd={handleAttachmentAdd}
-            onDelete={onAttachmentDelete}
+            projectSlug={projectSlug}
+            summary={entry.summary}
+            body={entry.body}
+            attachments={entry.attachments ?? []}
+            questions={entry.questions ?? []}
+            sources={entry.sources}
+            claims={entry.claims}
+            relations={entry.relations}
+            versions={entry.versions}
+            entryIndex={entryIndex}
+            relationSearchResults={relationSearchResults}
+            onRelationSearch={onRelationSearch}
+            onNavigateEntry={onNavigateEntry}
+            onEditBody={onEditBody}
+            onAttachmentAdd={handleAttachmentAdd}
+            onAttachmentDelete={onAttachmentDelete}
+            onOpenPointAdd={onOpenPointAdd}
+            onOpenPointAnswer={onOpenPointAnswer}
+            onOpenPointDelete={onOpenPointDelete}
+            onSourceSubmit={onSourceSubmit}
+            onSourceDelete={onSourceDelete}
+            onClaimSubmit={onClaimSubmit}
+            onClaimDelete={onClaimDelete}
+            onRelationSubmit={onRelationSubmit}
+            onRelationDelete={onRelationDelete}
             canEdit={canEdit}
+            canDiscuss={canDiscuss}
           />
+
           <input
             ref={fileInputRef}
             type="file"
@@ -297,35 +364,6 @@ export function DetailPanel({
               if (file) onAttachmentUpload?.(file);
               e.target.value = "";
             }}
-          />
-
-          <EntryTabs
-            entryId={entry.id}
-            projectSlug={projectSlug}
-            body={entry.body}
-            sourceCount={entry.sourceCount ?? 0}
-            claimCount={entry.claimCount ?? 0}
-            discussionCount={
-              entry.discussionCount ??
-              (entry.questionCount ?? entry.questions?.length ?? 0) +
-                (entry.commentCount ?? entry.comments?.length ?? 0)
-            }
-            sources={entry.sources}
-            claims={entry.claims}
-            questions={entry.questions}
-            comments={entry.comments}
-            relations={entry.relations}
-            relationCount={entry.relations?.length ?? 0}
-            versions={entry.versions}
-            entryIndex={entryIndex}
-            activeTab={activeTab}
-            onTabChange={onTabChange}
-            relationSearchResults={relationSearchResults}
-            onRelationSearch={onRelationSearch}
-            onNavigateEntry={onNavigateEntry}
-            onAction={onTabAction}
-            canEdit={canEdit}
-            canDiscuss={canDiscuss}
           />
         </div>
       </ScrollArea>

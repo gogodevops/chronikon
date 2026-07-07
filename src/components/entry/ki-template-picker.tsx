@@ -29,6 +29,7 @@ export function EntryKiTemplatePicker({
   projectName,
   entryTitle,
   entryMarkdown,
+  language,
   attachments = [],
   childEntries = [],
   className,
@@ -37,29 +38,31 @@ export function EntryKiTemplatePicker({
   projectName: string;
   entryTitle: string;
   entryMarkdown: string;
+  language?: string | null;
   attachments?: KiAttachmentInput[];
   childEntries?: KiChildEntryInput[];
   className?: string;
 }) {
-  const templates = getEntryKiTemplates(type);
+  const templates = getEntryKiTemplates(type, language);
   const [selectedId, setSelectedId] = React.useState(templates[0]?.id ?? "");
 
   React.useEffect(() => {
     if (!templates.some((template) => template.id === selectedId)) {
       setSelectedId(templates[0]?.id ?? "");
     }
-  }, [type, selectedId, templates]);
+  }, [type, language, selectedId, templates]);
 
   const selected = templates.find((template) => template.id === selectedId);
   const vars = buildEntryKiVars({
     project: projectName,
     entryTitle,
     entryMarkdown,
+    language,
     attachments,
     childEntries,
   });
   const promptText = selected
-    ? renderEntryKiPrompt(type, selected.id, vars)
+    ? renderEntryKiPrompt(type, selected.id, vars, language)
     : "";
   const ocrAvailable = hasOcrContent(attachments);
 
@@ -97,8 +100,8 @@ export function EntryKiTemplatePicker({
             </p>
           ) : (
             <p className="text-[0.72rem] text-muted-foreground">
-              Kein OCR-Text vorhanden — PDF-Anhänge hochladen oder ZIP-Export
-              für vollständige OCR-Korpusnutzung.
+              Kein OCR-Text vorhanden — PDF-Anhänge hochladen (optimiert für
+              Deutsch und Englisch).
             </p>
           )}
           <details className="rounded-lg border border-border/60 bg-surface/50">
@@ -106,9 +109,9 @@ export function EntryKiTemplatePicker({
               Vorschau anzeigen
             </summary>
             <div className="border-t border-border/50 p-3">
-              {getEntryTypeKiTemplate(type, selected.id) && (
+              {getEntryTypeKiTemplate(type, selected.id, language) && (
                 <KiTemplateFullPreview
-                  template={getEntryTypeKiTemplate(type, selected.id)!}
+                  template={getEntryTypeKiTemplate(type, selected.id, language)!}
                 />
               )}
             </div>

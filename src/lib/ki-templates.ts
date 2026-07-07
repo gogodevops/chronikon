@@ -1,8 +1,15 @@
 import type { EntryType } from "@prisma/client";
 
+import { TYPE_META } from "@/lib/constants";
+import {
+  entryLanguageLabel,
+  normalizeEntryLanguage,
+  type EntryLanguageCode,
+} from "@/lib/languages";
 import {
   buildEntryKiVars,
   hasOcrContent,
+  isBookSubEntry,
   type KiAttachmentInput,
   type KiChildEntryInput,
   type KiTemplateVars,
@@ -10,7 +17,7 @@ import {
 
 /** Kurzer Hinweis pro Eintragstyp — was dokumentieren? */
 export const ENTRY_TYPE_HINTS: Record<EntryType, string> = {
-  book: "Kapitel als Untereinträge anlegen, PDF/OCR-Text anhängen, Ausgabe und Erscheinungsjahr notieren.",
+  book: "PDF des Buches hochladen (Textextraktion), Kapitel als Untereinträge mit Seitenzahlen anlegen.",
   text: "Quelle, Übersetzung und Edition festhalten — ideal für Vergleiche und Zitate.",
   person: "Lebensdaten, historische Rolle und belegende Quellen erfassen.",
   place: "Koordinaten, historischer Name und zeitliche Zuordnung dokumentieren.",
@@ -47,11 +54,24 @@ const OCR_KONTEXT_BLOCK = [
   "Anhänge:",
   "{{ATTACHMENTS_LIST}}",
   "",
-  "OCR-Volltext aus Anhängen:",
+  "Extrahierter PDF-Text (digitale PDFs):",
   "{{OCR_TEXT}}",
   "",
   "Untereinträge:",
   "{{CHILD_ENTRIES}}",
+].join("\n");
+
+const BOOK_SUB_KONTEXT_BLOCK = [
+  "Eintrag (Markdown):",
+  "{{ENTRY_BODY}}",
+  "",
+  "Seitenbereich: {{PAGE_START}} – {{PAGE_END}}",
+  "",
+  "Ausschnitt aus Buch-PDF (übergeordnetes Buch):",
+  "{{PARENT_OCR_TEXT}}",
+  "",
+  "Eigene Anhänge:",
+  "{{ATTACHMENTS_LIST}}",
 ].join("\n");
 
 function entryKontext(typeLabel: string, schwerpunkte: string[]): string {
@@ -59,269 +79,282 @@ function entryKontext(typeLabel: string, schwerpunkte: string[]): string {
     "Du bist Historiker/in mit Expertise in Quellenkritik und historischer Methodik.",
     "",
     "Projekt: {{PROJECT}}",
-    `Eintrag: „{{ENTRY_TITLE}}\u201d`,
+    `Eintrag: „{{ENTRY_TITLE}}"`,
     `Eintragstyp: ${typeLabel}`,
+    "Sprache des Eintrags: {{LANGUAGE}}",
     `Schwerpunkte: ${schwerpunkte.join(", ")}`,
     "",
     OCR_KONTEXT_BLOCK,
   ].join("\n");
 }
 
-const ENTRY_TYPE_KI_TEMPLATES: Record<EntryType, EntryKiTemplate[]> = {
-  book: [
+const TYPE_SCHWERPUNKTE: Record<EntryType, string[]> = {
+  book: ["Gesamtüberblick", "Kapitelstruktur", "OCR-Volltext", "Edition"],
+  text: ["Quelle", "Edition", "Übersetzung", "Zitate"],
+  person: ["Biographie", "Rolle", "Primärquellen"],
+  place: ["Koordinaten", "Namensvarianten", "Ereignisse"],
+  discovery: ["Fundort", "Datierung", "Publikation"],
+  note: ["Hypothesen", "Gedankengang", "Recherche"],
+};
+
+function summarizeVerifyDe(type: EntryType): EntryKiTemplate {
+  const typeLabel = TYPE_META[type].label;
+  return {
+    id: `${type}-zusammenfassen-pruefen`,
+    title: "Zusammenfassen & prüfen",
+    description: `Inhalt von „{{ENTRY_TITLE}}" fachlich zusammenfassen und quellenkritisch prüfen.`,
+    template: {
+      ziel: `Den ${typeLabel.toLowerCase()}-Eintrag „{{ENTRY_TITLE}}" auf Basis der Metadaten, des Inhalts und des OCR-Volltexts zusammenfassen und quellenkritisch prüfen.`,
+      kontext: entryKontext(typeLabel, TYPE_SCHWERPUNKTE[type]),
+      aufgabe: [
+        "Kerninhalt und zentrale Aussagen in 2–3 Absätzen darstellen",
+        "Wichtige Personen, Orte, Ereignisse und Zeitangaben erfassen",
+        "Quellenlage und Belege bewerten — gesichert vs. unsicher kennzeichnen",
+        "Lücken im OCR-Text und fehlende Informationen markieren",
+        "Offene Forschungsfragen und empfohlene nächste Schritte formulieren",
+      ],
+      ausgabeformat: [
+        "- **Zusammenfassung** (2–3 Absätze)",
+        "- **Schlüsseldaten**: Tabelle `Aspekt | Angabe | Beleg/Sicherheit`",
+        "- **Quellenkritik**: Bullet-Liste zu Verlässlichkeit und Lücken",
+        "- **Offene Fragen**: nummerierte Liste",
+      ].join("\n"),
+    },
+  };
+}
+
+function summarizeVerifyEn(type: EntryType): EntryKiTemplate {
+  const typeLabel = TYPE_META[type].label;
+  return {
+    id: `${type}-summarize-verify`,
+    title: "Summarize & verify",
+    description: "Summarize and critically verify the entry content (English material).",
+    template: {
+      ziel: `Summarize and critically verify the ${typeLabel.toLowerCase()} entry "{{ENTRY_TITLE}}" based on metadata, body text, and OCR full text.`,
+      kontext: [
+        "You are a historian with expertise in source criticism and historical methodology.",
+        "",
+        "Project: {{PROJECT}}",
+        'Entry: "{{ENTRY_TITLE}}"',
+        `Entry type: ${typeLabel}`,
+        "Entry language: {{LANGUAGE}}",
+        `Focus: ${TYPE_SCHWERPUNKTE[type].join(", ")}`,
+        "",
+        OCR_KONTEXT_BLOCK,
+      ].join("\n"),
+      aufgabe: [
+        "Summarize core content and main claims in 2–3 paragraphs",
+        "Extract key persons, places, events, and dates",
+        "Assess sources and evidence — mark verified vs. uncertain claims",
+        "Note OCR gaps and missing information",
+        "Formulate open research questions and recommended next steps",
+      ],
+      ausgabeformat: [
+        "- **Summary** (2–3 paragraphs)",
+        "- **Key data**: table `Aspect | Detail | Evidence/Confidence`",
+        "- **Source criticism**: bullet list on reliability and gaps",
+        "- **Open questions**: numbered list",
+      ].join("\n"),
+    },
+  };
+}
+
+function summarizeInGerman(type: EntryType): EntryKiTemplate {
+  const typeLabel = TYPE_META[type].label;
+  return {
+    id: `${type}-auf-deutsch-zusammenfassen`,
+    title: "Auf Deutsch zusammenfassen",
+    description:
+      "Englisches Material zusammenfassen — Ausgabe auf Deutsch für das deutsche Projekt.",
+    template: {
+      ziel: `Das englischsprachige Material von „{{ENTRY_TITLE}}" (${typeLabel}) auf Deutsch zusammenfassen und für die weitere Recherche im Projekt aufbereiten.`,
+      kontext: [
+        "Du bist Historiker/in. Das Quellenmaterial ist auf Englisch; die Ausgabe soll auf Deutsch sein.",
+        "",
+        "Projekt: {{PROJECT}}",
+        `Eintrag: „{{ENTRY_TITLE}}"`,
+        `Eintragstyp: ${typeLabel}`,
+        "Sprache des Materials: {{LANGUAGE}} (Englisch)",
+        "",
+        OCR_KONTEXT_BLOCK,
+      ].join("\n"),
+      aufgabe: [
+        "Kerninhalt des englischen Materials auf Deutsch in 2–3 Absätzen wiedergeben",
+        "Fachbegriffe und Eigennamen korrekt übertragen — englische Originalform in Klammern wenn hilfreich",
+        "Zentrale Belege und unsichere Stellen markieren",
+        "Empfehlungen für deutsche Sekundärliteratur oder Übersetzungen nennen",
+      ],
+      ausgabeformat: [
+        "- **Deutsche Zusammenfassung** (2–3 Absätze)",
+        "- **Schlüsselbegriffe**: Tabelle `Deutsch | Englisch | Anmerkung`",
+        "- **Offene Punkte**: nummerierte Liste auf Deutsch",
+      ].join("\n"),
+    },
+  };
+}
+
+function bookSubEntryTemplatesDe(): EntryKiTemplate[] {
+  return [
     {
-      id: "book-zusammenfassung",
-      title: "Detaillierte Zusammenfassung",
+      id: "book-sub-abschnitt",
+      title: "Abschnitt zusammenfassen",
       description:
-        "Vollständige inhaltliche Erfassung mit OCR-Volltext, Kapitelstruktur und Forschungsfragen.",
+        "Kapitel/Untereintrag anhand Seiten {{PAGE_START}}–{{PAGE_END}} und Buch-PDF-Text bearbeiten.",
       template: {
-        ziel: "Eine vollständige, fachlich fundierte inhaltliche Erfassung des Buchs „{{ENTRY_TITLE}}\u201d erstellen — auf Basis der Metadaten, des OCR-Volltexts und der Untereinträge.",
-        kontext: entryKontext("Buch", [
-          "Gesamtüberblick",
-          "Kapitelstruktur",
-          "OCR-Volltext",
-          "Edition",
-        ]),
-        aufgabe: [
-          "Gesamtüberblick: Thema, Forschungsgegenstand, historischer Kontext und zentrale Fragestellung des Werks in 2–3 Absätzen",
-          "Kapitelstruktur: vorhandene und fehlende Untereinträge benennen; sinnvolle Gliederung (Teil, Kapitel, Abschnitt) vorschlagen",
-          "Kernthesen und Hauptargumente des Autors aus OCR-Text und Eintragsdaten extrahieren",
-          "Methodik und Quellenlage des Werks bewerten (Primärquellen, Sekundärliteratur, Editionskritik)",
-          "Wichtige Personen, Orte, Ereignisse und Zeitangaben tabellarisch erfassen",
-          "Lücken im OCR-Text, fehlende Seiten und unsichere Stellen markieren",
-          "Offene Forschungsfragen und empfohlene nächste Arbeitsschritte formulieren",
-        ],
-        ausgabeformat: [
-          "- **Überblick** (2–3 Absätze)",
-          "- **Kapitelstruktur**: nummerierte Gliederung mit Kurzinhalt je Abschnitt",
-          "- **Kernthesen**: Bullet-Liste mit Fundstelle (Seite/OCR-Abschnitt wenn möglich)",
-          "- **Methodik & Quellenlage**: Absatz + Tabelle `Quelle | Typ | Bewertung`",
-          "- **Personen/Orte/Ereignisse**: Tabelle `Name | Rolle | Zeitraum | Beleg`",
-          "- **OCR-Hinweise**: Bullet-Liste zu Lücken und Unsicherheiten",
-          "- **Offene Fragen**: nummerierte Liste",
+        ziel: `Den Untereintrag „{{ENTRY_TITLE}}" (Seiten {{PAGE_START}}–{{PAGE_END}}) im Kontext des übergeordneten Buchs zusammenfassen.`,
+        kontext: [
+          "Du bist Historiker/in. Material stammt aus einem digital extrahierten Buch-PDF.",
+          "",
+          "Projekt: {{PROJECT}}",
+          `Untereintrag: „{{ENTRY_TITLE}}"`,
+          "Sprache: {{LANGUAGE}}",
+          "",
+          BOOK_SUB_KONTEXT_BLOCK,
         ].join("\n"),
-      },
-    },
-    {
-      id: "book-metadaten",
-      title: "Metadaten & Edition prüfen",
-      description: "Ausgabe, Herausgeber, Jahr und bibliografische Angaben vervollständigen.",
-      template: {
-        ziel: "Bibliografische und editionswissenschaftliche Metadaten für „{{ENTRY_TITLE}}\u201d prüfen und ergänzen.",
-        kontext: entryKontext("Buch", ["Edition", "Erscheinungsjahr", "Herausgeber"]),
         aufgabe: [
-          "Vorhandene Metadaten (Autor, Titel, Jahr, Sprache, Ausgabe) auf Vollständigkeit prüfen",
-          "Fehlende bibliografische Angaben recherchieren und vorschlagen",
-          "Überlieferungsgeschichte und Editionsgeschichte kurz skizzieren",
-          "Abweichungen zwischen OCR-Text und Metadaten benennen",
-          "Empfohlene Standardzitierweise angeben",
+          "Kerninhalt des Seitenbereichs in 2–3 Absätzen darstellen",
+          "Zentrale Personen, Orte und Ereignisse im Abschnitt erfassen",
+          "Belege aus dem Buch-PDF-Ausschnitt benennen — Unsicherheiten markieren",
+          "Bezug zum Gesamtwerk und zu anderen Kapiteln herstellen",
+          "Offene Punkte für die weitere Recherche formulieren",
         ],
         ausgabeformat: [
-          "- **Metadaten-Tabelle**: `Feld | Ist-Wert | Vorschlag | Quelle/Anmerkung`",
-          "- **Editionshinweise**: Bullet-Liste",
-          "- **Zitierempfehlung**: ein Absatz",
-        ].join("\n"),
-      },
-    },
-    {
-      id: "book-kapitel",
-      title: "Kapitelstruktur planen",
-      description: "Untereinträge für Kapitel, Seiten und Abschnitte vorschlagen.",
-      template: {
-        ziel: "Eine sinnvolle Untergliederung für das Buch „{{ENTRY_TITLE}}\u201d als Chronikon-Untereinträge entwerfen.",
-        kontext: entryKontext("Buch", ["Kapitel", "Untereinträge", "OCR-Gliederung"]),
-        aufgabe: [
-          "Vorhandene Untereinträge bewerten und Lücken identifizieren",
-          "Aus OCR-Inhaltsverzeichnis oder Textanfang eine Kapitelstruktur ableiten",
-          "Je Kapitel: Titel, Zeitraum, Kurzbeschreibung und Priorität (hoch/mittel/niedrig) vorschlagen",
-          "Empfehlung geben, welche Kapitel zuerst als Untereintrag angelegt werden sollten",
-        ],
-        ausgabeformat: [
-          "- **Strukturvorschlag**: nummerierte Liste `Nr. | Titel | Zeitraum | Kurzinhalt | Priorität`",
-          "- **Bereits vorhanden**: Abgleich mit {{CHILD_ENTRIES}}",
-          "- **Nächste Schritte**: Checkliste",
-        ].join("\n"),
-      },
-    },
-  ],
-  text: [
-    {
-      id: "text-analyse",
-      title: "Textanalyse & Einordnung",
-      description: "Quelle, Edition, Übersetzung und zentrale Passagen auswerten.",
-      template: {
-        ziel: "Den Text „{{ENTRY_TITLE}}\u201d quellenkritisch analysieren und historisch einordnen.",
-        kontext: entryKontext("Text", ["Quelle", "Edition", "Übersetzung", "Zitate"]),
-        aufgabe: [
-          "Quellenangabe und Überlieferungskontext prüfen und vervollständigen",
-          "Edition, Übersetzung und Sprache fachlich einordnen",
-          "Zentrale Passagen aus OCR-Text und Eintragsinhalt identifizieren",
-          "Lesarten, Übersetzungsvarianten und interpretatorische Knackpunkte benennen",
-          "Vergleichbare Texte oder Parallelen im Projekt vorschlagen",
-        ],
-        ausgabeformat: [
-          "- **Quellenangabe**: Tabelle `Feld | Inhalt`",
-          "- **Einordnung**: 1–2 Absätze",
-          "- **Zentrale Passagen**: nummerierte Liste mit Zitat und Kommentar",
-          "- **Offene Fragen**: Bullet-Liste",
-        ].join("\n"),
-      },
-    },
-    {
-      id: "text-vergleich",
-      title: "Übersetzungsvergleich",
-      description: "Varianten und Abweichungen zwischen Editionen oder Übersetzungen.",
-      template: {
-        ziel: "Übersetzungs- und Editionsunterschiede für „{{ENTRY_TITLE}}\u201d systematisch erfassen.",
-        kontext: entryKontext("Text", ["Vergleich", "Varianten", "OCR"]),
-        aufgabe: [
-          "Alle verfügbaren Textzeugen aus OCR und Metadaten erfassen",
-          "Bedeutungstragende Abweichungen zwischen Fassungen identifizieren",
-          "Auswirkungen auf Interpretation erläutern",
-          "Empfehlung für bevorzugte Lesart begründen",
-        ],
-        ausgabeformat: [
-          "- **Vergleichstabelle**: `Stelle | Fassung A | Fassung B | Bewertung`",
-          "- **Interpretation**: Bullet-Liste",
-        ].join("\n"),
-      },
-    },
-  ],
-  person: [
-    {
-      id: "person-biographie",
-      title: "Biographie & Netzwerk",
-      description: "Lebensdaten, Rolle, Quellen und historisches Umfeld.",
-      template: {
-        ziel: "Eine fundierte biographische Skizze und Netzwerkanalyse für „{{ENTRY_TITLE}}\u201d erstellen.",
-        kontext: entryKontext("Person", ["Biographie", "Rolle", "Primärquellen"]),
-        aufgabe: [
-          "Lebensdaten, Herkunft und sozialen Kontext präzisieren",
-          "Historische Rolle und Bedeutung im Projektzeitraum darstellen",
-          "Primär- und Sekundärquellen zur Person benennen und bewerten",
-          "Netzwerk (Personen, Orte, Institutionen) skizzieren",
-          "Umstrittene oder unsichere Angaben mit Confidence markieren",
-        ],
-        ausgabeformat: [
-          "- **Biographie**: strukturierter Absatz (Herkunft, Wirken, Tod)",
-          "- **Quellen**: Tabelle `Quelle | Typ | Verlässlichkeit`",
-          "- **Netzwerk**: Tabelle `Kontakt | Beziehung | Zeitraum`",
-          "- **Unsicherheiten**: Bullet-Liste",
-        ].join("\n"),
-      },
-    },
-    {
-      id: "person-quellen",
-      title: "Quellenlage prüfen",
-      description: "Belege, Lücken und Forschungsstand zur Person.",
-      template: {
-        ziel: "Die Quellenlage zu „{{ENTRY_TITLE}}\u201d kritisch prüfen.",
-        kontext: entryKontext("Person", ["Quellenkritik", "Belege"]),
-        aufgabe: [
-          "Alle im Eintrag und OCR genannten Belege sammeln",
-          "Primär- vs. Sekundärquellen unterscheiden",
-          "Lücken und Widersprüche in der Überlieferung benennen",
-          "Forschungsliteratur und offene Debatten skizzieren",
-        ],
-        ausgabeformat: [
-          "- **Quellenübersicht**: nummerierte Liste mit Typ und Bewertung",
-          "- **Lücken**: Bullet-Liste",
-          "- **Empfohlene Recherche**: Checkliste",
-        ].join("\n"),
-      },
-    },
-  ],
-  place: [
-    {
-      id: "place-analyse",
-      title: "Ortsanalyse & Geschichte",
-      description: "Geografie, Namensvarianten und historische Ereignisse.",
-      template: {
-        ziel: "Den Ort „{{ENTRY_TITLE}}\u201d geografisch und historisch umfassend einordnen.",
-        kontext: entryKontext("Ort", ["Koordinaten", "Namensvarianten", "Ereignisse"]),
-        aufgabe: [
-          "Historische und moderne Namensvarianten sammeln",
-          "Geografische, politische und kulturelle Einordnung liefern",
-          "Relevante Ereignisse und Personen am Ort chronologisch darstellen",
-          "Koordinaten und Grenzverschiebungen über die Zeit prüfen",
-          "Bezüge zu anderen Orten und Einträgen im Projekt nennen",
-        ],
-        ausgabeformat: [
-          "- **Ortsdaten**: Tabelle `Feld | Wert | Zeitraum`",
-          "- **Namensvarianten**: Bullet-Liste",
-          "- **Chronologie am Ort**: nummerierte Liste",
-          "- **Verknüpfungen**: Bullet-Liste",
-        ].join("\n"),
-      },
-    },
-  ],
-  discovery: [
-    {
-      id: "discovery-bewertung",
-      title: "Fundbewertung & Publikation",
-      description: "Fundkontext, Datierung, Edition und Forschungsgeschichte.",
-      template: {
-        ziel: "Den Fund „{{ENTRY_TITLE}}\u201d wissenschaftlich bewerten und dokumentieren.",
-        kontext: entryKontext("Fund", ["Fundort", "Datierung", "Publikation"]),
-        aufgabe: [
-          "Fundumstände, Fundort und Aufbewahrungsort beschreiben",
-          "Datierung und methodische Grundlagen bewerten",
-          "Publikationen, Ausstellungen und Inventarnummern erfassen",
-          "Forschungsgeschichte und kontroverse Deutungen skizzieren",
-          "Offene Datierungs- oder Zuschreibungsfragen formulieren",
-        ],
-        ausgabeformat: [
-          "- **Funddaten**: Tabelle `Aspekt | Angabe | Sicherheit`",
-          "- **Publikationen**: nummerierte Liste",
-          "- **Forschungsgeschichte**: kurzer Absatz",
-          "- **Offene Fragen**: Bullet-Liste",
-        ].join("\n"),
-      },
-    },
-  ],
-  note: [
-    {
-      id: "note-struktur",
-      title: "Notiz strukturieren",
-      description: "Gedankengang ordnen, Hypothesen ableiten, nächste Schritte planen.",
-      template: {
-        ziel: "Die Forschungsnotiz „{{ENTRY_TITLE}}\u201d strukturieren und in überprüfbare Arbeitsschritte überführen.",
-        kontext: entryKontext("Notiz", ["Hypothesen", "Gedankengang", "Recherche"]),
-        aufgabe: [
-          "Kernargumente und Gedankengang in logischer Reihenfolge darstellen",
-          "Überprüfbare Hypothesen mit Confidence-Stufe formulieren",
-          "Bezüge zu anderen Einträgen, Quellen und OCR-Material herstellen",
-          "Priorisierte nächste Recherche-Schritte vorschlagen",
-        ],
-        ausgabeformat: [
-          "- **Kernpunkte**: Bullet-Liste",
-          "- **Hypothesen**: Tabelle `Hypothese | Confidence | Prüfweg`",
-          "- **Verknüpfungen**: Bullet-Liste",
-          "- **Nächste Schritte**: Checkliste",
-        ].join("\n"),
-      },
-    },
-    {
-      id: "note-behauptungen",
-      title: "Behauptungen extrahieren",
-      description: "Überprüfbare Aussagen aus der Notiz ziehen.",
-      template: {
-        ziel: "Aus der Notiz „{{ENTRY_TITLE}}\u201d überprüfbare Behauptungen für das Projekt extrahieren.",
-        kontext: entryKontext("Notiz", ["Behauptungen", "Belege"]),
-        aufgabe: [
-          "Jede überprüfbare Aussage als klaren Satz formulieren",
-          "Beleg oder Begründung angeben — oder als unbelegt markieren",
-          "Confidence zuordnen: gesichert / vermutlich / streitig / unbekannt",
-          "Gegenargumente und offene Punkte nennen",
-        ],
-        ausgabeformat: [
-          "- **Behauptungen**: Tabelle `Aussage | Beleg | Confidence`",
+          "- **Zusammenfassung** (2–3 Absätze)",
+          "- **Schlüsseldaten**: Tabelle `Aspekt | Angabe | Seite/Beleg`",
           "- **Offene Punkte**: nummerierte Liste",
         ].join("\n"),
       },
     },
-  ],
+    {
+      id: "book-sub-passagen",
+      title: "Passagen im Seitenbereich",
+      description: "Wichtige Stellen zwischen Seite {{PAGE_START}} und {{PAGE_END}} identifizieren.",
+      template: {
+        ziel: `Bedeutungstragende Passagen im Seitenbereich {{PAGE_START}}–{{PAGE_END}} von „{{ENTRY_TITLE}}" identifizieren.`,
+        kontext: [
+          "Du bist Historiker/in.",
+          "",
+          "Projekt: {{PROJECT}}",
+          `Untereintrag: „{{ENTRY_TITLE}}"`,
+          "Seiten: {{PAGE_START}} – {{PAGE_END}}",
+          "",
+          BOOK_SUB_KONTEXT_BLOCK,
+        ].join("\n"),
+        aufgabe: [
+          "5–8 zentrale Passagen aus dem Buch-PDF-Ausschnitt auswählen",
+          "Je Passage: Kurzkommentar und historische Einordnung",
+          "Seitenangaben soweit möglich zuordnen",
+        ],
+        ausgabeformat: [
+          "- **Passagen**: nummerierte Liste mit Zitat und Kommentar",
+          "- **Offene Punkte**: nummerierte Liste",
+        ].join("\n"),
+      },
+    },
+  ];
+}
+
+function bookLevelTemplatesDe(): EntryKiTemplate[] {
+  return [
+    {
+      id: "book-gesamt-zusammenfassen",
+      title: "Buch zusammenfassen",
+      description: "Gesamtüberblick aus Metadaten und extrahiertem Buch-PDF-Text.",
+      template: {
+        ziel: `Das Buch „{{ENTRY_TITLE}}" als Ganzes zusammenfassen — auf Basis von Metadaten, Inhalt und PDF-Textextraktion.`,
+        kontext: entryKontext("Buch", ["Gesamtüberblick", "PDF-Text", "Edition"]),
+        aufgabe: [
+          "Kernthese und Aufbau des Werks in 2–4 Absätzen darstellen",
+          "Autor, Entstehungskontext und Edition benennen",
+          "Aus PDF-Text zentrale Themen und Strukturelemente ableiten",
+          "Lücken in der Textextraktion und fehlende Kapitel markieren",
+        ],
+        ausgabeformat: [
+          "- **Gesamtzusammenfassung** (2–4 Absätze)",
+          "- **Struktur**: Bullet-Liste der Hauptteile",
+          "- **Offene Punkte**: nummerierte Liste",
+        ].join("\n"),
+      },
+    },
+    {
+      id: "book-kapitelstruktur",
+      title: "Kapitelstruktur planen",
+      description: "Untereinträge für Kapitel und Abschnitte vorschlagen.",
+      template: {
+        ziel: `Eine sinnvolle Untergliederung für das Buch „{{ENTRY_TITLE}}" als Chronikon-Untereinträge entwerfen.`,
+        kontext: entryKontext("Buch", ["Kapitel", "Untereinträge", "PDF-Gliederung"]),
+        aufgabe: [
+          "Vorhandene Untereinträge bewerten und Lücken identifizieren",
+          "Aus PDF-Inhaltsverzeichnis oder Textanfang eine Kapitelstruktur ableiten",
+          "Je Kapitel: Titel, Seitenbereich, Kurzbeschreibung und Priorität vorschlagen",
+        ],
+        ausgabeformat: [
+          "- **Strukturvorschlag**: nummerierte Liste `Nr. | Titel | Seiten | Kurzinhalt | Priorität`",
+          "- **Bereits vorhanden**: Abgleich mit {{CHILD_ENTRIES}}",
+        ].join("\n"),
+      },
+    },
+  ];
+}
+
+function typeSpecificDe(type: EntryType): EntryKiTemplate | null {
+  switch (type) {
+    case "text":
+      return {
+        id: "text-passagen",
+        title: "Zentrale Passagen",
+        description: "Wichtige Stellen identifizieren und kommentieren.",
+        template: {
+          ziel: `Zentrale Passagen des Textes „{{ENTRY_TITLE}}" identifizieren und historisch einordnen.`,
+          kontext: entryKontext("Text", ["Passagen", "Edition", "Übersetzung"]),
+          aufgabe: [
+            "5–10 bedeutungstragende Passagen aus PDF-Text und Inhalt auswählen",
+            "Je Passage: Kurzkommentar und historische Einordnung",
+            "Übersetzungs- oder Editionsvarianten benennen",
+          ],
+          ausgabeformat: [
+            "- **Passagen**: nummerierte Liste mit Zitat und Kommentar",
+            "- **Edition/Übersetzung**: kurzer Absatz",
+          ].join("\n"),
+        },
+      };
+    default:
+      return null;
+  }
+}
+
+export type EntryKiTemplateContext = {
+  parentEntryType?: string | null;
 };
+
+function getTemplatesForLanguage(
+  type: EntryType,
+  lang: EntryLanguageCode,
+  context?: EntryKiTemplateContext,
+): EntryKiTemplate[] {
+  if (isBookSubEntry({ parentEntryType: context?.parentEntryType })) {
+    return bookSubEntryTemplatesDe().slice(0, 3);
+  }
+
+  if (type === "book" && lang === "de") {
+    return bookLevelTemplatesDe().slice(0, 3);
+  }
+
+  const primary =
+    lang === "en" ? summarizeVerifyEn(type) : summarizeVerifyDe(type);
+  const templates: EntryKiTemplate[] = [primary];
+
+  if (lang === "en") {
+    templates.push(summarizeInGerman(type));
+  }
+
+  const specific = typeSpecificDe(type);
+  if (specific && templates.length < 3) {
+    templates.push(specific);
+  }
+
+  return templates.slice(0, 3);
+}
 
 /** Projektweite Vorlagen — nach ZIP-Export in externe KI einfügen */
 export const PROJECT_KI_TEMPLATES: KiTemplate[] = [
@@ -331,11 +364,12 @@ export const PROJECT_KI_TEMPLATES: KiTemplate[] = [
     title: "Quellenkritik",
     description: "Quellen eines Ober-Themas bewerten und vergleichen.",
     template: {
-      ziel: "Die Quellenlage des Projekts „{{PROJECT}}\u201d systematisch bewerten und Lücken identifizieren.",
+      ziel: `Die Quellenlage des Projekts „{{PROJECT}}" systematisch bewerten und Lücken identifizieren.`,
       kontext: [
         "Du bist Historiker/in.",
         "",
         "Projekt: {{PROJECT}}",
+        "Sprache: Deutsch und Englisch",
         "Material aus Chronikon (ZIP-Export mit Einträgen und OCR-Texten im Ordner ocr/):",
         "{{ENTRIES}}",
       ].join("\n"),
@@ -354,70 +388,17 @@ export const PROJECT_KI_TEMPLATES: KiTemplate[] = [
     },
   },
   {
-    id: "chronologie",
-    category: "Chronologie",
-    title: "Chronologie prüfen",
-    description: "Zeitliche Abfolge und Datierungen prüfen.",
-    template: {
-      ziel: "Die chronologische Konsistenz aller Einträge in „{{PROJECT}}\u201d prüfen.",
-      kontext: [
-        "Du bist Historiker/in.",
-        "",
-        "Projekt: {{PROJECT}}",
-        "Material aus Chronikon (ZIP mit entries/ und ocr/):",
-        "{{ENTRIES}}",
-      ].join("\n"),
-      aufgabe: [
-        "Zeitliche Abfolge der Ereignisse und Einträge darstellen",
-        "Widersprüchliche Datierungen markieren",
-        "Unsichere Daten als „vermutlich\u201d kennzeichnen",
-        "Fehlende Zwischenereignisse vorschlagen",
-      ],
-      ausgabeformat: [
-        "- **Zeitstrahl**: chronologische Bullet-Liste mit Jahr/Spanne",
-        "- **Widersprüche**: Tabelle `Eintrag A | Eintrag B | Konflikt`",
-        "- **Unsichere Daten**: Bullet-Liste mit Begründung",
-      ].join("\n"),
-    },
-  },
-  {
-    id: "vergleich",
-    category: "Vergleich",
-    title: "Texte vergleichen",
-    description: "Übersetzungen oder Editionen nebeneinanderstellen.",
-    template: {
-      ziel: "Texte und Editionen in „{{PROJECT}}\u201d vergleichen und Varianten erklären.",
-      kontext: [
-        "Du bist Historiker/in und Textwissenschaftler/in.",
-        "",
-        "Projekt: {{PROJECT}}",
-        "Material aus Chronikon (ZIP mit OCR-Volltexten):",
-        "{{ENTRIES}}",
-      ].join("\n"),
-      aufgabe: [
-        "Gemeinsamkeiten und Abweichungen identifizieren",
-        "Übersetzungs- bzw. Editionsunterschiede erklären",
-        "Bedeutungstragende Varianten hervorheben",
-        "Folgen für die Interpretation benennen",
-      ],
-      ausgabeformat: [
-        "- **Vergleichstabelle**: `Aspekt | Text A | Text B | Bewertung`",
-        "- **Varianten**: nummerierte Liste mit Zitat",
-        "- **Interpretation**: kurze Bullet-Liste",
-      ].join("\n"),
-    },
-  },
-  {
     id: "zusammenfassung",
     category: "Zusammenfassung",
     title: "Forschungsstand zusammenfassen",
     description: "Überblick über das gesamte Ober-Thema erstellen.",
     template: {
-      ziel: "Den Forschungsstand von „{{PROJECT}}\u201d in verständlicher Form zusammenfassen.",
+      ziel: `Den Forschungsstand von „{{PROJECT}}" in verständlicher Form zusammenfassen.`,
       kontext: [
         "Du bist Historiker/in.",
         "",
         "Projekt: {{PROJECT}}",
+        "Sprache: Deutsch und Englisch",
         "Material aus Chronikon (ZIP-Export):",
         "{{ENTRIES}}",
       ].join("\n"),
@@ -441,17 +422,18 @@ export const PROJECT_KI_TEMPLATES: KiTemplate[] = [
     title: "Behauptungen extrahieren",
     description: "Überprüfbare Aussagen aus dem Material ziehen.",
     template: {
-      ziel: "Überprüfbare Behauptungen aus „{{PROJECT}}\u201d extrahieren und bewerten.",
+      ziel: `Überprüfbare Behauptungen aus „{{PROJECT}}" extrahieren und bewerten.`,
       kontext: [
         "Du bist Historiker/in.",
         "",
         "Projekt: {{PROJECT}}",
+        "Sprache: Deutsch und Englisch",
         "Material aus Chronikon (ZIP mit Einträgen und OCR):",
         "{{ENTRIES}}",
       ].join("\n"),
       aufgabe: [
         "Jede Behauptung als klaren Satz formulieren",
-        "Beleg in den Quellen angeben oder als „unbelegt\u201d markieren",
+        'Beleg in den Quellen angeben oder als „unbelegt" markieren',
         "Confidence zuordnen: gesichert / vermutlich / streitig / unbekannt",
         "Gegenargumente oder offene Punkte nennen",
       ],
@@ -491,40 +473,48 @@ export function fillKiTemplate(
   return template.replace(/\{\{(\w+)\}\}/g, (_, key: string) => vars[key] ?? "");
 }
 
-export function getEntryKiTemplates(type: EntryType): EntryKiTemplate[] {
-  return ENTRY_TYPE_KI_TEMPLATES[type];
+export function getEntryKiTemplates(
+  type: EntryType,
+  language?: string | null,
+): EntryKiTemplate[] {
+  const lang = normalizeEntryLanguage(language);
+  return getTemplatesForLanguage(type, lang);
 }
 
 export function getEntryKiTemplate(
   type: EntryType,
   templateId: string,
+  language?: string | null,
 ): EntryKiTemplate | undefined {
-  return ENTRY_TYPE_KI_TEMPLATES[type].find((template) => template.id === templateId);
+  return getEntryKiTemplates(type, language).find(
+    (template) => template.id === templateId,
+  );
 }
 
 export function renderEntryKiPrompt(
   type: EntryType,
   templateId: string,
   vars: KiTemplateVars,
+  language?: string | null,
 ): string {
-  const definition = getEntryKiTemplate(type, templateId);
+  const definition = getEntryKiTemplate(type, templateId, language);
   if (!definition) return "";
   return fillKiTemplate(renderKiTemplate(definition.template), vars);
 }
 
-/** KI-Prompt für einen einzelnen Eintrag (Standard-Vorlage des Typs) */
 export function getEntryTypeKiPrompt(
   type: EntryType,
   input: {
     project: string;
     entryTitle: string;
     entryMarkdown: string;
+    language?: string | null;
     attachments?: KiAttachmentInput[];
     childEntries?: KiChildEntryInput[];
     templateId?: string;
   },
 ): string {
-  const templates = getEntryKiTemplates(type);
+  const templates = getEntryKiTemplates(type, input.language);
   const templateId = input.templateId ?? templates[0]?.id;
   if (!templateId) return "";
 
@@ -532,25 +522,26 @@ export function getEntryTypeKiPrompt(
     project: input.project,
     entryTitle: input.entryTitle,
     entryMarkdown: input.entryMarkdown,
+    language: input.language,
     attachments: input.attachments,
     childEntries: input.childEntries,
   });
 
-  return renderEntryKiPrompt(type, templateId, vars);
+  return renderEntryKiPrompt(type, templateId, vars, input.language);
 }
 
 export function getEntryTypeKiTemplate(
   type: EntryType,
   templateId?: string,
+  language?: string | null,
 ): UnifiedKiTemplate | undefined {
-  const templates = getEntryKiTemplates(type);
+  const templates = getEntryKiTemplates(type, language);
   const definition = templateId
     ? templates.find((template) => template.id === templateId)
     : templates[0];
   return definition?.template;
 }
 
-/** Typ-spezifische Projekt-Vorlage (Bulk-Analyse für einen Eintragstyp) */
 export function getProjectTypeKiPrompt(
   type: EntryType,
   projectName: string,
@@ -575,11 +566,12 @@ export function getProjectTypeKiPrompt(
   }[type];
 
   const template: UnifiedKiTemplate = {
-    ziel: `Alle ${typeLabel} im Projekt „{{PROJECT}}\u201d analysieren und strukturieren.`,
+    ziel: `Alle ${typeLabel} im Projekt „{{PROJECT}}" analysieren und strukturieren.`,
     kontext: [
       "Du bist Historiker/in.",
       "",
       "Projekt: {{PROJECT}}",
+      "Sprache: Deutsch und Englisch",
       `Eintragstyp-Fokus: ${typeLabel} (${schwerpunkte})`,
       "Material aus Chronikon-ZIP (Ordner entries/ und ocr/):",
       "{{ENTRIES}}",
@@ -619,5 +611,5 @@ export function renderProjectKiPrompt(
   return fillKiTemplate(renderKiTemplate(template.template), vars);
 }
 
-export { buildEntryKiVars, hasOcrContent };
+export { buildEntryKiVars, hasOcrContent, entryLanguageLabel, normalizeEntryLanguage };
 export type { KiAttachmentInput, KiChildEntryInput, KiTemplateVars };

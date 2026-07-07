@@ -1,6 +1,7 @@
 import { AppShell } from "@/components/app-shell";
 import { CaptureForm } from "@/components/views/capture-form";
 import { db } from "@/lib/db";
+import { DEFAULT_ENTRY_LANGUAGE } from "@/lib/languages";
 import { getEntryDetail } from "@/lib/queries";
 
 export default async function NewEntryPage({
@@ -37,7 +38,7 @@ export default async function NewEntryPage({
           topic: parentEntry.topics?.[0] ?? "",
           summary: "",
           body: "",
-          language: parentEntry.language ?? "",
+          language: parentEntry.language ?? DEFAULT_ENTRY_LANGUAGE,
           author: parentEntry.author ?? "",
           placeName: parentEntry.placeName ?? "",
         }
@@ -72,7 +73,7 @@ export default async function NewEntryPage({
                 topic: editEntry.topics?.[0] ?? "",
                 summary: editEntry.summary ?? "",
                 body: editEntry.body ?? "",
-                language: editEntry.language ?? "",
+                language: editEntry.language ?? DEFAULT_ENTRY_LANGUAGE,
                 author: editEntry.author ?? "",
                 placeName: editEntry.placeName ?? "",
               }

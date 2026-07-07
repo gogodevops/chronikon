@@ -56,7 +56,7 @@ export function OnlineKiSection({
   return (
     <section className="mb-4 rounded-xl border border-accent/20 bg-accent-dim/20 p-3">
       <h3 className="mb-1 text-[0.72rem] font-semibold uppercase tracking-wide text-accent">
-        Für Online-KI
+        Für externe KI
       </h3>
       <p className="mb-3 text-[0.78rem] leading-relaxed text-muted-foreground">
         {hint}
@@ -66,6 +66,7 @@ export function OnlineKiSection({
         projectName={projectName}
         entryTitle={entry.title}
         entryMarkdown={entryMarkdown}
+        language={entry.language}
         attachments={attachments}
         childEntries={childEntries}
       />
