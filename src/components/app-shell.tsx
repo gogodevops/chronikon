@@ -666,6 +666,7 @@ export function AppShell({
 
         {viewMode === "browse" && (
           <DetailPanel
+            key={selectedEntryId ?? "none"}
             expanded
             entry={selectedEntry ? toDetail(selectedEntry) : null}
             projectSlug={ctx.slug}

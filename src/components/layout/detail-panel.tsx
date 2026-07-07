@@ -345,58 +345,55 @@ export function DetailPanel({
             )}
           </div>
 
-          {projectName && (
-            <OnlineKiSection
-              key={entry.id}
-              entry={entry}
-              projectName={projectName}
-            />
-          )}
+          <div key={entry.id} className="contents">
+            {projectName && (
+              <OnlineKiSection entry={entry} projectName={projectName} />
+            )}
 
-          <EntryDetailSections
-            key={entry.id}
-            entryId={entry.id}
-            entryType={entry.type}
-            parentEntryType={entry.parentEntryType}
-            projectSlug={projectSlug}
-            summary={entry.summary}
-            body={entry.body}
-            attachments={entry.attachments ?? []}
-            questions={entry.questions ?? []}
-            sources={entry.sources}
-            claims={entry.claims}
-            relations={entry.relations}
-            versions={entry.versions}
-            entryIndex={entryIndex}
-            relationSearchResults={relationSearchResults}
-            onRelationSearch={onRelationSearch}
-            onNavigateEntry={onNavigateEntry}
-            onEditBody={onEditBody}
-            onAttachmentAdd={handleAttachmentAdd}
-            onAttachmentDelete={onAttachmentDelete}
-            onOpenPointAdd={onOpenPointAdd}
-            onOpenPointAnswer={onOpenPointAnswer}
-            onOpenPointDelete={onOpenPointDelete}
-            onSourceSubmit={onSourceSubmit}
-            onSourceDelete={onSourceDelete}
-            onClaimSubmit={onClaimSubmit}
-            onClaimDelete={onClaimDelete}
-            onRelationSubmit={onRelationSubmit}
-            onRelationDelete={onRelationDelete}
-            canEdit={canEdit}
-            canDiscuss={canDiscuss}
-            uploadStatus={attachmentUploadStatus}
-            afterKern={
-              entry.type === "book" || (entry.childEntries?.length ?? 0) > 0 ? (
-                <ChildEntriesSection
-                  children={entry.childEntries ?? []}
-                  onNavigate={onNavigateEntry}
-                  onCreateChild={onCreateChildEntry}
-                  canEdit={canEdit}
-                />
-              ) : undefined
-            }
-          />
+            <EntryDetailSections
+              entryId={entry.id}
+              entryType={entry.type}
+              parentEntryType={entry.parentEntryType}
+              projectSlug={projectSlug}
+              summary={entry.summary}
+              body={entry.body}
+              attachments={entry.attachments ?? []}
+              questions={entry.questions ?? []}
+              sources={entry.sources}
+              claims={entry.claims}
+              relations={entry.relations}
+              versions={entry.versions}
+              entryIndex={entryIndex}
+              relationSearchResults={relationSearchResults}
+              onRelationSearch={onRelationSearch}
+              onNavigateEntry={onNavigateEntry}
+              onEditBody={onEditBody}
+              onAttachmentAdd={handleAttachmentAdd}
+              onAttachmentDelete={onAttachmentDelete}
+              onOpenPointAdd={onOpenPointAdd}
+              onOpenPointAnswer={onOpenPointAnswer}
+              onOpenPointDelete={onOpenPointDelete}
+              onSourceSubmit={onSourceSubmit}
+              onSourceDelete={onSourceDelete}
+              onClaimSubmit={onClaimSubmit}
+              onClaimDelete={onClaimDelete}
+              onRelationSubmit={onRelationSubmit}
+              onRelationDelete={onRelationDelete}
+              canEdit={canEdit}
+              canDiscuss={canDiscuss}
+              uploadStatus={attachmentUploadStatus}
+              afterKern={
+                entry.type === "book" || (entry.childEntries?.length ?? 0) > 0 ? (
+                  <ChildEntriesSection
+                    children={entry.childEntries ?? []}
+                    onNavigate={onNavigateEntry}
+                    onCreateChild={onCreateChildEntry}
+                    canEdit={canEdit}
+                  />
+                ) : undefined
+              }
+            />
+          </div>
 
           <input
             ref={fileInputRef}
