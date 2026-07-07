@@ -111,15 +111,7 @@ export function CollapsibleSection({
   children: React.ReactNode;
   className?: string;
 }) {
-  const resolvedDefaultOpen =
-    defaultOpen ?? (count === undefined || count <= COLLAPSE_LIST_THRESHOLD);
-  const [open, setOpen] = React.useState(resolvedDefaultOpen);
-
-  React.useEffect(() => {
-    if (count !== undefined) {
-      setOpen(count <= COLLAPSE_LIST_THRESHOLD);
-    }
-  }, [count]);
+  const [open, setOpen] = React.useState(defaultOpen ?? false);
 
   return (
     <section

@@ -34,18 +34,16 @@ export function ChildEntriesSection({
 
   if (childEntries.length === 0) {
     return (
-      <section className="rounded-xl border border-border/70 bg-surface-2/40 p-3">
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <h3 className="text-[0.72rem] font-semibold uppercase tracking-wide text-muted-foreground">
-            Untereinträge (0)
-          </h3>
-          {createButton}
-        </div>
-        <p className="text-[0.78rem] text-muted-foreground">
+      <CollapsibleSection
+        title="Untereinträge"
+        count={0}
+        actions={createButton}
+      >
+        <p className="pt-1 text-[0.78rem] text-muted-foreground">
           Noch keine Kapitel, Seiten oder Abschnitte — z. B. für einzelne
           Buchteile anlegen.
         </p>
-      </section>
+      </CollapsibleSection>
     );
   }
 

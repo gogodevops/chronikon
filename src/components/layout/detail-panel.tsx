@@ -342,10 +342,15 @@ export function DetailPanel({
           </div>
 
           {projectName && (
-            <OnlineKiSection entry={entry} projectName={projectName} />
+            <OnlineKiSection
+              key={entry.id}
+              entry={entry}
+              projectName={projectName}
+            />
           )}
 
           <EntryDetailSections
+            key={entry.id}
             entryId={entry.id}
             projectSlug={projectSlug}
             summary={entry.summary}

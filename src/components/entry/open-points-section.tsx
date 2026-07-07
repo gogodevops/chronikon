@@ -166,7 +166,7 @@ export function OpenPointsSection({
   const openCount = questions.filter((q) => q.status === "open").length;
 
   return (
-    <CollapsibleSection title="Offen" count={openCount} defaultOpen>
+    <CollapsibleSection title="Offen" count={openCount}>
       <OpenPointsList
         questions={questions}
         onAnswer={onAnswer}

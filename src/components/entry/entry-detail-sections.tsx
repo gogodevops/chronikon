@@ -93,7 +93,7 @@ export function EntryDetailSections({
 }: EntryDetailSectionsProps) {
   return (
     <div className="space-y-4">
-      <CollapsibleSection title="Kern" defaultOpen>
+      <CollapsibleSection title="Kern">
         {summary && (
           <p className="mb-3 text-[0.82rem] leading-relaxed text-muted-foreground">
             {summary}
@@ -117,7 +117,7 @@ export function EntryDetailSections({
 
       {afterKern}
 
-      <CollapsibleSection title="Material" count={attachments.length} defaultOpen>
+      <CollapsibleSection title="Material" count={attachments.length}>
         <AttachmentsSection
           attachments={attachments}
           entryId={entryId}
