@@ -54,10 +54,25 @@ export const authConfig = {
     async jwt({ token, user }) {
       if (user?.id) {
         token.sub = user.id;
+        delete token.error;
       }
+
+      if (token.sub) {
+        const exists = await db.user.findUnique({
+          where: { id: token.sub },
+          select: { id: true },
+        });
+        if (!exists) {
+          token.error = "UserDeleted";
+        }
+      }
+
       return token;
     },
     async session({ session, token }) {
+      if (token.error === "UserDeleted" || !token.sub) {
+        return { expires: session.expires } as typeof session;
+      }
       if (session.user && token.sub) {
         session.user.id = token.sub;
       }
@@ -81,5 +96,6 @@ declare module "next-auth" {
 declare module "@auth/core/jwt" {
   interface JWT {
     sub?: string;
+    error?: "UserDeleted";
   }
 }

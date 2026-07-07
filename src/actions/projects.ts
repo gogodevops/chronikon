@@ -6,7 +6,14 @@ import { cookies } from "next/headers";
 import { z } from "zod";
 
 import type { ActionResult } from "@/actions/auth";
-import { getSession, requireAuth, requireProjectRole } from "@/lib/auth-helpers";
+import {
+  getSession,
+  INVALID_SESSION_ERROR,
+  isForeignKeyViolation,
+  requireAuth,
+  requireProjectRole,
+  verifySessionUserExists,
+} from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { slugify } from "@/lib/slug";
 import { uniqueProjectSlug } from "@/lib/slugify";
@@ -55,8 +62,12 @@ export async function createProject(
     if (!session?.user?.id) {
       return {
         success: false,
-        error: "Sitzung abgelaufen — bitte erneut anmelden.",
+        error: INVALID_SESSION_ERROR,
       };
+    }
+
+    if (!(await verifySessionUserExists(session.user.id))) {
+      return { success: false, error: INVALID_SESSION_ERROR };
     }
 
     const { name, icon, description } = parsed.data;
@@ -110,6 +121,9 @@ export async function createProject(
     return { success: true, data: { slug: project.slug } };
   } catch (error) {
     console.error("createProject failed:", error);
+    if (isForeignKeyViolation(error)) {
+      return { success: false, error: INVALID_SESSION_ERROR };
+    }
     const message =
       error instanceof Error ? error.message : "Projekt konnte nicht angelegt werden";
     if (message.includes("DATABASE_URL")) {

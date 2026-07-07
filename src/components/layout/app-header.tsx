@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Search, Users } from "lucide-react";
+import { LogOut, Search, Users } from "lucide-react";
+import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -214,10 +215,32 @@ export function AppHeader({
           projectSlug={activeProject.id}
         />
 
-        <Avatar title={userName} className="h-[30px] w-[30px] cursor-pointer">
-          {userImage && <AvatarImage src={userImage} alt={userName} />}
-          <AvatarFallback>{userInitials}</AvatarFallback>
-        </Avatar>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              title={userName}
+              className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+            >
+              <Avatar className="h-[30px] w-[30px] cursor-pointer">
+                {userImage && <AvatarImage src={userImage} alt={userName} />}
+                <AvatarFallback>{userInitials}</AvatarFallback>
+              </Avatar>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="min-w-[180px]">
+            <DropdownMenuItem disabled className="text-muted-foreground">
+              {userName}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => signOut({ callbackUrl: "/login" })}
+            >
+              <LogOut className="mr-2 h-3.5 w-3.5" />
+              Abmelden
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );

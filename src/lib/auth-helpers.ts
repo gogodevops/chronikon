@@ -1,8 +1,34 @@
 import type { ProjectRole } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 
 import { auth } from "@/auth";
 import { PROJECT_ROLE_RANK } from "@/lib/constants";
 import { db } from "@/lib/db";
+
+export const INVALID_SESSION_ERROR =
+  "Sitzung ungültig — bitte abmelden und erneut anmelden";
+
+export function isForeignKeyViolation(error: unknown): boolean {
+  if (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2003"
+  ) {
+    return true;
+  }
+  const message = error instanceof Error ? error.message : String(error);
+  return (
+    message.includes("Foreign key constraint violated") &&
+    message.includes("ProjectMember_userId_fkey")
+  );
+}
+
+export async function verifySessionUserExists(userId: string): Promise<boolean> {
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: { id: true },
+  });
+  return Boolean(user);
+}
 
 export async function getSession() {
   return auth();
