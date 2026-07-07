@@ -46,6 +46,7 @@ export interface AppHeaderProps {
   showTeamNav?: boolean;
   canCreateProject?: boolean;
   isAppAdmin?: boolean;
+  isSystemView?: boolean;
   navDisabled?: boolean;
   createDialogOpen?: boolean;
   onCreateDialogOpenChange?: (open: boolean) => void;
@@ -86,6 +87,7 @@ export function AppHeader({
   showTeamNav = false,
   canCreateProject = false,
   isAppAdmin = false,
+  isSystemView = false,
   navDisabled = false,
   createDialogOpen: createDialogOpenProp,
   onCreateDialogOpenChange,
@@ -117,9 +119,28 @@ export function AppHeader({
 
   return (
     <header className="flex h-[var(--header-h)] shrink-0 items-center gap-3 border-b border-border/80 bg-surface/95 px-4 backdrop-blur-sm">
-      <span className="min-w-[90px] bg-gradient-to-r from-accent to-[#e8d5a0] bg-clip-text text-base font-bold tracking-wide text-transparent">
-        Chronikon
-      </span>
+      <div className="flex min-w-[90px] items-center gap-2">
+        {isAppAdmin ? (
+          <Link
+            href="/app"
+            className="bg-gradient-to-r from-accent to-[#e8d5a0] bg-clip-text text-base font-bold tracking-wide text-transparent transition-opacity hover:opacity-80"
+          >
+            Chronikon
+          </Link>
+        ) : (
+          <span className="bg-gradient-to-r from-accent to-[#e8d5a0] bg-clip-text text-base font-bold tracking-wide text-transparent">
+            Chronikon
+          </span>
+        )}
+        {isAppAdmin && !isSystemView && (
+          <Link
+            href="/app"
+            className="rounded-md border border-border/70 bg-surface-2/80 px-1.5 py-0.5 text-[0.62rem] font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:border-accent/30 hover:text-accent"
+          >
+            System
+          </Link>
+        )}
+      </div>
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

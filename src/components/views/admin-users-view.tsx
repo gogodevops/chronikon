@@ -119,11 +119,11 @@ export function AdminUsersView({
       <header className="border-b border-border/80 bg-surface/95 px-4 py-3">
         <div className="mx-auto flex max-w-3xl items-center gap-3">
           <Link
-            href="/"
+            href="/app"
             className="inline-flex items-center gap-1.5 text-[0.8rem] text-muted-foreground hover:text-accent"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            Zurück
+            System-Übersicht
           </Link>
           <span className="text-accent">·</span>
           <span className="text-[0.85rem] font-medium">Nutzer verwalten</span>
