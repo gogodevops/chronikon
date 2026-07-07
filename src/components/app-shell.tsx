@@ -67,6 +67,7 @@ const VIEW_ROUTES: Record<AppView, string> = {
   team: "/team",
   form: "/new",
   export: "/export",
+  compare: "/compare",
 };
 
 function toListItem(e: SerializedEntryListItem): EntryListItem {

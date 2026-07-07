@@ -37,7 +37,7 @@ export default async function ComparePage({
       project={{ id: slug, name: project.name, icon: project.icon }}
       entries={[]}
       totalCount={0}
-      viewMode="browse"
+      viewMode="compare"
     >
       <CompareView
         title={compareSet?.title ?? "Logion 114 — Übersetzungsvergleich"}

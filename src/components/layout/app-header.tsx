@@ -29,7 +29,8 @@ export type AppView =
   | "notifications"
   | "team"
   | "form"
-  | "export";
+  | "export"
+  | "compare";
 
 export interface ProjectOption {
   id: string;
