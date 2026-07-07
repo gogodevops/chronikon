@@ -1,4 +1,4 @@
-import { entryLanguageLabel } from "@/lib/languages";
+import { ENTRY_LANGUAGE_HINT } from "@/lib/languages";
 
 export type KiAttachmentInput = {
   name: string;
@@ -178,7 +178,7 @@ export function buildEntryKiVars(input: {
     YEAR: formatYearRange(input.yearStart, input.yearEnd),
     ENTRY_BODY: entryBody,
     ENTRY: entryBody,
-    LANGUAGE: entryLanguageLabel(input.language),
+    LANGUAGE: ENTRY_LANGUAGE_HINT,
     PAGE_START:
       input.pageStart != null ? String(input.pageStart) : "(nicht angegeben)",
     PAGE_END: input.pageEnd != null ? String(input.pageEnd) : "(nicht angegeben)",

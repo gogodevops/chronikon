@@ -1,4 +1,7 @@
-/** Unterstützte Eintragssprachen (Phase 1: nur DE/EN). */
+/** Neutraler Hinweis für KI-Vorlagen und OCR — kein Eintragsfeld mehr. */
+export const ENTRY_LANGUAGE_HINT = "Deutsch oder Englisch";
+
+/** Intern für KI-Vorlagensprache (Phase 1: nur DE/EN). */
 export const ENTRY_LANGUAGES = [
   { value: "de", label: "Deutsch" },
   { value: "en", label: "Englisch" },

@@ -14,7 +14,6 @@ export type EntryFormFieldConfig = {
   yearStartLabel: string;
   yearEndLabel: string;
   yearEndOptional: boolean;
-  showLanguage: boolean;
   bookMetadataBox?: boolean;
 };
 
@@ -28,7 +27,6 @@ export const ENTRY_FORM_CONFIG: Record<EntryType, EntryFormFieldConfig> = {
     yearStartLabel: "Geboren (Jahr)",
     yearEndLabel: "Gestorben (Jahr)",
     yearEndOptional: true,
-    showLanguage: false,
   },
   book: {
     titleLabel: "Titel",
@@ -41,7 +39,6 @@ export const ENTRY_FORM_CONFIG: Record<EntryType, EntryFormFieldConfig> = {
     yearStartLabel: "Erscheinungsjahr",
     yearEndLabel: "Bis (optional)",
     yearEndOptional: true,
-    showLanguage: true,
     bookMetadataBox: true,
   },
   text: {
@@ -53,7 +50,6 @@ export const ENTRY_FORM_CONFIG: Record<EntryType, EntryFormFieldConfig> = {
     yearStartLabel: "Von (Jahr)",
     yearEndLabel: "Bis (Jahr)",
     yearEndOptional: true,
-    showLanguage: true,
   },
   place: {
     titleLabel: "Name",
@@ -64,7 +60,6 @@ export const ENTRY_FORM_CONFIG: Record<EntryType, EntryFormFieldConfig> = {
     yearStartLabel: "",
     yearEndLabel: "",
     yearEndOptional: true,
-    showLanguage: false,
   },
   discovery: {
     titleLabel: "Bezeichnung",
@@ -76,7 +71,6 @@ export const ENTRY_FORM_CONFIG: Record<EntryType, EntryFormFieldConfig> = {
     yearStartLabel: "Datierung von (Jahr)",
     yearEndLabel: "Datierung bis (Jahr)",
     yearEndOptional: true,
-    showLanguage: false,
   },
   note: {
     titleLabel: "Titel",
@@ -87,7 +81,6 @@ export const ENTRY_FORM_CONFIG: Record<EntryType, EntryFormFieldConfig> = {
     yearStartLabel: "",
     yearEndLabel: "",
     yearEndOptional: true,
-    showLanguage: true,
   },
 };
 

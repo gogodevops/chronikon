@@ -25,12 +25,6 @@ import {
 import { cn } from "@/lib/utils";
 import { ViewFrame } from "@/components/ui/chronikon-shell";
 import { ENTRY_TYPE_HINTS } from "@/lib/ki-templates";
-import {
-  DEFAULT_ENTRY_LANGUAGE,
-  ENTRY_LANGUAGES,
-  normalizeEntryLanguage,
-  type EntryLanguageCode,
-} from "@/lib/languages";
 
 export function CaptureForm({
   projectId,
@@ -56,7 +50,6 @@ export function CaptureForm({
     pageEnd: string;
     confidence: string;
     topic: string;
-    language: string;
     author: string;
     placeName: string;
   }>;
@@ -75,9 +68,6 @@ export function CaptureForm({
     pageEnd: initialFields?.pageEnd ?? "",
     confidence: initialFields?.confidence ?? "likely",
     topic: initialFields?.topic ?? topics[0] ?? "",
-    language: normalizeEntryLanguage(
-      initialFields?.language || DEFAULT_ENTRY_LANGUAGE,
-    ),
     author: initialFields?.author ?? "",
     placeName: initialFields?.placeName ?? "",
   });
@@ -113,9 +103,6 @@ export function CaptureForm({
         pageStart: pageStart && pageStart > 0 ? pageStart : undefined,
         pageEnd: pageEnd && pageEnd > 0 ? pageEnd : undefined,
         confidence: fields.confidence as "likely",
-        ...(config.showLanguage
-          ? { language: fields.language || DEFAULT_ENTRY_LANGUAGE }
-          : {}),
         author: config.showAuthor ? fields.author || undefined : undefined,
         placeName: config.showPlaceName
           ? fields.placeName || undefined
@@ -298,31 +285,6 @@ export function CaptureForm({
           </div>
         ) : (
           !config.bookMetadataBox && yearFields
-        )}
-
-        {config.showLanguage && (
-          <Field label="Sprache">
-            <Select
-              value={fields.language}
-              onValueChange={(v) =>
-                setFields((f) => ({
-                  ...f,
-                  language: normalizeEntryLanguage(v) as EntryLanguageCode,
-                }))
-              }
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {ENTRY_LANGUAGES.map((lang) => (
-                  <SelectItem key={lang.value} value={lang.value}>
-                    {lang.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
         )}
 
         {showTopic && (

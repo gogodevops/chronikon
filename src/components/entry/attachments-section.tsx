@@ -263,7 +263,8 @@ export function AttachmentsSection({
       {embedded && (
         <div className="mb-2 flex items-center justify-between">
           <p className="text-[0.78rem] text-muted-foreground">
-            PDFs (Textextraktion) oder Bilder — Deutsch/Englisch.
+            PDF-Textextraktion funktioniert am besten bei digitalen PDFs mit Text
+            in Deutsch oder Englisch.
           </p>
           <Button
             variant="ghost"
@@ -281,7 +282,7 @@ export function AttachmentsSection({
       {attachments.length === 0 ? (
         <p className="text-[0.78rem] leading-relaxed text-muted-foreground">
           {embedded
-            ? "Noch keine Anhänge — digitales PDF hochladen; Text wird automatisch extrahiert."
+            ? "Noch keine Anhänge — digitales PDF hochladen; Text wird automatisch extrahiert (Deutsch oder Englisch)."
             : "PDF oder Bild hochladen."}
         </p>
       ) : (

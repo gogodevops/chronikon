@@ -12,18 +12,6 @@ import { OnlineKiSection } from "@/components/entry/online-ki-section";
 import { EntryActionBar, type EntryAction } from "@/components/entry/entry-action-bar";
 import type { AttachmentItem, AttachmentUploadStatus } from "@/components/entry/attachments-section";
 import { ChMetaPill } from "@/components/ui/chronikon-shell";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  ENTRY_LANGUAGES,
-  entryLanguageLabel,
-  normalizeEntryLanguage,
-} from "@/lib/languages";
 import type { EntryTitleIndex, LinkableEntryResult, SerializedChildEntry } from "@/lib/queries";
 import type {
   SerializedClaim,
@@ -33,7 +21,7 @@ import type {
   SerializedRelation,
   SerializedSource,
 } from "@/lib/queries";
-import { getEntryFormConfig, getEntryYearMeta } from "@/lib/entry-form-config";
+import { getEntryYearMeta } from "@/lib/entry-form-config";
 
 export interface EntryDetail {
   id: string;
@@ -93,7 +81,6 @@ export interface DetailPanelProps {
   onAttachmentUpload?: (file: File) => void;
   onAttachmentDelete?: (attachmentId: string) => void;
   attachmentUploadStatus?: AttachmentUploadStatus;
-  onLanguageChange?: (language: string) => void;
   onEditBody?: () => void;
   onOpenPointAdd?: (text: string) => void;
   onOpenPointAnswer?: (questionId: string, text: string) => void;
@@ -142,7 +129,6 @@ export function DetailPanel({
   onAttachmentUpload,
   onAttachmentDelete,
   attachmentUploadStatus,
-  onLanguageChange,
   onEditBody,
   onOpenPointAdd,
   onOpenPointAnswer,
@@ -210,9 +196,7 @@ export function DetailPanel({
   }
 
   const openQuestionCount = entry.questions?.filter((q) => q.status === "open").length ?? 0;
-  const languageCode = normalizeEntryLanguage(entry.language);
   const isBookChild = entry.parentEntryType === "book";
-  const formConfig = getEntryFormConfig(entry.type);
   const yearMeta = getEntryYearMeta(entry.type, entry.yearStart, entry.yearEnd);
   const placePillLabel = discoveryPlaceLabel(entry.type, entry.place);
 
@@ -313,34 +297,6 @@ export function DetailPanel({
             ) : yearMeta.show ? (
               <ChMetaPill label={yearMeta.pillLabel} value={yearMeta.value} />
             ) : null}
-            {formConfig.showLanguage && (
-              <div className="rounded-lg border border-border/60 bg-surface-2/50 px-2.5 py-2">
-                <p className="text-[0.62rem] uppercase tracking-wide text-muted-foreground">
-                  Sprache
-                </p>
-                {canEdit && onLanguageChange ? (
-                  <Select
-                    value={languageCode}
-                    onValueChange={onLanguageChange}
-                  >
-                    <SelectTrigger className="mt-0.5 h-7 border-0 bg-transparent px-0 text-[0.78rem] shadow-none">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {ENTRY_LANGUAGES.map((lang) => (
-                        <SelectItem key={lang.value} value={lang.value}>
-                          {lang.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <p className="mt-0.5 text-[0.78rem] font-medium">
-                    {entryLanguageLabel(entry.language)}
-                  </p>
-                )}
-              </div>
-            )}
             {entry.author && entry.type === "book" && (
               <ChMetaPill label="Autor" value={entry.author} />
             )}

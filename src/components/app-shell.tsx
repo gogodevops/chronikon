@@ -475,18 +475,6 @@ export function AppShell({
     router.push(`${basePath}/new?edit=${selectedEntry.id}`);
   };
 
-  const handleLanguageChange = async (language: string) => {
-    if (!selectedEntry || !canEdit) return;
-    const ok = await runServerAction(() =>
-      updateEntry({
-        id: selectedEntry.id,
-        projectId: ctx.id,
-        language,
-      }),
-    );
-    if (ok) refreshAfterAction();
-  };
-
   const handleOpenPointAdd = async (text: string) => {
     if (!selectedEntry || !canDiscussRole) return;
     const ok = await runServerAction(() =>
@@ -697,7 +685,6 @@ export function AppShell({
             onAttachmentUpload={handleAttachmentUpload}
             attachmentUploadStatus={attachmentUploadStatus}
             onAttachmentDelete={handleAttachmentDelete}
-            onLanguageChange={handleLanguageChange}
             onEditBody={handleEditBody}
             onOpenPointAdd={handleOpenPointAdd}
             onOpenPointAnswer={handleOpenPointAnswer}

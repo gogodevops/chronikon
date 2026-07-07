@@ -1,7 +1,6 @@
 import JSZip from "jszip";
 
 import { CONF_META, TYPE_META } from "@/lib/constants";
-import { getEntryFormConfig } from "@/lib/entry-form-config";
 import { db } from "@/lib/db";
 
 function safeFilename(name: string): string {
@@ -45,9 +44,6 @@ function entryMarkdown(
     lines.push(`- **Übergeordnet:** ${entry.parentEntry.title}`);
   }
   if (entry.author) lines.push(`- **Autor:** ${entry.author}`);
-  if (entry.language && getEntryFormConfig(entry.type).showLanguage) {
-    lines.push(`- **Sprache:** ${entry.language}`);
-  }
   if (entry.placeName) lines.push(`- **Ort:** ${entry.placeName}`);
   if (entry.topics.length) {
     lines.push(
