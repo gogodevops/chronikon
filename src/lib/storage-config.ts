@@ -58,9 +58,11 @@ export function checkDeployEnvironment(): DeployEnvCheck {
   }
   if (!process.env.AUTH_SECRET || process.env.AUTH_SECRET.includes("change-me")) {
     errors.push("AUTH_SECRET fehlt oder ist noch der Platzhalter");
+  } else if (process.env.AUTH_SECRET.length < 16) {
+    errors.push("AUTH_SECRET zu kurz (min. 16 Zeichen)");
   }
-  if (!process.env.AUTH_URL) {
-    warnings.push("AUTH_URL fehlt — Vercel setzt oft VERCEL_URL automatisch");
+  if (!process.env.AUTH_URL && !process.env.VERCEL_URL) {
+    warnings.push("AUTH_URL fehlt — setze https://deine-app.vercel.app");
   }
 
   const mode = storageMode();

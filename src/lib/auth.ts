@@ -12,6 +12,7 @@ const credentialsSchema = z.object({
 });
 
 export const authConfig = {
+  secret: process.env.AUTH_SECRET,
   adapter: PrismaAdapter(db),
   session: { strategy: "jwt" },
   pages: {
