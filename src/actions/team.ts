@@ -4,7 +4,7 @@ import type { ProjectRole } from "@prisma/client";
 import { z } from "zod";
 
 import type { ActionResult } from "@/actions/auth";
-import { requireProjectRole } from "@/lib/auth-helpers";
+import { requireAppAdmin } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { revalidateProject } from "@/lib/revalidate-project";
 
@@ -29,7 +29,7 @@ async function countOwners(projectId: string): Promise<number> {
 }
 
 export async function getTeamData(projectId: string) {
-  const { session } = await requireProjectRole(projectId, "owner");
+  const session = await requireAppAdmin();
 
   const [members, invites] = await Promise.all([
     db.projectMember.findMany({
@@ -92,7 +92,7 @@ export async function addProjectMember(
     };
   }
 
-  await requireProjectRole(parsed.data.projectId, "owner");
+  await requireAppAdmin();
 
   const email = parsed.data.email.toLowerCase().trim();
 
@@ -137,7 +137,7 @@ export async function updateMemberRole(
     };
   }
 
-  const { session } = await requireProjectRole(parsed.data.projectId, "owner");
+  const session = await requireAppAdmin();
 
   const member = await db.projectMember.findFirst({
     where: { id: parsed.data.memberId, projectId: parsed.data.projectId },
@@ -180,7 +180,7 @@ export async function removeProjectMember(
   projectId: string,
   memberId: string,
 ): Promise<ActionResult> {
-  const { session } = await requireProjectRole(projectId, "owner");
+  const session = await requireAppAdmin();
 
   const member = await db.projectMember.findFirst({
     where: { id: memberId, projectId },
@@ -213,7 +213,7 @@ export async function revokeProjectInvite(
   projectId: string,
   inviteId: string,
 ): Promise<ActionResult> {
-  await requireProjectRole(projectId, "owner");
+  await requireAppAdmin();
 
   const invite = await db.projectInvite.findFirst({
     where: { id: inviteId, projectId, acceptedAt: null },

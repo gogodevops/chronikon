@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { TeamView } from "@/components/views/team-view";
 import { getTeamData } from "@/actions/team";
-import { getUserProjectRole } from "@/lib/auth-helpers";
+import { isAppAdmin } from "@/lib/auth-helpers";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 
@@ -16,13 +16,12 @@ export default async function TeamPage({
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
-  const project = await db.project.findUnique({ where: { slug } });
-  if (!project) notFound();
-
-  const role = await getUserProjectRole(project.id, session.user.id);
-  if (!role || role !== "owner") {
+  if (!(await isAppAdmin(session.user.id))) {
     redirect(`/p/${slug}/dashboard`);
   }
+
+  const project = await db.project.findUnique({ where: { slug } });
+  if (!project) notFound();
 
   const team = await getTeamData(project.id);
 

@@ -34,9 +34,9 @@ export function canManageTeam(role: string) {
   return role === "owner";
 }
 
-/** Team-Tab und /team — nur Projekt-Admins (Owner-Rolle). */
-export function canSeeTeamNav(role: string) {
-  return canManageTeam(role);
+/** Team-Tab und /team — nur App-Administratoren. */
+export function canSeeTeamNav(isAppAdmin: boolean) {
+  return isAppAdmin;
 }
 
 export function canDeleteProject(role: string, isAppAdmin: boolean) {

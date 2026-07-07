@@ -24,7 +24,7 @@ import {
 } from "@/actions/discussions";
 import type { RelationType } from "@prisma/client";
 import type { Confidence } from "@prisma/client";
-import { canDeleteProject, canDiscuss, canEditProject, canSeeTeamNav, runServerAction } from "@/lib/action-feedback";
+import { canDeleteProject, canDiscuss, canEditProject, runServerAction } from "@/lib/action-feedback";
 import { CommandPalette, type CommandResult } from "@/components/command-palette";
 import {
   AppHeader,
@@ -238,7 +238,7 @@ export function AppShell({
   );
 
   const handleViewChange = (view: AppView) => {
-    if (view === "team" && !canSeeTeamNav(ctx.userRole)) return;
+    if (view === "team" && !ctx.isAppAdmin) return;
     const suffix = VIEW_ROUTES[view];
     router.push(`${basePath}${suffix}`);
   };
@@ -601,7 +601,7 @@ export function AppShell({
         userImage={ctx.userImage ?? undefined}
         userInitials={ctx.userInitials}
         notifications={ctx.notifications}
-        showTeamNav={canSeeTeamNav(ctx.userRole)}
+        showTeamNav={ctx.isAppAdmin}
         canCreateProject
         isAppAdmin={ctx.isAppAdmin}
         canDeleteCurrentProject={canDeleteProject(ctx.userRole, ctx.isAppAdmin)}
