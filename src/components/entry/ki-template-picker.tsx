@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { HelpCircle } from "lucide-react";
 import type { EntryType } from "@prisma/client";
 
 import {
@@ -94,23 +95,27 @@ export function EntryKiTemplatePicker({
   const needsBody = selected?.requiresBody && !hasBody;
 
   return (
-    <div className={cn("space-y-3", className)}>
-      <p className="rounded-md border border-border/60 bg-surface-2/50 px-2.5 py-2 text-[0.72rem] leading-relaxed text-muted-foreground">
-        {KI_WORKFLOW_HINT}
+    <div className={cn("space-y-2", className)}>
+      <p
+        className="flex items-start gap-1 text-[0.65rem] leading-snug text-muted-foreground"
+        title={KI_WORKFLOW_HINT}
+      >
+        <HelpCircle className="mt-0.5 h-3 w-3 shrink-0 opacity-70" />
+        <span>Eintrag → Material → Vorlage in externe KI einfügen.</span>
       </p>
 
-      <div className="space-y-1.5">
+      <div className="space-y-1">
         <label
           htmlFor="entry-ki-template"
-          className="text-[0.72rem] font-medium text-muted-foreground"
+          className="text-[0.68rem] font-medium text-muted-foreground"
         >
-          Vorlage wählen
+          Vorlage
         </label>
         <select
           id="entry-ki-template"
           value={selectedId}
           onChange={(event) => setSelectedId(event.target.value)}
-          className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-[0.82rem]"
+          className="w-full rounded-md border border-border bg-surface px-2 py-1.5 text-[0.78rem]"
         >
           {templates.map((template) => (
             <option key={template.id} value={template.id}>
@@ -122,37 +127,35 @@ export function EntryKiTemplatePicker({
 
       {selected && (
         <>
-          <p className="text-[0.75rem] text-muted-foreground">
+          <p className="text-[0.68rem] leading-snug text-muted-foreground">
             {selected.description}
           </p>
           {needsOcr && (
-            <p className="rounded-md border border-amber-500/25 bg-amber-500/10 px-2.5 py-1.5 text-[0.72rem] text-amber-700 dark:text-amber-300">
-              Diese Vorlage benötigt extrahierten PDF-Text — zuerst unter{" "}
-              <strong>Material</strong> ein digitales PDF hochladen.
-            </p>
-          )}
-          {needsBody && (
-            <p className="rounded-md border border-amber-500/25 bg-amber-500/10 px-2.5 py-1.5 text-[0.72rem] text-amber-700 dark:text-amber-300">
-              Diese Vorlage benötigt ausgefüllten Kern (Zusammenfassung oder
-              Inhalt).
-            </p>
-          )}
-          {ocrAvailable && !needsOcr && (
-            <p className="rounded-md border border-green/20 bg-green/10 px-2.5 py-1.5 text-[0.72rem] text-green">
-              Extrahierter PDF-Text wird automatisch eingefügt.
-            </p>
-          )}
-          {!ocrAvailable && !needsOcr && (
-            <p className="text-[0.72rem] text-muted-foreground">
-              Noch kein PDF-Text — bei Bedarf digitales PDF unter Material
+            <p className="text-[0.65rem] text-amber-700 dark:text-amber-300">
+              Benötigt PDF-Text — zuerst unter <strong>Material</strong>{" "}
               hochladen.
             </p>
           )}
-          <details className="rounded-lg border border-border/60 bg-surface/50">
-            <summary className="cursor-pointer px-3 py-2 text-[0.75rem] font-medium text-accent">
-              Vorschau anzeigen
+          {needsBody && (
+            <p className="text-[0.65rem] text-amber-700 dark:text-amber-300">
+              Benötigt ausgefüllten Kern (Zusammenfassung oder Inhalt).
+            </p>
+          )}
+          {ocrAvailable && !needsOcr && (
+            <p className="text-[0.65rem] text-green">
+              PDF-Text wird automatisch eingefügt.
+            </p>
+          )}
+          {!ocrAvailable && !needsOcr && !needsBody && (
+            <p className="text-[0.65rem] text-muted-foreground">
+              Optional: PDF unter Material hochladen für OCR-Text.
+            </p>
+          )}
+          <details className="rounded-md border border-border/60 bg-surface/50">
+            <summary className="cursor-pointer px-2 py-1.5 text-[0.68rem] font-medium text-accent">
+              Vorschau
             </summary>
-            <div className="border-t border-border/50 p-3">
+            <div className="border-t border-border/50 p-2">
               {getEntryTypeKiTemplate(type, selected.id, language, templateContext) && (
                 <KiTemplateFullPreview
                   template={getEntryTypeKiTemplate(type, selected.id, language, templateContext)!}
@@ -160,9 +163,9 @@ export function EntryKiTemplatePicker({
               )}
             </div>
           </details>
-          <div className="flex flex-wrap gap-2">
-            <CopyTextButton label="Text kopieren" text={entryMarkdown} />
-            <CopyTextButton label="Vorlage kopieren" text={promptText} />
+          <div className="flex flex-wrap gap-1.5">
+            <CopyTextButton label="Text kopieren" text={entryMarkdown} size="sm" />
+            <CopyTextButton label="Vorlage kopieren" text={promptText} size="sm" />
           </div>
         </>
       )}

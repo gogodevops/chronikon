@@ -3,6 +3,7 @@
 import type { EntryType } from "@prisma/client";
 
 import { EntryKiTemplatePicker } from "@/components/entry/ki-template-picker";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { entryToMarkdown } from "@/lib/entry-markdown";
 import { ENTRY_TYPE_HINTS, hasEntryContent } from "@/lib/ki-templates";
 import type { EntryDetail } from "@/components/layout/detail-panel";
@@ -72,11 +73,15 @@ export function OnlineKiSection({
   });
 
   return (
-    <section className="mb-4 rounded-xl border border-accent/20 bg-accent-dim/20 p-3">
-      <h3 className="mb-1 text-[0.72rem] font-semibold uppercase tracking-wide text-accent">
-        Für externe KI
-      </h3>
-      <p className="mb-3 text-[0.78rem] leading-relaxed text-muted-foreground">
+    <CollapsibleSection
+      title="Für externe KI"
+      defaultOpen={false}
+      className="mb-4"
+    >
+      <p
+        className="mb-2 text-[0.68rem] leading-snug text-muted-foreground"
+        title={hint}
+      >
         {hint}
       </p>
       <EntryKiTemplatePicker
@@ -96,9 +101,9 @@ export function OnlineKiSection({
         childEntries={childEntries}
         hasBody={hasBody}
       />
-      <p className="mt-3 text-[0.65rem] text-muted-foreground">
+      <p className="mt-2 text-[0.62rem] text-muted-foreground">
         In ChatGPT, Claude o.ä. einfügen — Chronikon hat keine eingebaute KI.
       </p>
-    </section>
+    </CollapsibleSection>
   );
 }
