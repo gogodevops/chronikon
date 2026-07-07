@@ -356,6 +356,8 @@ export function DetailPanel({
           <EntryDetailSections
             key={entry.id}
             entryId={entry.id}
+            entryType={entry.type}
+            parentEntryType={entry.parentEntryType}
             projectSlug={projectSlug}
             summary={entry.summary}
             body={entry.body}

@@ -24,10 +24,14 @@ export interface SourceFormData {
 
 export interface SourceComposerProps {
   entryId: string;
+  titlePlaceholder?: string;
   onSubmit?: (data: SourceFormData) => void;
 }
 
-export function SourceComposer({ onSubmit }: SourceComposerProps) {
+export function SourceComposer({
+  titlePlaceholder = "Titel der Publikation oder Quelle",
+  onSubmit,
+}: SourceComposerProps) {
   const [title, setTitle] = React.useState("");
   const [author, setAuthor] = React.useState("");
   const [year, setYear] = React.useState("");
@@ -45,9 +49,9 @@ export function SourceComposer({ onSubmit }: SourceComposerProps) {
   };
 
   return (
-    <ChComposer title="Neue Quelle" icon={BookOpen} onSubmit={handleSubmit}>
+    <ChComposer title="Quelle hinzufügen" icon={BookOpen} onSubmit={handleSubmit}>
       <Input
-        placeholder="Titel der Quelle"
+        placeholder={titlePlaceholder}
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         className="mb-2 h-9 border-border/70 bg-surface-3/50"

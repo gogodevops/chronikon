@@ -506,6 +506,7 @@ export function AppShell({
   const handleSourceSubmit = async (data: unknown) => {
     if (!selectedEntry || !canEdit) return;
     const payload = data as Record<string, string>;
+    const refParts = [payload.author, payload.year].filter(Boolean);
     const ok = await runServerAction(() =>
       addSource({
         projectId: ctx.id,
@@ -513,7 +514,7 @@ export function AppShell({
         title: payload.title ?? "",
         type: (payload.type as "primary" | "secondary" | "tertiary") ?? "secondary",
         note: payload.note,
-        ref: payload.year,
+        ref: refParts.length > 0 ? refParts.join(", ") : undefined,
       }),
     );
     if (ok) refreshAfterAction();

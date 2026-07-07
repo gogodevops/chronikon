@@ -15,6 +15,7 @@ import {
   deleteAttachmentFilesForEntries,
 } from "@/lib/cleanup";
 import { db } from "@/lib/db";
+import { isChildTypeAllowed } from "@/lib/entry-hierarchy";
 import { notifyProjectMembers, projectEntryLink } from "@/lib/notifications";
 import { revalidateProject } from "@/lib/revalidate-project";
 import { deleteStoredFile } from "@/lib/storage";
@@ -190,6 +191,12 @@ export async function createEntry(
       return {
         success: false,
         error: "Verschachtelte Untereinträge sind nicht unterstützt",
+      };
+    }
+    if (!isChildTypeAllowed(parent.type, data.type as EntryType)) {
+      return {
+        success: false,
+        error: "Dieser Eintragstyp ist als Untereintrag hier nicht erlaubt",
       };
     }
   }

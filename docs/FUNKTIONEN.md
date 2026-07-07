@@ -82,6 +82,20 @@ Chronikon
 | Fund | Fundort, Datierung, Publikation |
 | Notiz | Freie Recherche-Notiz |
 
+## Einträge, Hierarchie & Quellen
+
+| Parent-Typ | Erlaubte Untereinträge | Quellen bedeutet… | Wann Quellen anlegen |
+|------------|--------------------------|-------------------|----------------------|
+| **Buch** | Kapitel/Abschnitt (`text`, mit Seitenzahlen) | Das Buch + PDF (Material) ist die Hauptquelle; „Weiterführende Literatur" = Editionen, Übersetzungen, Rezensionen | Optional, erst wenn Sie neben dem Buch weitere Werke zitieren |
+| **Text** (Projekt-Ebene) | — (keine) | Publikationen/Handschrift/Edition, aus der der Text stammt | Sobald Herkunft/Edition bekannt ist — nicht beim Anlegen nötig |
+| **Kapitel/Abschnitt** (Unter `Buch`) | — (keine, max. 1 Hierarchie-Ebene) | Zusatzbelege zum Abschnitt; Hauptquelle bleibt das übergeordnete Buch | Optional, wenn der Abschnitt über das Buch-PDF hinaus belegt wird |
+| **Person** | — | Primär- und Sekundärquellen für Biografie und Zuordnungen | Nach und nach bei Recherche |
+| **Ort** | — | Karten, Berichte, Texte, die Lage und Name belegen | Wenn Belege für Ortsangaben vorliegen |
+| **Fund** | — | Publikation/Grabungsbericht zur Fundbeschreibung | Wenn Fund publiziert oder datiert ist |
+| **Notiz** | — | Konsultierte Literatur zur Notiz/Hypothese | Jederzeit nachtragbar |
+
+**Regeln:** Nur **Buch** darf Untereinträge haben (nur Typ **Text** / Kapitel-Abschnitt). Keine Verschachtelung (Unter-Untereinträge). Quellen sind in allen Typen **optional beim Anlegen** — Abschnitt „Weitere Bereiche" zeigt leere Quellen nur bei Bearbeitungsrecht; bei **Buch** und **Kapitel** ist der Block dezent/optional gekennzeichnet.
+
 ## Bekannte Lücken (Phase 2+)
 
 - Vollständiger PDF-Buchleser mit Seitenwechsel (react-pdf)

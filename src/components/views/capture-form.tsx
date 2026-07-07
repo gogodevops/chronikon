@@ -15,6 +15,10 @@ import {
 } from "@/components/ui/select";
 import { TYPE_META } from "@/lib/constants";
 import {
+  ALLOWED_CHILD_TYPES,
+  getBookChildTypeLabel,
+} from "@/lib/entry-hierarchy";
+import {
   getEntryFormConfig,
   parseEntryYears,
 } from "@/lib/entry-form-config";
@@ -80,6 +84,9 @@ export function CaptureForm({
 
   const config = getEntryFormConfig(fields.type);
   const showTopic = topics.length > 0;
+  const selectableTypes = isBookChild
+    ? (ALLOWED_CHILD_TYPES.book ?? [])
+    : (Object.keys(TYPE_META) as (keyof typeof TYPE_META)[]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -202,11 +209,18 @@ export function CaptureForm({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {Object.entries(TYPE_META).map(([k, m]) => (
-                <SelectItem key={k} value={k}>
-                  {m.label}
-                </SelectItem>
-              ))}
+              {selectableTypes.map((k) => {
+                const m = TYPE_META[k];
+                const label =
+                  isBookChild && k === "text"
+                    ? getBookChildTypeLabel()
+                    : m.label;
+                return (
+                  <SelectItem key={k} value={k}>
+                    {label}
+                  </SelectItem>
+                );
+              })}
             </SelectContent>
           </Select>
           <p className="mt-1.5 rounded-lg border border-border/50 bg-surface-2/50 px-2.5 py-2 text-[0.75rem] leading-relaxed text-muted-foreground">

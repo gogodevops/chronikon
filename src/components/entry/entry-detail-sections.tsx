@@ -23,9 +23,15 @@ import type {
   SerializedRelation,
   SerializedSource,
 } from "@/lib/queries";
+import {
+  getSourceSectionConfig,
+  shouldShowSourcesSection,
+} from "@/lib/entry-hierarchy";
 
 export interface EntryDetailSectionsProps {
   entryId: string;
+  entryType: string;
+  parentEntryType?: string | null;
   projectSlug: string;
   summary?: string;
   body?: string;
@@ -64,6 +70,8 @@ export interface EntryDetailSectionsProps {
 
 export function EntryDetailSections({
   entryId,
+  entryType,
+  parentEntryType,
   projectSlug,
   summary,
   body,
@@ -94,6 +102,19 @@ export function EntryDetailSections({
   afterKern,
   uploadStatus,
 }: EntryDetailSectionsProps) {
+  const sourceConfig = getSourceSectionConfig(entryType, parentEntryType);
+  const showSources = shouldShowSourcesSection(
+    entryType,
+    sources.length,
+    canEdit,
+    parentEntryType,
+  );
+  const showWeitere =
+    showSources ||
+    claims.length > 0 ||
+    versions.length > 0 ||
+    (canEdit && claims.length === 0);
+
   return (
     <div className="space-y-4">
       <CollapsibleSection title="Kern">
@@ -160,22 +181,27 @@ export function EntryDetailSections({
         />
       )}
 
-      {(sources.length > 0 ||
-        claims.length > 0 ||
-        versions.length > 0 ||
-        canEdit) && (
+      {showWeitere && (
         <CollapsibleSection
           title="Weitere Bereiche"
-          count={sources.length + claims.length + versions.length}
+          count={
+            (showSources ? sources.length : 0) +
+            claims.length +
+            versions.length
+          }
         >
           <div id="entry-section-weitere" className="space-y-4 pt-1">
-            {(sources.length > 0 || canEdit) && (
+            {showSources && (
               <div>
-                <h4 className="mb-2 text-[0.68rem] font-semibold uppercase tracking-wide text-muted-foreground">
-                  Quellen ({sources.length})
+                <h4 className="mb-1 text-[0.68rem] font-semibold uppercase tracking-wide text-muted-foreground">
+                  {sourceConfig.sectionTitle} ({sources.length})
                 </h4>
+                <p className="mb-2 text-[0.72rem] leading-relaxed text-muted-foreground">
+                  {sourceConfig.meaning}
+                </p>
                 <SourcesList
                   sources={sources}
+                  emptyHint={sourceConfig.emptyHint}
                   onNavigate={onNavigateEntry}
                   onDelete={onSourceDelete}
                   canEdit={canEdit}
@@ -183,6 +209,7 @@ export function EntryDetailSections({
                 {canEdit && onSourceSubmit && (
                   <SourceComposer
                     entryId={entryId}
+                    titlePlaceholder={sourceConfig.titlePlaceholder}
                     onSubmit={onSourceSubmit}
                   />
                 )}

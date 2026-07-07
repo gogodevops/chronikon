@@ -24,11 +24,13 @@ import {
 
 export function SourcesList({
   sources,
+  emptyHint = "Noch keine Quellen ausgeschrieben — unten ergänzen.",
   onNavigate,
   onDelete,
   canEdit = true,
 }: {
   sources: SerializedSource[];
+  emptyHint?: string;
   onNavigate?: (entryId: string) => void;
   onDelete?: (sourceId: string) => void;
   canEdit?: boolean;
@@ -41,8 +43,8 @@ export function SourcesList({
 
   if (sources.length === 0) {
     return (
-      <p className="mb-3 text-[0.82rem] text-muted-foreground">
-        Noch keine Quellen ausgeschrieben — unten ergänzen.
+      <p className="mb-3 text-[0.82rem] leading-relaxed text-muted-foreground">
+        {emptyHint}
       </p>
     );
   }
