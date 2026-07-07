@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { createEntry, updateEntry } from "@/actions/entries";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -49,8 +48,6 @@ export function CaptureForm({
     pageEnd: string;
     confidence: string;
     topic: string;
-    summary: string;
-    body: string;
     language: string;
     author: string;
     placeName: string;
@@ -70,8 +67,6 @@ export function CaptureForm({
     pageEnd: initialFields?.pageEnd ?? "",
     confidence: initialFields?.confidence ?? "likely",
     topic: initialFields?.topic ?? topics[0] ?? "",
-    summary: initialFields?.summary ?? "",
-    body: initialFields?.body ?? "",
     language: normalizeEntryLanguage(
       initialFields?.language || DEFAULT_ENTRY_LANGUAGE,
     ),
@@ -93,8 +88,6 @@ export function CaptureForm({
         projectId,
         type: fields.type as "text",
         title: fields.title,
-        summary: fields.summary || undefined,
-        body: fields.body || undefined,
         yearStart: parseInt(fields.yearStart, 10) || 0,
         yearEnd: parseInt(fields.yearEnd, 10) || 2025,
         pageStart: pageStart && pageStart > 0 ? pageStart : undefined,
@@ -321,27 +314,6 @@ export function CaptureForm({
               ))}
             </SelectContent>
           </Select>
-        </Field>
-
-        <Field label="Zusammenfassung">
-          <Textarea
-            value={fields.summary}
-            onChange={(e) =>
-              setFields((f) => ({ ...f, summary: e.target.value }))
-            }
-            rows={2}
-          />
-        </Field>
-
-        <Field label="Inhalt (Markdown)">
-          <Textarea
-            value={fields.body}
-            onChange={(e) =>
-              setFields((f) => ({ ...f, body: e.target.value }))
-            }
-            rows={8}
-            className="font-mono text-sm"
-          />
         </Field>
 
         <Button onClick={handleSave} disabled={saving || !fields.title}>
