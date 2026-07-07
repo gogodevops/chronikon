@@ -101,6 +101,7 @@ export async function addProjectMember(
     memberId?: string;
     inviteToken?: string;
     emailSent?: boolean;
+    emailError?: string;
   }>
 > {
   const parsed = addMemberSchema.safeParse(input);
@@ -158,6 +159,7 @@ export async function addProjectMember(
   });
 
   let emailSent = false;
+  let emailError: string | undefined;
   if (sendEmail) {
     const inviteUrl = `${appBaseUrl()}/invite/${invite.token}`;
     const mail = await sendProjectInviteEmail({
@@ -168,12 +170,15 @@ export async function addProjectMember(
       roleLabel: ROLE_META[parsed.data.role].label,
     });
     emailSent = mail.ok;
+    if (!mail.ok) {
+      emailError = mail.error;
+    }
   }
 
   await revalidateProject(parsed.data.projectId);
   return {
     success: true,
-    data: { inviteToken: invite.token, emailSent },
+    data: { inviteToken: invite.token, emailSent, emailError },
   };
 }
 

@@ -18,7 +18,9 @@ import {
   createUserInvite,
   revokeUserInvite,
 } from "@/actions/invites";
+import { MailConfigNotice } from "@/components/mail-config-notice";
 import type { InviteStatus } from "@/lib/invite-status";
+import type { MailConfigStatus } from "@/lib/mail";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -53,9 +55,11 @@ const STATUS_STYLES: Record<InviteStatus, string> = {
 export function AdminUsersView({
   users,
   invites,
+  mailConfig,
 }: {
   users: AdminUserRow[];
   invites: AdminInviteRow[];
+  mailConfig: MailConfigStatus;
 }) {
   const router = useRouter();
   const [email, setEmail] = React.useState("");
@@ -66,7 +70,9 @@ export function AdminUsersView({
   );
   const [lastFeedback, setLastFeedback] = React.useState<{
     email: string;
+    emailRequested: boolean;
     emailSent?: boolean;
+    emailError?: string;
   } | null>(null);
 
   const handleInvite = async (e: React.FormEvent) => {
@@ -90,7 +96,9 @@ export function AdminUsersView({
     setLastInviteLink(link);
     setLastFeedback({
       email: email.trim().toLowerCase(),
+      emailRequested: sendEmail,
       emailSent: result.data.emailSent,
+      emailError: result.data.emailError,
     });
     setEmail("");
     setSendEmail(false);
@@ -131,6 +139,8 @@ export function AdminUsersView({
       </header>
 
       <main className="mx-auto max-w-3xl space-y-6 p-4">
+        <MailConfigNotice status={mailConfig} />
+
         <section className="rounded-xl border border-border bg-surface p-5">
           <h1 className="mb-1 flex items-center gap-2 text-lg font-semibold">
             <UserPlus className="h-5 w-5 text-accent" />
@@ -168,7 +178,7 @@ export function AdminUsersView({
             </Button>
           </form>
 
-          {lastFeedback?.emailSent && (
+          {lastFeedback?.emailRequested && lastFeedback.emailSent && (
             <div className="mt-4 rounded-lg border border-accent/30 bg-accent-dim p-3 text-[0.82rem]">
               <p className="font-medium text-accent">
                 Einladungs-E-Mail wurde gesendet an:
@@ -179,10 +189,21 @@ export function AdminUsersView({
             </div>
           )}
 
+          {lastFeedback?.emailRequested &&
+            !lastFeedback.emailSent &&
+            lastFeedback.emailError && (
+              <div className="mt-4 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-[0.82rem] text-destructive">
+                <p className="font-medium">E-Mail nicht versendet</p>
+                <p className="mt-1">{lastFeedback.emailError}</p>
+              </div>
+            )}
+
           {lastInviteLink && (
             <div className="mt-4 rounded-lg border border-accent/30 bg-accent-dim p-3">
               <p className="mb-2 text-[0.82rem] font-medium text-accent">
-                Einladungslink erstellt
+                {lastFeedback?.emailRequested && !lastFeedback.emailSent
+                  ? "Einladungslink (manuell teilen)"
+                  : "Einladungslink erstellt"}
               </p>
               <div className="flex gap-2">
                 <Input

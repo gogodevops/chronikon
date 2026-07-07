@@ -146,7 +146,9 @@ export async function listUserInvitesForAdmin() {
 
 export async function createUserInvite(
   input: z.infer<typeof createUserInviteSchema>,
-): Promise<ActionResult<{ token: string; emailSent?: boolean }>> {
+): Promise<
+  ActionResult<{ token: string; emailSent?: boolean; emailError?: string }>
+> {
   const session = await requireAppAdmin();
 
   const parsed = createUserInviteSchema.safeParse(input);
@@ -189,6 +191,7 @@ export async function createUserInvite(
   });
 
   let emailSent = false;
+  let emailError: string | undefined;
   if (sendEmail) {
     const inviteUrl = `${appBaseUrl()}/invite/${invite.token}`;
     const mail = await sendUserInviteEmail({
@@ -197,10 +200,16 @@ export async function createUserInvite(
       invitedBy: session.user.name ?? session.user.email ?? "Administrator",
     });
     emailSent = mail.ok;
+    if (!mail.ok) {
+      emailError = mail.error;
+    }
   }
 
   revalidatePath("/admin/users");
-  return { success: true, data: { token: invite.token, emailSent } };
+  return {
+    success: true,
+    data: { token: invite.token, emailSent, emailError },
+  };
 }
 
 export async function revokeUserInvite(inviteId: string): Promise<ActionResult> {

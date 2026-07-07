@@ -20,6 +20,7 @@ import {
   revokeProjectInvite,
   updateMemberRole,
 } from "@/actions/team";
+import { MailConfigNotice } from "@/components/mail-config-notice";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +33,7 @@ import {
 } from "@/components/ui/select";
 import { runServerAction } from "@/lib/action-feedback";
 import { PROJECT_ROLES, ROLE_META } from "@/lib/constants";
+import type { MailConfigStatus } from "@/lib/mail";
 import { ViewFrame } from "@/components/ui/chronikon-shell";
 
 export type TeamMember = {
@@ -60,11 +62,13 @@ export function TeamView({
   invites,
   currentUserId,
   projectId,
+  mailConfig,
 }: {
   members: TeamMember[];
   invites: TeamInvite[];
   currentUserId: string;
   projectId: string;
+  mailConfig: MailConfigStatus;
 }) {
   const router = useRouter();
   const [email, setEmail] = React.useState("");
@@ -75,8 +79,10 @@ export function TeamView({
     null,
   );
   const [lastFeedback, setLastFeedback] = React.useState<{
+    emailRequested: boolean;
     emailSent?: boolean;
     email?: string;
+    emailError?: string;
   } | null>(null);
 
   const handleAdd = async (e: React.FormEvent) => {
@@ -98,8 +104,10 @@ export function TeamView({
       }
       if (result.success) {
         setLastFeedback({
+          emailRequested: sendEmail,
           emailSent: result.data.emailSent,
           email: email.trim().toLowerCase(),
+          emailError: result.data.emailError,
         });
       }
       return result;
@@ -148,6 +156,10 @@ export function TeamView({
       description="Mitglieder einladen, Rollen vergeben und Zugriffsrechte verwalten."
       maxWidth="xl"
     >
+        <div className="mb-6">
+          <MailConfigNotice status={mailConfig} />
+        </div>
+
         <section className="mb-8 rounded-xl border border-border bg-surface-2/80 p-5">
           <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold">
             <Shield className="h-4 w-4 text-accent" />
@@ -368,16 +380,27 @@ export function TeamView({
                   {pending ? "Wird eingeladen…" : "Einladung senden"}
                 </Button>
 
-                {lastFeedback?.emailSent && (
+                {lastFeedback?.emailRequested && lastFeedback.emailSent && (
                   <div className="rounded-lg border border-accent/30 bg-accent-dim p-3 text-[0.72rem] text-accent">
                     E-Mail wurde an <strong>{lastFeedback.email}</strong> gesendet.
                   </div>
                 )}
 
+                {lastFeedback?.emailRequested &&
+                  !lastFeedback.emailSent &&
+                  lastFeedback.emailError && (
+                    <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-[0.72rem] text-destructive">
+                      <p className="font-medium">E-Mail nicht versendet</p>
+                      <p className="mt-1">{lastFeedback.emailError}</p>
+                    </div>
+                  )}
+
                 {lastInviteLink && (
                   <div className="rounded-lg border border-accent/30 bg-accent-dim p-3">
                     <p className="mb-2 text-[0.72rem] font-medium text-accent">
-                      Einladungslink erstellt
+                      {lastFeedback?.emailRequested && !lastFeedback.emailSent
+                        ? "Einladungslink (manuell teilen)"
+                        : "Einladungslink erstellt"}
                     </p>
                     <div className="flex gap-2">
                       <Input

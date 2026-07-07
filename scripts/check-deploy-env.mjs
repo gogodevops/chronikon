@@ -75,6 +75,18 @@ if (!process.env.OPENAI_API_KEY && process.env.AI_MOCK_MODE !== "true") {
   warnings.push("OPENAI_API_KEY leer — setze AI_MOCK_MODE=true für Demo");
 }
 
+const resendKey = process.env.RESEND_API_KEY?.trim();
+const mailFrom = process.env.MAIL_FROM?.trim();
+if (!resendKey || !mailFrom) {
+  warnings.push(
+    "E-Mail (Resend) nicht konfiguriert — RESEND_API_KEY und MAIL_FROM für Einladungs-Mails setzen",
+  );
+} else if (/onboarding@resend\.dev/i.test(mailFrom)) {
+  warnings.push(
+    "MAIL_FROM nutzt onboarding@resend.dev — E-Mails nur an die Resend-Konto-Adresse möglich",
+  );
+}
+
 console.log("\n  Chronikon — Deploy Check\n");
 
 if (errors.length) {
