@@ -70,7 +70,6 @@ export function SystemOverviewView({
         canCreateProject
         isAppAdmin
         isSystemView
-        navDisabled
         createDialogOpen={createOpen}
         onCreateDialogOpenChange={setCreateOpen}
         onProjectChange={(slug) => {

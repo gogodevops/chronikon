@@ -74,6 +74,11 @@ const BASE_NAV_ITEMS: { view: AppView; label: string }[] = [
 
 const TEAM_NAV_ITEM = { view: "team" as const, label: "Team" };
 
+const SYSTEM_NAV_ITEMS = [
+  { href: "/app", label: "Übersicht" },
+  { href: "/admin/users", label: "Nutzer verwalten" },
+] as const;
+
 function buildNavItems(showTeamNav: boolean) {
   if (!showTeamNav) return BASE_NAV_ITEMS;
   const items = [...BASE_NAV_ITEMS];
@@ -241,30 +246,45 @@ export function AppHeader({
       )}
 
       <nav className="flex flex-1 gap-1 overflow-x-auto rounded-lg bg-surface-2/40 p-0.5">
-        {navItems.map(({ view, label }) => (
-          <button
-            key={view}
-            type="button"
-            disabled={navDisabled}
-            title={navDisabled ? "Zuerst ein Ober-Thema anlegen" : undefined}
-            onClick={() => !navDisabled && onViewChange?.(view)}
-            className={cn(
-              "whitespace-nowrap rounded-md px-2.5 py-1.5 text-[0.8rem] text-muted-foreground transition-all",
-              navDisabled
-                ? "cursor-not-allowed opacity-40"
-                : "cursor-pointer hover:text-foreground",
-              activeView === view &&
-                !navDisabled &&
-                "bg-accent-dim font-medium text-accent shadow-[inset_0_0_0_1px_rgba(196,163,90,0.18)]",
-              view === "form" &&
-                activeView !== view &&
-                !navDisabled &&
-                "text-accent/80 hover:text-accent",
-            )}
-          >
-            {label}
-          </button>
-        ))}
+        {isSystemView
+          ? SYSTEM_NAV_ITEMS.map(({ href, label }) => (
+              <Link
+                key={href}
+                href={href}
+                className={cn(
+                  "whitespace-nowrap rounded-md px-2.5 py-1.5 text-[0.8rem] text-muted-foreground transition-all",
+                  "cursor-pointer hover:text-foreground",
+                  href === "/app" &&
+                    "bg-accent-dim font-medium text-accent shadow-[inset_0_0_0_1px_rgba(196,163,90,0.18)]",
+                )}
+              >
+                {label}
+              </Link>
+            ))
+          : navItems.map(({ view, label }) => (
+              <button
+                key={view}
+                type="button"
+                disabled={navDisabled}
+                title={navDisabled ? "Zuerst ein Ober-Thema anlegen" : undefined}
+                onClick={() => !navDisabled && onViewChange?.(view)}
+                className={cn(
+                  "whitespace-nowrap rounded-md px-2.5 py-1.5 text-[0.8rem] text-muted-foreground transition-all",
+                  navDisabled
+                    ? "cursor-not-allowed opacity-40"
+                    : "cursor-pointer hover:text-foreground",
+                  activeView === view &&
+                    !navDisabled &&
+                    "bg-accent-dim font-medium text-accent shadow-[inset_0_0_0_1px_rgba(196,163,90,0.18)]",
+                  view === "form" &&
+                    activeView !== view &&
+                    !navDisabled &&
+                    "text-accent/80 hover:text-accent",
+                )}
+              >
+                {label}
+              </button>
+            ))}
       </nav>
 
       <div className="flex items-center gap-2.5">
