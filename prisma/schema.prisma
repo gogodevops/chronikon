@@ -188,6 +188,9 @@ model Entry {
   body          String?    @db.Text
   yearStart     Int
   yearEnd       Int
+  pageStart     Int?
+  pageEnd       Int?
+  sortOrder     Int?
   confidence    Confidence @default(likely)
   language      String?
   author        String?

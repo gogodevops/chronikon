@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 
-import { addAttachmentMetadata, createEntry, updateEntry } from "@/actions/entries";
+import { createEntry, updateEntry } from "@/actions/entries";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,6 +23,7 @@ import {
   normalizeEntryLanguage,
   type EntryLanguageCode,
 } from "@/lib/languages";
+import { isPdfMime } from "@/lib/attachment-text-status";
 
 type PendingUpload = {
   storageKey: string;
@@ -52,6 +53,8 @@ export function CaptureForm({
     title: string;
     yearStart: string;
     yearEnd: string;
+    pageStart: string;
+    pageEnd: string;
     confidence: string;
     topic: string;
     summary: string;
@@ -63,6 +66,7 @@ export function CaptureForm({
 }) {
   const router = useRouter();
   const isEdit = !!editEntryId;
+  const isBookChild = !!parentEntryId;
   const [uploadOpen, setUploadOpen] = React.useState(false);
   const [uploading, setUploading] = React.useState(false);
   const [pendingUpload, setPendingUpload] = React.useState<PendingUpload | null>(
@@ -72,10 +76,12 @@ export function CaptureForm({
   const [saving, setSaving] = React.useState(false);
 
   const [fields, setFields] = React.useState({
-    type: initialFields?.type ?? "text",
+    type: initialFields?.type ?? (isBookChild ? "text" : "text"),
     title: initialFields?.title ?? "",
     yearStart: initialFields?.yearStart ?? "",
     yearEnd: initialFields?.yearEnd ?? "",
+    pageStart: initialFields?.pageStart ?? "",
+    pageEnd: initialFields?.pageEnd ?? "",
     confidence: initialFields?.confidence ?? "likely",
     topic: initialFields?.topic ?? topics[0] ?? "",
     summary: initialFields?.summary ?? "",
@@ -87,9 +93,23 @@ export function CaptureForm({
     placeName: initialFields?.placeName ?? "",
   });
 
+  const isBookCreate = !isEdit && fields.type === "book";
+  const pdfRequired = isBookCreate;
+
+  React.useEffect(() => {
+    if (isBookCreate) setUploadOpen(true);
+  }, [isBookCreate]);
+
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    if (pdfRequired && !isPdfMime(file.type, file.name)) {
+      window.alert("Für Bücher ist ein PDF erforderlich.");
+      e.target.value = "";
+      return;
+    }
+
     setUploading(true);
     try {
       const fd = new FormData();
@@ -109,6 +129,8 @@ export function CaptureForm({
       });
       if (data.text) {
         setExtractedText(data.text);
+      } else {
+        setExtractedText("");
       }
       setUploadOpen(true);
     } finally {
@@ -128,8 +150,20 @@ export function CaptureForm({
   };
 
   const handleSave = async () => {
+    if (pdfRequired && !pendingUpload) {
+      window.alert("Bitte zuerst ein PDF für das Buch hochladen.");
+      return;
+    }
+
     setSaving(true);
     try {
+      const pageStart = fields.pageStart
+        ? parseInt(fields.pageStart, 10)
+        : undefined;
+      const pageEnd = fields.pageEnd
+        ? parseInt(fields.pageEnd, 10)
+        : undefined;
+
       const payload = {
         projectId,
         type: fields.type as "text",
@@ -138,12 +172,26 @@ export function CaptureForm({
         body: fields.body || undefined,
         yearStart: parseInt(fields.yearStart, 10) || 0,
         yearEnd: parseInt(fields.yearEnd, 10) || 2025,
+        pageStart: pageStart && pageStart > 0 ? pageStart : undefined,
+        pageEnd: pageEnd && pageEnd > 0 ? pageEnd : undefined,
         confidence: fields.confidence as "likely",
         language: fields.language || DEFAULT_ENTRY_LANGUAGE,
         author: fields.author || undefined,
         placeName: fields.placeName || undefined,
         topicNames: fields.topic ? [fields.topic] : [],
         parentEntryId: parentEntryId || undefined,
+        initialAttachment:
+          !isEdit && pendingUpload
+            ? {
+                name: pendingUpload.name,
+                mimeType: pendingUpload.mimeType,
+                storageKey: pendingUpload.storageKey,
+                publicUrl: pendingUpload.url,
+                label: "Bei Anlage hochgeladen",
+                extractedText:
+                  pendingUpload.text || extractedText || undefined,
+              }
+            : undefined,
       };
 
       const result = isEdit
@@ -156,26 +204,6 @@ export function CaptureForm({
       }
 
       const entryId = isEdit ? editEntryId! : result.data!.id;
-
-      if (!isEdit && pendingUpload) {
-        const attachmentResult = await addAttachmentMetadata({
-          projectId,
-          entryId,
-          name: pendingUpload.name,
-          mimeType: pendingUpload.mimeType,
-          storageKey: pendingUpload.storageKey,
-          publicUrl: pendingUpload.url,
-          label: "Bei Anlage hochgeladen",
-          extractedText: pendingUpload.text || extractedText || undefined,
-        });
-        if (!attachmentResult.success) {
-          window.alert(
-            attachmentResult.error ??
-              "Eintrag gespeichert, aber Anhang konnte nicht verknüpft werden",
-          );
-        }
-      }
-
       router.push(`/p/${projectSlug}?entry=${entryId}`);
       router.refresh();
     } catch (error) {
@@ -186,6 +214,14 @@ export function CaptureForm({
       setSaving(false);
     }
   };
+
+  const extractionHint = pendingUpload
+    ? extractedText
+      ? "Text aus digitalem PDF extrahiert."
+      : isPdfMime(pendingUpload.mimeType, pendingUpload.name)
+        ? "Kein Text extrahiert — vermutlich Scan oder geschütztes PDF."
+        : "Kein Text verfügbar."
+    : null;
 
   return (
     <ViewFrame
@@ -201,7 +237,9 @@ export function CaptureForm({
           ? "Felder anpassen und speichern"
           : parentEntryTitle
             ? `Kapitel, Seite oder Abschnitt für „${parentEntryTitle}"`
-            : "Felder ausfüllen — Quelle optional hochladen"
+            : fields.type === "book"
+              ? "Buch anlegen — PDF ist erforderlich"
+              : "Felder ausfüllen — Quelle optional hochladen"
       }
       maxWidth="md"
     >
@@ -211,24 +249,49 @@ export function CaptureForm({
             Untereintrag von <strong>{parentEntryTitle}</strong>
           </p>
         )}
+
+        <Field label="Typ">
+          <Select
+            value={fields.type}
+            onValueChange={(v) => setFields((f) => ({ ...f, type: v }))}
+            disabled={isEdit || isBookChild}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(TYPE_META).map(([k, m]) => (
+                <SelectItem key={k} value={k}>
+                  {m.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="mt-1.5 rounded-lg border border-border/50 bg-surface-2/50 px-2.5 py-2 text-[0.75rem] leading-relaxed text-muted-foreground">
+            {ENTRY_TYPE_HINTS[fields.type as keyof typeof ENTRY_TYPE_HINTS]}
+          </p>
+        </Field>
+
         {!isEdit && (
           <details
-            open={uploadOpen}
+            open={uploadOpen || pdfRequired}
             onToggle={(e) => setUploadOpen((e.target as HTMLDetailsElement).open)}
             className="rounded-lg border border-border/80 bg-surface-2/40"
           >
             <summary className="cursor-pointer px-4 py-3 text-[0.82rem] font-medium text-foreground select-none">
-              Quelle hochladen (optional)
+              {pdfRequired
+                ? "PDF hochladen (erforderlich)"
+                : "Quelle hochladen (optional)"}
             </summary>
             <div className="space-y-3 border-t border-border/60 px-4 py-3">
               <p className="text-[0.78rem] text-muted-foreground">
-                PDF oder Bild hochladen — bei PDFs wird Text per OCR extrahiert
-                (optimiert für Deutsch und Englisch). Der Anhang wird beim
-                Speichern automatisch mit dem Eintrag verknüpft.
+                {pdfRequired
+                  ? "Digitales PDF hochladen — eingebetteter Text wird automatisch extrahiert (kein Scan-OCR). Der Anhang wird beim Speichern verknüpft."
+                  : "PDF oder Bild hochladen — bei digitalen PDFs wird Text extrahiert. Der Anhang wird beim Speichern automatisch mit dem Eintrag verknüpft."}
               </p>
               <Input
                 type="file"
-                accept=".pdf,image/*"
+                accept={pdfRequired ? ".pdf,application/pdf" : ".pdf,image/*"}
                 onChange={handleUpload}
                 disabled={uploading}
               />
@@ -239,6 +302,13 @@ export function CaptureForm({
                 <p className="text-[0.78rem] text-green">
                   ✓ {pendingUpload.name} bereit — wird beim Speichern als Anhang
                   angelegt
+                </p>
+              )}
+              {extractionHint && (
+                <p
+                  className={`text-[0.75rem] ${extractedText ? "text-muted-foreground" : "text-amber-600 dark:text-amber-400"}`}
+                >
+                  {extractionHint}
                 </p>
               )}
               {extractedText && (
@@ -258,27 +328,6 @@ export function CaptureForm({
           </details>
         )}
 
-        <Field label="Typ">
-          <Select
-            value={fields.type}
-            onValueChange={(v) => setFields((f) => ({ ...f, type: v }))}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.entries(TYPE_META).map(([k, m]) => (
-                <SelectItem key={k} value={k}>
-                  {m.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <p className="mt-1.5 rounded-lg border border-border/50 bg-surface-2/50 px-2.5 py-2 text-[0.75rem] leading-relaxed text-muted-foreground">
-            {ENTRY_TYPE_HINTS[fields.type as keyof typeof ENTRY_TYPE_HINTS]}
-          </p>
-        </Field>
-
         <Field label="Titel">
           <Input
             value={fields.title}
@@ -288,24 +337,49 @@ export function CaptureForm({
           />
         </Field>
 
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="Von (Jahr)">
-            <Input
-              value={fields.yearStart}
-              onChange={(e) =>
-                setFields((f) => ({ ...f, yearStart: e.target.value }))
-              }
-            />
-          </Field>
-          <Field label="Bis (Jahr)">
-            <Input
-              value={fields.yearEnd}
-              onChange={(e) =>
-                setFields((f) => ({ ...f, yearEnd: e.target.value }))
-              }
-            />
-          </Field>
-        </div>
+        {isBookChild ? (
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Seite von">
+              <Input
+                type="number"
+                min={1}
+                value={fields.pageStart}
+                onChange={(e) =>
+                  setFields((f) => ({ ...f, pageStart: e.target.value }))
+                }
+              />
+            </Field>
+            <Field label="Seite bis">
+              <Input
+                type="number"
+                min={1}
+                value={fields.pageEnd}
+                onChange={(e) =>
+                  setFields((f) => ({ ...f, pageEnd: e.target.value }))
+                }
+              />
+            </Field>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Von (Jahr)">
+              <Input
+                value={fields.yearStart}
+                onChange={(e) =>
+                  setFields((f) => ({ ...f, yearStart: e.target.value }))
+                }
+              />
+            </Field>
+            <Field label="Bis (Jahr)">
+              <Input
+                value={fields.yearEnd}
+                onChange={(e) =>
+                  setFields((f) => ({ ...f, yearEnd: e.target.value }))
+                }
+              />
+            </Field>
+          </div>
+        )}
 
         <Field label="Sprache">
           <Select
@@ -313,7 +387,7 @@ export function CaptureForm({
             onValueChange={(v) =>
               setFields((f) => ({
                 ...f,
-                language: v as EntryLanguageCode,
+                language: normalizeEntryLanguage(v) as EntryLanguageCode,
               }))
             }
           >
@@ -369,7 +443,10 @@ export function CaptureForm({
           />
         </Field>
 
-        <Button onClick={handleSave} disabled={saving || !fields.title}>
+        <Button
+          onClick={handleSave}
+          disabled={saving || !fields.title || (pdfRequired && !pendingUpload)}
+        >
           {saving ? "Speichern…" : isEdit ? "Änderungen speichern" : "Eintrag speichern"}
         </Button>
       </div>

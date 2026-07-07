@@ -93,7 +93,7 @@ export function EntryTabs({
           Behauptungen ({claimCount})
         </TabsTrigger>
         <TabsTrigger value="diskussion">
-          Diskussion ({effectiveDiscussionCount})
+          Offene Punkte ({effectiveDiscussionCount})
         </TabsTrigger>
         <TabsTrigger value="verknuepfungen">
           Verknüpfungen ({effectiveRelationCount})

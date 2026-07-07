@@ -18,6 +18,7 @@ import { db } from "@/lib/db";
 import { notifyProjectMembers, projectEntryLink } from "@/lib/notifications";
 import { revalidateProject } from "@/lib/revalidate-project";
 import { deleteStoredFile } from "@/lib/storage";
+import { resolveAttachmentTextStatus } from "@/lib/attachment-text-status";
 import {
   searchLinkableEntries as searchLinkableEntriesQuery,
   type LinkableEntryResult,
@@ -42,6 +43,8 @@ const createEntrySchema = z.object({
   body: z.string().optional(),
   yearStart: z.number().int(),
   yearEnd: z.number().int(),
+  pageStart: z.number().int().positive().optional(),
+  pageEnd: z.number().int().positive().optional(),
   confidence: confidenceSchema.default("likely"),
   language: z.string().optional(),
   author: z.string().optional(),
@@ -50,6 +53,16 @@ const createEntrySchema = z.object({
   lng: z.number().optional(),
   topicNames: z.array(z.string()).optional(),
   parentEntryId: z.string().cuid().optional(),
+  initialAttachment: z
+    .object({
+      name: z.string().min(1),
+      mimeType: z.string().min(1),
+      storageKey: z.string().min(1),
+      publicUrl: z.string().optional(),
+      label: z.string().optional(),
+      extractedText: z.string().optional(),
+    })
+    .optional(),
 });
 
 const updateEntrySchema = createEntrySchema
@@ -181,6 +194,36 @@ export async function createEntry(
     }
   }
 
+  if (data.type === "book" && !data.initialAttachment) {
+    return {
+      success: false,
+      error: "Für Bücher ist beim Anlegen ein PDF-Anhang erforderlich",
+    };
+  }
+
+  if (
+    data.initialAttachment &&
+    data.type === "book" &&
+    !(
+      data.initialAttachment.mimeType === "application/pdf" ||
+      data.initialAttachment.name.toLowerCase().endsWith(".pdf")
+    )
+  ) {
+    return {
+      success: false,
+      error: "Bücher benötigen ein PDF als Anhang",
+    };
+  }
+
+  let sortOrder: number | undefined;
+  if (data.parentEntryId) {
+    const maxSort = await db.entry.aggregate({
+      where: { parentEntryId: data.parentEntryId },
+      _max: { sortOrder: true },
+    });
+    sortOrder = (maxSort._max.sortOrder ?? -1) + 1;
+  }
+
   const entry = await db.entry.create({
     data: {
       projectId: data.projectId,
@@ -191,6 +234,9 @@ export async function createEntry(
       body: data.body,
       yearStart: data.yearStart,
       yearEnd: data.yearEnd,
+      pageStart: data.pageStart,
+      pageEnd: data.pageEnd,
+      sortOrder,
       confidence: data.confidence as Confidence,
       language: data.language,
       author: data.author,
@@ -200,6 +246,27 @@ export async function createEntry(
       createdById: session.user.id,
     },
   });
+
+  if (data.initialAttachment) {
+    const att = data.initialAttachment;
+    await db.attachment.create({
+      data: {
+        entryId: entry.id,
+        name: att.name,
+        mimeType: att.mimeType,
+        storageKey: att.storageKey,
+        publicUrl: att.publicUrl,
+        label: att.label ?? "Bei Anlage hochgeladen",
+        extractedText: att.extractedText,
+        ocrStatus: resolveAttachmentTextStatus(
+          att.mimeType,
+          att.extractedText,
+          att.name,
+        ),
+        uploadedById: session.user.id,
+      },
+    });
+  }
 
   if (data.topicNames?.length) {
     await syncTopics(entry.id, data.projectId, data.topicNames);
@@ -245,6 +312,8 @@ export async function updateEntry(
       body: fields.body,
       yearStart: fields.yearStart,
       yearEnd: fields.yearEnd,
+      pageStart: fields.pageStart,
+      pageEnd: fields.pageEnd,
       confidence: fields.confidence as Confidence | undefined,
       language: fields.language,
       author: fields.author,
@@ -470,7 +539,11 @@ export async function addAttachmentMetadata(
       publicUrl: parsed.data.publicUrl,
       label: parsed.data.label,
       extractedText: parsed.data.extractedText,
-      ocrStatus: parsed.data.extractedText?.trim() ? "done" : "pending",
+      ocrStatus: resolveAttachmentTextStatus(
+        parsed.data.mimeType,
+        parsed.data.extractedText,
+        parsed.data.name,
+      ),
       uploadedById: session.user.id,
     },
   });

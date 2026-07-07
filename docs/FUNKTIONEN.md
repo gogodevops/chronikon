@@ -1,6 +1,6 @@
 # Chronikon — Funktionsübersicht
 
-Stand: MVP mit Export, Online-KI-Vorlagen, Buch-Untereinträge.
+Stand: Phase 1 — Buch/PDF-Grundlagen, Detail-Kern/Material/Offen.
 
 Legende: ✅ funktioniert · ⚠️ teilweise · ❌ fehlt / kaputt
 
@@ -18,7 +18,7 @@ Chronikon
 │   └── ✅ System-Übersicht (Admin)
 │
 ├── Einträge (6 Typen)
-│   ├── ✅ Buch — Untereinträge (Kapitel/Seiten)
+│   ├── ✅ Buch — PDF Pflicht bei Anlage, Untereinträge mit Seitenzahlen
 │   ├── ✅ Text, Person, Ort, Fund, Notiz
 │   ├── ✅ CRUD (Erstellen, Bearbeiten, Löschen)
 │   ├── ✅ Filter (Typ, Thema, Confidence, Gespeicherte Ansichten)
@@ -26,16 +26,26 @@ Chronikon
 │   └── ✅ „Für Online-KI" in Detailansicht (Text + Vorlage kopieren)
 │
 ├── Inhalt pro Eintrag
+│   ├── ✅ Detail: Kern / Material / Offen
 │   ├── ✅ Markdown-Body, Zusammenfassung, Metadaten
+│   ├── ✅ Seiten (pageStart/pageEnd) für Buch-Untereinträge
 │   ├── ✅ Quellen, Behauptungen, Verknüpfungen
 │   ├── ✅ Versionen (Snapshot bei Änderung)
-│   ├── ✅ PDF/Bild-Anhänge mit OCR-Extraktion
-│   └── ⚠️ OCR — nur bei PDF-Upload, kein Nach-OCR-Button
+│   ├── ✅ PDF-Anhänge mit digitaler Textextraktion (Status: extrahiert / fehlgeschlagen / ausstehend)
+│   └── ⚠️ Scan-OCR (Tesseract/Cloud) — Phase 2
 │
-├── Diskussion
-│   ├── ✅ Fragen & Antworten, Kommentare
-│   ├── ✅ Diskussions-Feed (Projekt + Eintrag)
+├── Offene Punkte
+│   ├── ✅ Fragen & Antworten als „Offen"-Liste in der Detailansicht
+│   ├── ✅ Projekt-Feed (Diskussionen-Ansicht)
 │   └── ✅ Benachrichtigungen
+│
+├── Sprache
+│   └── ✅ Eintragssprache: Deutsch | Englisch (Phase 1)
+│
+├── KI-Vorlagen (extern)
+│   ├── ✅ Buch-Ebene: Zusammenfassung, Kapitelstruktur aus PDF-Text
+│   ├── ✅ Untereintrag-Ebene: Seitenkontext {{PAGE_START}}/{{PAGE_END}}, Buch-PDF-Ausschnitt
+│   └── ✅ Einheitliches Format ZIEL/KONTEXT/AUFGABE/AUSGABE
 │
 ├── Ansichten
 │   ├── ✅ Einträge (Browse + Detail 3-Spalten)
@@ -55,7 +65,7 @@ Chronikon
 │   └── ✅ Einzeleintrag: Text kopieren + KI-Vorlage kopieren
 │
 └── Infrastruktur
-    ├── ✅ PostgreSQL + Prisma
+    ├── ✅ PostgreSQL + Prisma (pageStart, pageEnd, sortOrder auf Entry)
     ├── ✅ Lokaler oder S3-Dateispeicher
     ├── ✅ Health-Check API
     └── ✅ Docker optional
@@ -65,23 +75,21 @@ Chronikon
 
 | Typ | Was dokumentieren? |
 |-----|-------------------|
-| Buch | Kapitel als Untereinträge, OCR-Text, Ausgabe/Jahr |
+| Buch | PDF hochladen (Textextraktion), Kapitel als Untereinträge mit Seitenzahlen |
 | Text | Quelle, Übersetzung, Edition |
 | Person | Lebensdaten, Rolle, Quellen |
 | Ort | Koordinaten, historischer Name |
 | Fund | Fundort, Datierung, Publikation |
 | Notiz | Freie Recherche-Notiz |
 
-## Workflow: Externe KI nutzen
+## Bekannte Lücken (Phase 2+)
 
-1. Wissen in Chronikon pflegen (Einträge, Anhänge, Quellen)
-2. **Projekt als ZIP** unter Dashboard → Export & Online-KI
-3. KI-Vorlage kopieren, ZIP-Inhalt einfügen → ChatGPT/Claude
-4. Oder pro Eintrag: Detailansicht → **Text kopieren** / **KI-Vorlage kopieren**
-
-## Bekannte Lücken
-
+- Vollständiger PDF-Buchleser mit Seitenwechsel (react-pdf)
+- Scan-OCR für gescannte PDFs
+- Mobile Detail-Panel-Optimierung
+- Asynchrone Hintergrund-OCR-Jobs
 - Vergleichsansicht (`/compare`) zeigt wegen `viewMode="browse"` ggf. nicht den Inhalt
-- Keine eingebaute KI (absichtlich)
-- Vorlagen nicht pro Projekt editierbar (nur Standard-Vorlagen)
-- Gespeicherte Vergleichssets nur per Seed/Datenbank, kein UI-Editor
+
+## Deployment
+
+Nach Schema-Änderung: `npx prisma db push` (in Vercel-Build via `vercel.json` bzw. `deploy:db`).

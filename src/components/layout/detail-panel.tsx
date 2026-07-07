@@ -44,6 +44,9 @@ export interface EntryDetail {
   topics?: string[];
   yearStart?: number | null;
   yearEnd?: number | null;
+  pageStart?: number | null;
+  pageEnd?: number | null;
+  parentEntryType?: string | null;
   confidence?: string;
   confidenceLabel?: string;
   confidenceColor?: string;
@@ -59,6 +62,13 @@ export interface EntryDetail {
   commentCount?: number;
   parentEntryId?: string | null;
   parentEntryTitle?: string | null;
+  parentAttachments?: Array<{
+    name: string;
+    label?: string | null;
+    mimeType?: string;
+    ocrStatus?: string;
+    extractedText?: string | null;
+  }>;
   childEntries?: SerializedChildEntry[];
   sources?: SerializedSource[];
   claims?: SerializedClaim[];
@@ -97,6 +107,11 @@ export interface DetailPanelProps {
   onNewEntry?: () => void;
   onCreateChildEntry?: () => void;
   projectName?: string;
+}
+
+function pageLabel(page?: number | null) {
+  if (page == null) return "—";
+  return `S. ${page}`;
 }
 
 function yearLabel(year?: number | null) {
@@ -186,6 +201,7 @@ export function DetailPanel({
 
   const openQuestionCount = entry.questions?.filter((q) => q.status === "open").length ?? 0;
   const languageCode = normalizeEntryLanguage(entry.language);
+  const isBookChild = entry.parentEntryType === "book";
 
   const handleAttachmentAdd = () => {
     if (onAttachmentUpload) {
@@ -276,10 +292,17 @@ export function DetailPanel({
 
         <div className="px-5 py-4">
           <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
-            <ChMetaPill
-              label="Zeitraum"
-              value={`${yearLabel(entry.yearStart)} – ${yearLabel(entry.yearEnd)}`}
-            />
+            {isBookChild ? (
+              <ChMetaPill
+                label="Seiten"
+                value={`${pageLabel(entry.pageStart)} – ${pageLabel(entry.pageEnd)}`}
+              />
+            ) : (
+              <ChMetaPill
+                label="Zeitraum"
+                value={`${yearLabel(entry.yearStart)} – ${yearLabel(entry.yearEnd)}`}
+              />
+            )}
             <div className="rounded-lg border border-border/60 bg-surface-2/50 px-2.5 py-2">
               <p className="text-[0.62rem] uppercase tracking-wide text-muted-foreground">
                 Sprache

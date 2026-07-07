@@ -30,7 +30,11 @@ export function EntryKiTemplatePicker({
   entryTitle,
   entryMarkdown,
   language,
+  pageStart,
+  pageEnd,
+  parentEntryType,
   attachments = [],
+  parentAttachments = [],
   childEntries = [],
   className,
 }: {
@@ -39,11 +43,16 @@ export function EntryKiTemplatePicker({
   entryTitle: string;
   entryMarkdown: string;
   language?: string | null;
+  pageStart?: number | null;
+  pageEnd?: number | null;
+  parentEntryType?: string | null;
   attachments?: KiAttachmentInput[];
+  parentAttachments?: KiAttachmentInput[];
   childEntries?: KiChildEntryInput[];
   className?: string;
 }) {
-  const templates = getEntryKiTemplates(type, language);
+  const templateContext = { parentEntryType };
+  const templates = getEntryKiTemplates(type, language, templateContext);
   const [selectedId, setSelectedId] = React.useState(templates[0]?.id ?? "");
 
   React.useEffect(() => {
@@ -58,11 +67,14 @@ export function EntryKiTemplatePicker({
     entryTitle,
     entryMarkdown,
     language,
+    pageStart,
+    pageEnd,
     attachments,
+    parentAttachments,
     childEntries,
   });
   const promptText = selected
-    ? renderEntryKiPrompt(type, selected.id, vars, language)
+    ? renderEntryKiPrompt(type, selected.id, vars, language, templateContext)
     : "";
   const ocrAvailable = hasOcrContent(attachments);
 
@@ -96,12 +108,11 @@ export function EntryKiTemplatePicker({
           </p>
           {ocrAvailable ? (
             <p className="rounded-md border border-green/20 bg-green/10 px-2.5 py-1.5 text-[0.72rem] text-green">
-              OCR-Texte aus Anhängen werden automatisch eingefügt.
+              Extrahierter PDF-Text wird automatisch eingefügt.
             </p>
           ) : (
             <p className="text-[0.72rem] text-muted-foreground">
-              Kein OCR-Text vorhanden — PDF-Anhänge hochladen (optimiert für
-              Deutsch und Englisch).
+              Kein PDF-Text — digitales PDF am Buch oder Eintrag hochladen.
             </p>
           )}
           <details className="rounded-lg border border-border/60 bg-surface/50">
@@ -109,9 +120,9 @@ export function EntryKiTemplatePicker({
               Vorschau anzeigen
             </summary>
             <div className="border-t border-border/50 p-3">
-              {getEntryTypeKiTemplate(type, selected.id, language) && (
+              {getEntryTypeKiTemplate(type, selected.id, language, templateContext) && (
                 <KiTemplateFullPreview
-                  template={getEntryTypeKiTemplate(type, selected.id, language)!}
+                  template={getEntryTypeKiTemplate(type, selected.id, language, templateContext)!}
                 />
               )}
             </div>

@@ -8,6 +8,8 @@ export type EntryMarkdownInput = {
   body?: string | null;
   yearStart?: number | null;
   yearEnd?: number | null;
+  pageStart?: number | null;
+  pageEnd?: number | null;
   confidence?: string;
   language?: string | null;
   author?: string | null;
@@ -49,6 +51,9 @@ export function entryToMarkdown(
     lines.push(
       `- **Zeitraum:** ${formatYear(entry.yearStart)} – ${formatYear(entry.yearEnd)}`,
     );
+  }
+  if (entry.pageStart != null && entry.pageEnd != null) {
+    lines.push(`- **Seiten:** ${entry.pageStart}–${entry.pageEnd}`);
   }
   if (confLabel) lines.push(`- **Einordnung:** ${confLabel}`);
   if (entry.parentEntryTitle) {

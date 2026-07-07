@@ -476,17 +476,19 @@ export function fillKiTemplate(
 export function getEntryKiTemplates(
   type: EntryType,
   language?: string | null,
+  context?: EntryKiTemplateContext,
 ): EntryKiTemplate[] {
   const lang = normalizeEntryLanguage(language);
-  return getTemplatesForLanguage(type, lang);
+  return getTemplatesForLanguage(type, lang, context);
 }
 
 export function getEntryKiTemplate(
   type: EntryType,
   templateId: string,
   language?: string | null,
+  context?: EntryKiTemplateContext,
 ): EntryKiTemplate | undefined {
-  return getEntryKiTemplates(type, language).find(
+  return getEntryKiTemplates(type, language, context).find(
     (template) => template.id === templateId,
   );
 }
@@ -496,8 +498,9 @@ export function renderEntryKiPrompt(
   templateId: string,
   vars: KiTemplateVars,
   language?: string | null,
+  context?: EntryKiTemplateContext,
 ): string {
-  const definition = getEntryKiTemplate(type, templateId, language);
+  const definition = getEntryKiTemplate(type, templateId, language, context);
   if (!definition) return "";
   return fillKiTemplate(renderKiTemplate(definition.template), vars);
 }
@@ -509,12 +512,19 @@ export function getEntryTypeKiPrompt(
     entryTitle: string;
     entryMarkdown: string;
     language?: string | null;
+    pageStart?: number | null;
+    pageEnd?: number | null;
     attachments?: KiAttachmentInput[];
+    parentAttachments?: KiAttachmentInput[];
     childEntries?: KiChildEntryInput[];
+    parentEntryType?: string | null;
     templateId?: string;
   },
 ): string {
-  const templates = getEntryKiTemplates(type, input.language);
+  const context: EntryKiTemplateContext = {
+    parentEntryType: input.parentEntryType,
+  };
+  const templates = getEntryKiTemplates(type, input.language, context);
   const templateId = input.templateId ?? templates[0]?.id;
   if (!templateId) return "";
 
@@ -523,19 +533,23 @@ export function getEntryTypeKiPrompt(
     entryTitle: input.entryTitle,
     entryMarkdown: input.entryMarkdown,
     language: input.language,
+    pageStart: input.pageStart,
+    pageEnd: input.pageEnd,
     attachments: input.attachments,
+    parentAttachments: input.parentAttachments,
     childEntries: input.childEntries,
   });
 
-  return renderEntryKiPrompt(type, templateId, vars, input.language);
+  return renderEntryKiPrompt(type, templateId, vars, input.language, context);
 }
 
 export function getEntryTypeKiTemplate(
   type: EntryType,
   templateId?: string,
   language?: string | null,
+  context?: EntryKiTemplateContext,
 ): UnifiedKiTemplate | undefined {
-  const templates = getEntryKiTemplates(type, language);
+  const templates = getEntryKiTemplates(type, language, context);
   const definition = templateId
     ? templates.find((template) => template.id === templateId)
     : templates[0];
@@ -611,5 +625,5 @@ export function renderProjectKiPrompt(
   return fillKiTemplate(renderKiTemplate(template.template), vars);
 }
 
-export { buildEntryKiVars, hasOcrContent, entryLanguageLabel, normalizeEntryLanguage };
+export { buildEntryKiVars, hasOcrContent, isBookSubEntry, entryLanguageLabel, normalizeEntryLanguage };
 export type { KiAttachmentInput, KiChildEntryInput, KiTemplateVars };

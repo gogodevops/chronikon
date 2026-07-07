@@ -5,6 +5,10 @@ import { FileText, ImageIcon, Paperclip, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ChSectionLabel } from "@/components/ui/chronikon-shell";
+import {
+  attachmentTextStatusLabel,
+  isPdfMime,
+} from "@/lib/attachment-text-status";
 
 export interface AttachmentItem {
   id: string;
@@ -28,11 +32,30 @@ export interface AttachmentsSectionProps {
   embedded?: boolean;
 }
 
+function TextStatusBadge({ status }: { status?: string }) {
+  const label = attachmentTextStatusLabel(status);
+  const className =
+    status === "done"
+      ? "bg-green/15 text-green"
+      : status === "failed"
+        ? "bg-destructive/15 text-destructive"
+        : "bg-surface-3 text-muted-foreground";
+
+  return (
+    <span
+      className={cn(
+        "inline-flex rounded px-1.5 py-0.5 text-[0.62rem] font-medium",
+        className,
+      )}
+    >
+      {label}
+    </span>
+  );
+}
+
 function AttachmentPreview({ attachment }: { attachment: AttachmentItem }) {
   const isImage = attachment.mimeType?.startsWith("image/");
-  const isPdf =
-    attachment.mimeType === "application/pdf" ||
-    attachment.filename?.toLowerCase().endsWith(".pdf");
+  const isPdf = isPdfMime(attachment.mimeType, attachment.filename);
 
   if (isImage && attachment.url) {
     return (
@@ -45,13 +68,22 @@ function AttachmentPreview({ attachment }: { attachment: AttachmentItem }) {
     );
   }
 
-  if (isPdf && attachment.url) {
+  if (isPdf) {
     return (
-      <iframe
-        src={attachment.url}
-        title={attachment.filename}
-        className="h-32 w-full rounded-lg border-0 bg-surface-3"
-      />
+      <div className="rounded-lg border border-dashed border-border/70 bg-surface-3 p-4 text-center">
+        {attachment.url ? (
+          <iframe
+            src={attachment.url}
+            title={attachment.filename}
+            className="mb-2 h-28 w-full rounded border-0 bg-surface-2"
+          />
+        ) : (
+          <FileText className="mx-auto mb-2 h-8 w-8 opacity-60 text-muted-foreground" />
+        )}
+        <p className="text-[0.68rem] text-muted-foreground">
+          PDF-Vorschau — vollständiger Seitenleser folgt in Phase 2
+        </p>
+      </div>
     );
   }
 
@@ -83,8 +115,9 @@ function AttachmentCard({
   onDelete?: (attachmentId: string) => void;
   canEdit?: boolean;
 }) {
-  const [ocrOpen, setOcrOpen] = React.useState(false);
-  const hasOcr = !!attachment.extractedText?.trim();
+  const [textOpen, setTextOpen] = React.useState(false);
+  const hasText = !!attachment.extractedText?.trim();
+  const isPdf = isPdfMime(attachment.mimeType, attachment.filename);
 
   return (
     <div className="space-y-2">
@@ -92,8 +125,14 @@ function AttachmentCard({
         <button
           type="button"
           onClick={() => onOpen?.(attachment)}
-          className="w-full cursor-pointer overflow-hidden rounded-xl border border-border/60 p-1 text-left transition-all hover:border-accent/30 hover:shadow-sm"
+          className="w-full cursor-pointer overflow-hidden rounded-xl border border-border/60 p-2 text-left transition-all hover:border-accent/30 hover:shadow-sm"
         >
+          <div className="mb-1.5 flex items-center justify-between gap-2 px-0.5">
+            <span className="truncate text-[0.72rem] font-medium">
+              {attachment.filename}
+            </span>
+            <TextStatusBadge status={attachment.ocrStatus} />
+          </div>
           <AttachmentPreview attachment={attachment} />
         </button>
         {canEdit && onDelete && (
@@ -107,14 +146,19 @@ function AttachmentCard({
           </button>
         )}
       </div>
-      {hasOcr && (
+      {isPdf && !hasText && attachment.ocrStatus === "failed" && (
+        <p className="text-[0.68rem] text-destructive/90">
+          Kein Text extrahiert — Scan-OCR ist in Phase 1 noch nicht verfügbar.
+        </p>
+      )}
+      {hasText && (
         <details
-          open={ocrOpen}
-          onToggle={(e) => setOcrOpen((e.target as HTMLDetailsElement).open)}
+          open={textOpen}
+          onToggle={(e) => setTextOpen((e.target as HTMLDetailsElement).open)}
           className="rounded-lg border border-border/50 bg-surface-3/40"
         >
           <summary className="cursor-pointer px-2.5 py-1.5 text-[0.72rem] font-medium text-muted-foreground select-none">
-            OCR-Text anzeigen (
+            Extrahierter PDF-Text (
             {attachment.extractedText!.length.toLocaleString("de-DE")} Zeichen)
           </summary>
           <pre className="max-h-48 overflow-auto whitespace-pre-wrap border-t border-border/40 p-2.5 font-mono text-[0.68rem] leading-relaxed text-muted-foreground">
@@ -162,7 +206,7 @@ export function AttachmentsSection({
       {embedded && (
         <div className="mb-2 flex items-center justify-between">
           <p className="text-[0.78rem] text-muted-foreground">
-            PDF, Bilder oder Scans — optimiert für Deutsch und Englisch.
+            PDFs (Textextraktion) oder Bilder — Deutsch/Englisch.
           </p>
           <Button
             variant="ghost"
@@ -180,8 +224,8 @@ export function AttachmentsSection({
       {attachments.length === 0 ? (
         <p className="text-[0.78rem] leading-relaxed text-muted-foreground">
           {embedded
-            ? "Noch keine Anhänge — PDF oder Bild hochladen; OCR-Text wird automatisch gespeichert."
-            : "PDF, Bilder oder Scans hochladen."}
+            ? "Noch keine Anhänge — digitales PDF hochladen; Text wird automatisch extrahiert."
+            : "PDF oder Bild hochladen."}
         </p>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

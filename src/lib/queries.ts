@@ -36,6 +36,9 @@ export type SerializedEntryListItem = {
   topic?: string;
   yearStart: number;
   yearEnd: number;
+  pageStart: number | null;
+  pageEnd: number | null;
+  sortOrder: number | null;
   confidence: Confidence;
   summary: string | null;
   placeName: string | null;
@@ -55,6 +58,9 @@ export type SerializedChildEntry = {
   typeColor: string;
   yearStart: number;
   yearEnd: number;
+  pageStart: number | null;
+  pageEnd: number | null;
+  sortOrder: number | null;
   questionCount: number;
   commentCount: number;
 };
@@ -148,6 +154,14 @@ export type SerializedEntryDetail = SerializedEntryListItem & {
   createdAt: Date;
   updatedAt: Date;
   createdByName: string | null;
+  parentEntryType: EntryType | null;
+  parentAttachments: Array<{
+    name: string;
+    label: string | null;
+    mimeType: string;
+    ocrStatus: string;
+    extractedText: string | null;
+  }>;
   childEntries: SerializedChildEntry[];
   versions: SerializedEntryVersion[];
   attachments: Array<{
@@ -255,6 +269,9 @@ function mapEntryListItem(
     topic: entry.topics[0]?.topic.name,
     yearStart: entry.yearStart,
     yearEnd: entry.yearEnd,
+    pageStart: entry.pageStart,
+    pageEnd: entry.pageEnd,
+    sortOrder: entry.sortOrder,
     confidence: entry.confidence,
     summary: entry.summary,
     placeName: entry.placeName,
@@ -354,9 +371,24 @@ export async function getEntryDetail(
     where: { id: entryId, projectId },
     include: {
       topics: { include: { topic: true } },
-      parentEntry: { select: { id: true, title: true } },
+      parentEntry: {
+        select: {
+          id: true,
+          title: true,
+          type: true,
+          attachments: {
+            select: {
+              name: true,
+              label: true,
+              mimeType: true,
+              ocrStatus: true,
+              extractedText: true,
+            },
+          },
+        },
+      },
       childEntries: {
-        orderBy: { title: "asc" },
+        orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
         include: {
           _count: { select: { questions: true, comments: true } },
         },
@@ -441,6 +473,17 @@ export async function getEntryDetail(
     createdAt: entry.createdAt,
     updatedAt: entry.updatedAt,
     createdByName: entry.createdBy?.name ?? null,
+    parentEntryType: entry.parentEntry?.type ?? null,
+    parentAttachments:
+      entry.parentEntry?.type === "book"
+        ? entry.parentEntry.attachments.map((a) => ({
+            name: a.name,
+            label: a.label,
+            mimeType: a.mimeType,
+            ocrStatus: a.ocrStatus,
+            extractedText: a.extractedText,
+          }))
+        : [],
     childEntries: entry.childEntries.map((child) => {
       const childMeta = TYPE_META[child.type];
       return {
@@ -450,6 +493,9 @@ export async function getEntryDetail(
         typeColor: childMeta.color,
         yearStart: child.yearStart,
         yearEnd: child.yearEnd,
+        pageStart: child.pageStart,
+        pageEnd: child.pageEnd,
+        sortOrder: child.sortOrder,
         questionCount: child._count.questions,
         commentCount: child._count.comments,
       };

@@ -25,6 +25,8 @@ export function OnlineKiSection({
       body: entry.body,
       yearStart: entry.yearStart,
       yearEnd: entry.yearEnd,
+      pageStart: entry.pageStart,
+      pageEnd: entry.pageEnd,
       confidence: entry.confidence,
       language: entry.language,
       author: entry.author,
@@ -45,12 +47,23 @@ export function OnlineKiSection({
       extractedText: attachment.extractedText,
     })) ?? [];
 
+  const parentAttachments =
+    entry.parentAttachments?.map((attachment) => ({
+      name: attachment.name,
+      label: attachment.label,
+      mimeType: attachment.mimeType,
+      ocrStatus: attachment.ocrStatus,
+      extractedText: attachment.extractedText,
+    })) ?? [];
+
   const childEntries =
     entry.childEntries?.map((child) => ({
       title: child.title,
       typeLabel: child.typeLabel,
       yearStart: child.yearStart,
       yearEnd: child.yearEnd,
+      pageStart: child.pageStart,
+      pageEnd: child.pageEnd,
     })) ?? [];
 
   return (
@@ -67,7 +80,11 @@ export function OnlineKiSection({
         entryTitle={entry.title}
         entryMarkdown={entryMarkdown}
         language={entry.language}
+        pageStart={entry.pageStart}
+        pageEnd={entry.pageEnd}
+        parentEntryType={entry.parentEntryType}
         attachments={attachments}
+        parentAttachments={parentAttachments}
         childEntries={childEntries}
       />
       <p className="mt-3 text-[0.65rem] text-muted-foreground">

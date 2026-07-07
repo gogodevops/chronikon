@@ -58,7 +58,6 @@ export function ChildEntriesSection({
     >
       <ul className="space-y-1 pt-1">
         {childEntries.map((child) => {
-          const discussionCount = child.questionCount + child.commentCount;
           return (
             <li key={child.id}>
               <button
@@ -76,8 +75,12 @@ export function ChildEntriesSection({
                   ↳ {child.title}
                 </span>
                 <span className="shrink-0 text-[0.68rem] text-muted-foreground">
-                  {child.typeLabel}
-                  {discussionCount > 0 ? ` · ${discussionCount} Disk.` : ""}
+                  {child.pageStart != null && child.pageEnd != null
+                    ? `S. ${child.pageStart}–${child.pageEnd}`
+                    : child.typeLabel}
+                  {child.questionCount + child.commentCount > 0
+                    ? ` · ${child.questionCount + child.commentCount} offen`
+                    : ""}
                 </span>
               </button>
             </li>
