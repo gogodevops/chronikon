@@ -43,6 +43,7 @@ export type TeamMember = {
   email: string;
   avatarInitials: string | null;
   image: string | null;
+  isGlobalAdmin?: boolean;
 };
 
 export type TeamInvite = {
@@ -199,23 +200,32 @@ export function TeamView({
                         {member.email}
                       </p>
                     </div>
-                    <Select
-                      value={member.role}
-                      onValueChange={(v) => handleRoleChange(member.id, v)}
-                      disabled={member.userId === currentUserId}
-                    >
-                      <SelectTrigger className="h-8 w-[8.5rem] text-[0.75rem]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {PROJECT_ROLES.map((r) => (
-                          <SelectItem key={r} value={r} className="text-[0.78rem]">
-                            {ROLE_META[r].label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {member.userId !== currentUserId && (
+                    {member.isGlobalAdmin ? (
+                      <span
+                        className="shrink-0 rounded-md border border-accent/30 bg-accent/10 px-2.5 py-1 text-[0.72rem] font-medium text-accent"
+                        title="App-weiter Administrator mit vollem Zugriff auf alle Projekte"
+                      >
+                        App-Admin
+                      </span>
+                    ) : (
+                      <Select
+                        value={member.role}
+                        onValueChange={(v) => handleRoleChange(member.id, v)}
+                        disabled={member.userId === currentUserId}
+                      >
+                        <SelectTrigger className="h-8 w-[8.5rem] text-[0.75rem]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {PROJECT_ROLES.map((r) => (
+                            <SelectItem key={r} value={r} className="text-[0.78rem]">
+                              {ROLE_META[r].label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                    {!member.isGlobalAdmin && member.userId !== currentUserId && (
                       <Button
                         variant="ghost"
                         size="icon"

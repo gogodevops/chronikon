@@ -4,7 +4,7 @@ import type { ProjectRole } from "@prisma/client";
 import { z } from "zod";
 
 import type { ActionResult } from "@/actions/auth";
-import { requireAppAdmin } from "@/lib/auth-helpers";
+import { findAppAdminUsers, requireAppAdmin } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { revalidateProject } from "@/lib/revalidate-project";
 
@@ -31,7 +31,7 @@ async function countOwners(projectId: string): Promise<number> {
 export async function getTeamData(projectId: string) {
   const session = await requireAppAdmin();
 
-  const [members, invites] = await Promise.all([
+  const [members, invites, appAdmins] = await Promise.all([
     db.projectMember.findMany({
       where: { projectId },
       include: {
@@ -55,20 +55,38 @@ export async function getTeamData(projectId: string) {
       },
       orderBy: { createdAt: "desc" },
     }),
+    findAppAdminUsers(),
   ]);
+
+  const memberUserIds = new Set(members.map((m) => m.user.id));
+  const projectMembers = members.map((m) => ({
+    id: m.id,
+    userId: m.user.id,
+    role: m.role,
+    joinedAt: m.joinedAt,
+    name: m.user.name ?? "Unbekannt",
+    email: m.user.email,
+    avatarInitials: m.user.avatarInitials,
+    image: m.user.image,
+    isGlobalAdmin: false as const,
+  }));
+  const globalAdmins = appAdmins
+    .filter((admin) => !memberUserIds.has(admin.id))
+    .map((admin) => ({
+      id: `app-admin-${admin.id}`,
+      userId: admin.id,
+      role: "owner" as const,
+      joinedAt: admin.createdAt,
+      name: admin.name ?? "Unbekannt",
+      email: admin.email,
+      avatarInitials: admin.avatarInitials,
+      image: admin.image,
+      isGlobalAdmin: true as const,
+    }));
 
   return {
     currentUserId: session.user.id,
-    members: members.map((m) => ({
-      id: m.id,
-      userId: m.user.id,
-      role: m.role,
-      joinedAt: m.joinedAt,
-      name: m.user.name ?? "Unbekannt",
-      email: m.user.email,
-      avatarInitials: m.user.avatarInitials,
-      image: m.user.image,
-    })),
+    members: [...globalAdmins, ...projectMembers],
     invites: invites.map((i) => ({
       id: i.id,
       email: i.email,

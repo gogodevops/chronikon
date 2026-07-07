@@ -105,6 +105,39 @@ export async function getUserProjectRole(
   return "viewer";
 }
 
+export function getConfiguredAdminEmails(): string[] {
+  return [
+    process.env.SEED_ADMIN_EMAIL,
+    process.env.ADMIN_EMAIL,
+    "admin@chronikon.dev",
+  ]
+    .filter(Boolean)
+    .map((e) => e!.toLowerCase());
+}
+
+export async function findAppAdminUsers() {
+  const adminEmails = getConfiguredAdminEmails();
+  return db.user.findMany({
+    where: {
+      OR: [
+        { isAdmin: true },
+        ...(adminEmails.length > 0
+          ? [{ email: { in: adminEmails, mode: "insensitive" as const } }]
+          : []),
+      ],
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      avatarInitials: true,
+      image: true,
+      createdAt: true,
+    },
+    orderBy: { createdAt: "asc" },
+  });
+}
+
 export async function isAppAdmin(userId: string): Promise<boolean> {
   const user = await db.user.findUnique({
     where: { id: userId },
@@ -113,14 +146,7 @@ export async function isAppAdmin(userId: string): Promise<boolean> {
   if (!user) return false;
   if (user.isAdmin) return true;
 
-  const adminEmails = [
-    process.env.SEED_ADMIN_EMAIL,
-    process.env.ADMIN_EMAIL,
-    "admin@chronikon.dev",
-  ]
-    .filter(Boolean)
-    .map((e) => e!.toLowerCase());
-
+  const adminEmails = getConfiguredAdminEmails();
   return adminEmails.includes(user.email.toLowerCase());
 }
 
