@@ -1,7 +1,16 @@
 "use client";
 
 import * as React from "react";
-import { FileText, ImageIcon, Paperclip, Plus, Trash2 } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle2,
+  FileText,
+  ImageIcon,
+  Loader2,
+  Paperclip,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ChSectionLabel } from "@/components/ui/chronikon-shell";
@@ -9,6 +18,12 @@ import {
   attachmentTextStatusLabel,
   isPdfMime,
 } from "@/lib/attachment-text-status";
+
+export type AttachmentUploadStatus =
+  | { state: "idle" }
+  | { state: "uploading"; filename: string }
+  | { state: "success"; filename: string }
+  | { state: "error"; filename: string; message: string };
 
 export interface AttachmentItem {
   id: string;
@@ -30,6 +45,43 @@ export interface AttachmentsSectionProps {
   className?: string;
   /** Ohne äußeren Rahmen — für Einbettung in Material-Sektion */
   embedded?: boolean;
+  uploadStatus?: AttachmentUploadStatus;
+}
+
+function UploadStatusBanner({ status }: { status: AttachmentUploadStatus }) {
+  if (status.state === "idle") return null;
+
+  if (status.state === "uploading") {
+    return (
+      <div className="mb-2.5 flex items-center gap-2 rounded-lg border border-accent/25 bg-accent-dim/30 px-2.5 py-2 text-[0.72rem] text-accent">
+        <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
+        <span>
+          <strong>{status.filename}</strong> wird hochgeladen…
+        </span>
+      </div>
+    );
+  }
+
+  if (status.state === "success") {
+    return (
+      <div className="mb-2.5 flex items-center gap-2 rounded-lg border border-green/25 bg-green/10 px-2.5 py-2 text-[0.72rem] text-green">
+        <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+        <span>
+          <strong>{status.filename}</strong> erfolgreich hochgeladen.
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mb-2.5 flex items-start gap-2 rounded-lg border border-destructive/25 bg-destructive/10 px-2.5 py-2 text-[0.72rem] text-destructive">
+      <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+      <span>
+        Upload von <strong>{status.filename}</strong> fehlgeschlagen:{" "}
+        {status.message}
+      </span>
+    </div>
+  );
 }
 
 function TextStatusBadge({ status }: { status?: string }) {
@@ -181,9 +233,14 @@ export function AttachmentsSection({
   canEdit = true,
   className,
   embedded = false,
+  uploadStatus = { state: "idle" },
 }: AttachmentsSectionProps) {
+  const isUploading = uploadStatus.state === "uploading";
+
   const content = (
     <>
+      <UploadStatusBanner status={uploadStatus} />
+
       {!embedded && (
         <div className="mb-2.5 flex items-center justify-between">
           <ChSectionLabel className="flex items-center gap-1.5 normal-case tracking-wide">
@@ -195,10 +252,10 @@ export function AttachmentsSection({
             size="sm"
             className="h-7 gap-1 text-[0.72rem] text-accent hover:text-accent"
             onClick={onAdd}
-            disabled={!canEdit}
+            disabled={!canEdit || isUploading}
           >
             <Plus className="h-3 w-3" />
-            Hinzufügen
+            {isUploading ? "Lädt…" : "Hinzufügen"}
           </Button>
         </div>
       )}
@@ -213,10 +270,10 @@ export function AttachmentsSection({
             size="sm"
             className="h-7 gap-1 text-[0.72rem] text-accent hover:text-accent"
             onClick={onAdd}
-            disabled={!canEdit}
+            disabled={!canEdit || isUploading}
           >
             <Plus className="h-3 w-3" />
-            Hinzufügen
+            {isUploading ? "Lädt…" : "Hinzufügen"}
           </Button>
         </div>
       )}

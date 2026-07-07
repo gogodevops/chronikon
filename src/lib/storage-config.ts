@@ -22,6 +22,7 @@ export function hasS3Config(): boolean {
 }
 
 export function storageMode(): "local" | "s3" {
+  if (process.env.VERCEL === "1" && hasS3Config()) return "s3";
   if (process.env.STORAGE_MODE?.toLowerCase() === "local") return "local";
   if (hasS3Config()) return "s3";
   return "local";

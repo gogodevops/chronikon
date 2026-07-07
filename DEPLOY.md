@@ -55,6 +55,22 @@ Erstes Ober-Thema im App-Header unter „+ Neues Ober-Thema…" anlegen.
 **Optional:** Unter Bucket → Settings → **Public access** (r2.dev URL) → `S3_PUBLIC_URL`  
 Ohne Public URL: Dateien laufen über `/api/files/…` (nur eingeloggte Projekt-Mitglieder).
 
+**CORS (Pflicht für Browser-Upload):** Bucket → Settings → **CORS policy** → z. B.:
+
+```json
+[
+  {
+    "AllowedOrigins": ["https://DEIN-PROJEKT.vercel.app"],
+    "AllowedMethods": ["GET", "PUT", "HEAD"],
+    "AllowedHeaders": ["*"],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3600
+  }
+]
+```
+
+Ohne CORS schlagen große PDF-Uploads fehl (Direkt-Upload zu R2).
+
 ---
 
 ## Schritt 4 — Vercel
@@ -137,6 +153,7 @@ Vercel (Next.js) ──► Neon PostgreSQL
 |---------|--------|
 | `/api/health` errors | Fehlende Env in Vercel |
 | Upload 500 | R2 Keys / Bucket prüfen |
+| Upload CORS-Fehler | R2 CORS policy für Production-URL (PUT erlauben) |
 | Login-Loop | `AUTH_URL` = exakte Production-URL |
 | Bild lädt nicht | Projekt-Mitgliedschaft; oder `S3_PUBLIC_URL` setzen |
 | DB connection | `?sslmode=require` bei Neon |

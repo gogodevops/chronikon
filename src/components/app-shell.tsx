@@ -31,6 +31,7 @@ import {
   type ProjectOption,
 } from "@/components/layout/app-header";
 import { DetailPanel, type EntryDetail } from "@/components/layout/detail-panel";
+import type { AttachmentUploadStatus } from "@/components/entry/attachments-section";
 import { NavPanel, type EntryListItem } from "@/components/layout/nav-panel";
 import type { EntryAction } from "@/components/entry/entry-action-bar";
 import { useProject } from "@/context/project-context";
@@ -41,6 +42,7 @@ import type {
   SerializedEntryDetail,
   SerializedEntryListItem,
 } from "@/lib/queries";
+import { uploadAttachmentFile } from "@/lib/upload-api";
 
 export type AppShellProps = {
   project: ProjectOption;
@@ -160,6 +162,11 @@ export function AppShell({
 
   const [paletteOpen, setPaletteOpen] = React.useState(false);
   const [listLimit, setListLimit] = React.useState(LIST_LIMIT);
+  const [attachmentUploadStatus, setAttachmentUploadStatus] =
+    React.useState<AttachmentUploadStatus>({ state: "idle" });
+  const uploadStatusTimer = React.useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const [searchResults, setSearchResults] = React.useState<CommandResult[]>([]);
   const [relationSearchResults, setRelationSearchResults] = React.useState<
     LinkableEntryResult[]
@@ -380,37 +387,50 @@ export function AppShell({
 
   const handleAttachmentUpload = async (file: File) => {
     if (!selectedEntry || !canEdit) return;
+
+    if (uploadStatusTimer.current) {
+      clearTimeout(uploadStatusTimer.current);
+      uploadStatusTimer.current = null;
+    }
+
+    setAttachmentUploadStatus({ state: "uploading", filename: file.name });
+
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch("/api/upload", { method: "POST", body: fd });
-      if (!res.ok) {
-        const err = (await res.json().catch(() => ({}))) as { error?: string };
-        window.alert(err.error ?? "Upload fehlgeschlagen");
+      const data = await uploadAttachmentFile(file);
+
+      const result = await addAttachmentMetadata({
+        projectId: ctx.id,
+        entryId: selectedEntry.id,
+        name: data.name,
+        mimeType: data.mimeType,
+        storageKey: data.storageKey,
+        publicUrl: data.url,
+        label: "Später hinzugefügt",
+        extractedText: data.text,
+      });
+
+      if (!result.success) {
+        setAttachmentUploadStatus({
+          state: "error",
+          filename: file.name,
+          message: result.error ?? "Metadaten konnten nicht gespeichert werden",
+        });
         return;
       }
-      const data = (await res.json()) as {
-        storageKey: string;
-        url?: string;
-        mimeType: string;
-        name: string;
-        text?: string;
-      };
-      const ok = await runServerAction(() =>
-        addAttachmentMetadata({
-          projectId: ctx.id,
-          entryId: selectedEntry.id,
-          name: data.name,
-          mimeType: data.mimeType,
-          storageKey: data.storageKey,
-          publicUrl: data.url,
-          label: "Später hinzugefügt",
-          extractedText: data.text,
-        }),
-      );
-      if (ok) refreshAfterAction();
-    } catch {
-      window.alert("Upload fehlgeschlagen");
+
+      setAttachmentUploadStatus({ state: "success", filename: file.name });
+      uploadStatusTimer.current = setTimeout(() => {
+        setAttachmentUploadStatus({ state: "idle" });
+      }, 5000);
+
+      refreshAfterAction();
+    } catch (error) {
+      setAttachmentUploadStatus({
+        state: "error",
+        filename: file.name,
+        message:
+          error instanceof Error ? error.message : "Upload fehlgeschlagen",
+      });
     }
   };
 
@@ -634,6 +654,7 @@ export function AppShell({
             onAction={handleEntryAction}
             onNavigateEntry={handleNavigateEntry}
             onAttachmentUpload={handleAttachmentUpload}
+            attachmentUploadStatus={attachmentUploadStatus}
             onAttachmentDelete={handleAttachmentDelete}
             onLanguageChange={handleLanguageChange}
             onEditBody={handleEditBody}

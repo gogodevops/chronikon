@@ -4,6 +4,7 @@ import {
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { v4 as uuidv4 } from "uuid";
 
 function getS3Config() {
@@ -88,4 +89,28 @@ export async function deleteFile(storageKey: string): Promise<void> {
       Key: storageKey,
     }),
   );
+}
+
+export async function createPresignedUploadUrl(
+  filename: string,
+  mimeType: string,
+  expiresInSeconds = 600,
+): Promise<{ storageKey: string; uploadUrl: string }> {
+  const { bucket } = getS3Config();
+  const ext = filename.includes(".")
+    ? filename.slice(filename.lastIndexOf("."))
+    : "";
+  const storageKey = `uploads/${uuidv4()}${ext}`;
+
+  const command = new PutObjectCommand({
+    Bucket: bucket,
+    Key: storageKey,
+    ContentType: mimeType,
+  });
+
+  const uploadUrl = await getSignedUrl(getS3Client(), command, {
+    expiresIn: expiresInSeconds,
+  });
+
+  return { storageKey, uploadUrl };
 }

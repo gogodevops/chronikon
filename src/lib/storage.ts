@@ -3,6 +3,7 @@ import path from "path";
 import { v4 as uuidv4 } from "uuid";
 
 import {
+  createPresignedUploadUrl,
   deleteFile as deleteFromS3,
   downloadFile as downloadFromS3,
   uploadFile as uploadToS3,
@@ -103,3 +104,21 @@ export function isLocalStorage() {
 }
 
 export { storageMode };
+
+export async function presignUpload(
+  filename: string,
+  mimeType: string,
+): Promise<{ storageKey: string; uploadUrl: string; publicUrl: string }> {
+  if (storageMode() !== "s3") {
+    throw new Error("Presigned Upload nur mit S3/R2 verfügbar");
+  }
+  const { storageKey, uploadUrl } = await createPresignedUploadUrl(
+    filename,
+    mimeType,
+  );
+  return {
+    storageKey,
+    uploadUrl,
+    publicUrl: filePublicUrl(storageKey),
+  };
+}

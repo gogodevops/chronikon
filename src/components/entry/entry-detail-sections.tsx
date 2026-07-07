@@ -4,7 +4,7 @@ import * as React from "react";
 import { Pencil } from "lucide-react";
 
 import { EntryBody } from "@/components/entry/entry-body";
-import { AttachmentsSection, type AttachmentItem } from "@/components/entry/attachments-section";
+import { AttachmentsSection, type AttachmentItem, type AttachmentUploadStatus } from "@/components/entry/attachments-section";
 import { OpenPointsSection } from "@/components/entry/open-points-section";
 import {
   ClaimsList,
@@ -56,6 +56,7 @@ export interface EntryDetailSectionsProps {
   canDiscuss?: boolean;
   /** Rendered after Kern (e.g. child entries / Unterthemen). */
   afterKern?: React.ReactNode;
+  uploadStatus?: AttachmentUploadStatus;
 }
 
 export function EntryDetailSections({
@@ -88,6 +89,7 @@ export function EntryDetailSections({
   canEdit = true,
   canDiscuss = true,
   afterKern,
+  uploadStatus,
 }: EntryDetailSectionsProps) {
   return (
     <div className="space-y-4">
@@ -128,6 +130,7 @@ export function EntryDetailSections({
           }}
           canEdit={canEdit}
           embedded
+          uploadStatus={uploadStatus}
         />
       </CollapsibleSection>
 

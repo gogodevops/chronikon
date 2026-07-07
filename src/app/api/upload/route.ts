@@ -1,19 +1,11 @@
 import { NextResponse } from "next/server";
 
 import { auth } from "@/auth";
+import { extractPdfText } from "@/lib/pdf-text";
 import { storeFile } from "@/lib/storage";
 
-async function extractPdfText(buffer: Buffer): Promise<string> {
-  try {
-    const { PDFParse } = await import("pdf-parse");
-    const parser = new PDFParse({ data: buffer });
-    const result = await parser.getText();
-    await parser.destroy();
-    return result.text ?? "";
-  } catch {
-    return "";
-  }
-}
+export const runtime = "nodejs";
+export const maxDuration = 60;
 
 export async function POST(request: Request) {
   const session = await auth();
@@ -31,16 +23,16 @@ export async function POST(request: Request) {
     const buffer = Buffer.from(await file.arrayBuffer());
     const mimeType = file.type || "application/octet-stream";
 
-    let text = "";
-    if (mimeType === "application/pdf" || file.name.endsWith(".pdf")) {
-      text = await extractPdfText(buffer);
-    }
-
     const { storageKey, publicUrl } = await storeFile(
       buffer,
       file.name,
       mimeType,
     );
+
+    let text = "";
+    if (mimeType === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
+      text = await extractPdfText(buffer);
+    }
 
     return NextResponse.json({
       storageKey,
@@ -52,6 +44,7 @@ export async function POST(request: Request) {
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Upload fehlgeschlagen";
+    console.error("[upload]", message, error);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

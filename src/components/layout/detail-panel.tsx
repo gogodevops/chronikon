@@ -10,7 +10,7 @@ import { ChildEntriesSection } from "@/components/entry/child-entries-section";
 import { EntryDetailSections } from "@/components/entry/entry-detail-sections";
 import { OnlineKiSection } from "@/components/entry/online-ki-section";
 import { EntryActionBar, type EntryAction } from "@/components/entry/entry-action-bar";
-import type { AttachmentItem } from "@/components/entry/attachments-section";
+import type { AttachmentItem, AttachmentUploadStatus } from "@/components/entry/attachments-section";
 import { ChMetaPill } from "@/components/ui/chronikon-shell";
 import {
   Select,
@@ -90,6 +90,7 @@ export interface DetailPanelProps {
   onNavigateEntry?: (entryId: string, projectSlug?: string) => void;
   onAttachmentUpload?: (file: File) => void;
   onAttachmentDelete?: (attachmentId: string) => void;
+  attachmentUploadStatus?: AttachmentUploadStatus;
   onLanguageChange?: (language: string) => void;
   onEditBody?: () => void;
   onOpenPointAdd?: (text: string) => void;
@@ -132,6 +133,7 @@ export function DetailPanel({
   onNavigateEntry,
   onAttachmentUpload,
   onAttachmentDelete,
+  attachmentUploadStatus,
   onLanguageChange,
   onEditBody,
   onOpenPointAdd,
@@ -366,6 +368,7 @@ export function DetailPanel({
             onRelationDelete={onRelationDelete}
             canEdit={canEdit}
             canDiscuss={canDiscuss}
+            uploadStatus={attachmentUploadStatus}
             afterKern={
               entry.type === "book" || (entry.childEntries?.length ?? 0) > 0 ? (
                 <ChildEntriesSection
