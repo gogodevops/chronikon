@@ -337,15 +337,6 @@ export function DetailPanel({
             <OnlineKiSection entry={entry} projectName={projectName} />
           )}
 
-          {entry.type === "book" && (
-            <ChildEntriesSection
-              children={entry.childEntries ?? []}
-              onNavigate={onNavigateEntry}
-              onCreateChild={onCreateChildEntry}
-              canEdit={canEdit}
-            />
-          )}
-
           <EntryDetailSections
             entryId={entry.id}
             projectSlug={projectSlug}
@@ -375,6 +366,16 @@ export function DetailPanel({
             onRelationDelete={onRelationDelete}
             canEdit={canEdit}
             canDiscuss={canDiscuss}
+            afterKern={
+              entry.type === "book" || (entry.childEntries?.length ?? 0) > 0 ? (
+                <ChildEntriesSection
+                  children={entry.childEntries ?? []}
+                  onNavigate={onNavigateEntry}
+                  onCreateChild={onCreateChildEntry}
+                  canEdit={canEdit}
+                />
+              ) : undefined
+            }
           />
 
           <input

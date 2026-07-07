@@ -54,6 +54,8 @@ export interface EntryDetailSectionsProps {
   onRelationDelete?: (relationId: string) => void;
   canEdit?: boolean;
   canDiscuss?: boolean;
+  /** Rendered after Kern (e.g. child entries / Unterthemen). */
+  afterKern?: React.ReactNode;
 }
 
 export function EntryDetailSections({
@@ -85,6 +87,7 @@ export function EntryDetailSections({
   onRelationDelete,
   canEdit = true,
   canDiscuss = true,
+  afterKern,
 }: EntryDetailSectionsProps) {
   return (
     <div className="space-y-4">
@@ -109,6 +112,8 @@ export function EntryDetailSections({
           Inhalt bearbeiten
         </button>
       </CollapsibleSection>
+
+      {afterKern}
 
       <CollapsibleSection title="Material" count={attachments.length} defaultOpen>
         <AttachmentsSection

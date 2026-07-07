@@ -34,7 +34,7 @@ export function ChildEntriesSection({
 
   if (childEntries.length === 0) {
     return (
-      <section className="mb-4 rounded-xl border border-border/70 bg-surface-2/40 p-3">
+      <section className="rounded-xl border border-border/70 bg-surface-2/40 p-3">
         <div className="mb-2 flex items-center justify-between gap-2">
           <h3 className="text-[0.72rem] font-semibold uppercase tracking-wide text-muted-foreground">
             Untereinträge (0)
@@ -54,7 +54,6 @@ export function ChildEntriesSection({
       title="Untereinträge"
       count={childEntries.length}
       actions={createButton}
-      className="mb-4"
     >
       <ul className="space-y-1 pt-1">
         {childEntries.map((child) => {
