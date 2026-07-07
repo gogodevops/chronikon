@@ -353,11 +353,7 @@ export function AppShell({
         scrollToSection("entry-section-offen");
         break;
       case "attachment":
-        document
-          .querySelector<HTMLInputElement>(
-            `input[type="file"][accept*=".pdf"]`,
-          )
-          ?.click();
+        document.getElementById("entry-attachment-input")?.click();
         break;
       case "edit":
         router.push(`${basePath}/new?edit=${selectedEntry.id}`);

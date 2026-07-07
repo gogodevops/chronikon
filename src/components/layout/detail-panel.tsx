@@ -379,6 +379,7 @@ export function DetailPanel({
 
           <input
             ref={fileInputRef}
+            id="entry-attachment-input"
             type="file"
             accept=".pdf,.jpg,.jpeg,.png,.webp"
             className="hidden"

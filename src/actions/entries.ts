@@ -194,27 +194,6 @@ export async function createEntry(
     }
   }
 
-  if (data.type === "book" && !data.initialAttachment) {
-    return {
-      success: false,
-      error: "Für Bücher ist beim Anlegen ein PDF-Anhang erforderlich",
-    };
-  }
-
-  if (
-    data.initialAttachment &&
-    data.type === "book" &&
-    !(
-      data.initialAttachment.mimeType === "application/pdf" ||
-      data.initialAttachment.name.toLowerCase().endsWith(".pdf")
-    )
-  ) {
-    return {
-      success: false,
-      error: "Bücher benötigen ein PDF als Anhang",
-    };
-  }
-
   let sortOrder: number | undefined;
   if (data.parentEntryId) {
     const maxSort = await db.entry.aggregate({

@@ -116,6 +116,11 @@ export function EntryDetailSections({
           entryId={entryId}
           onAdd={onAttachmentAdd}
           onDelete={onAttachmentDelete}
+          onOpen={(attachment) => {
+            if (attachment.url) {
+              window.open(attachment.url, "_blank", "noopener,noreferrer");
+            }
+          }}
           canEdit={canEdit}
           embedded
         />

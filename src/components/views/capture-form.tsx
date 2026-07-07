@@ -23,15 +23,6 @@ import {
   normalizeEntryLanguage,
   type EntryLanguageCode,
 } from "@/lib/languages";
-import { isPdfMime } from "@/lib/attachment-text-status";
-
-type PendingUpload = {
-  storageKey: string;
-  url?: string;
-  mimeType: string;
-  name: string;
-  text?: string;
-};
 
 export function CaptureForm({
   projectId,
@@ -67,12 +58,6 @@ export function CaptureForm({
   const router = useRouter();
   const isEdit = !!editEntryId;
   const isBookChild = !!parentEntryId;
-  const [uploadOpen, setUploadOpen] = React.useState(false);
-  const [uploading, setUploading] = React.useState(false);
-  const [pendingUpload, setPendingUpload] = React.useState<PendingUpload | null>(
-    null,
-  );
-  const [extractedText, setExtractedText] = React.useState("");
   const [saving, setSaving] = React.useState(false);
 
   const [fields, setFields] = React.useState({
@@ -93,68 +78,7 @@ export function CaptureForm({
     placeName: initialFields?.placeName ?? "",
   });
 
-  const isBookCreate = !isEdit && fields.type === "book";
-  const pdfRequired = isBookCreate;
-
-  React.useEffect(() => {
-    if (isBookCreate) setUploadOpen(true);
-  }, [isBookCreate]);
-
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (pdfRequired && !isPdfMime(file.type, file.name)) {
-      window.alert("Für Bücher ist ein PDF erforderlich.");
-      e.target.value = "";
-      return;
-    }
-
-    setUploading(true);
-    try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch("/api/upload", { method: "POST", body: fd });
-      const data = await res.json();
-      if (!res.ok) {
-        window.alert(data.error ?? "Upload fehlgeschlagen");
-        return;
-      }
-      setPendingUpload({
-        storageKey: data.storageKey,
-        url: data.url,
-        mimeType: data.mimeType,
-        name: data.name,
-        text: data.text,
-      });
-      if (data.text) {
-        setExtractedText(data.text);
-      } else {
-        setExtractedText("");
-      }
-      setUploadOpen(true);
-    } finally {
-      setUploading(false);
-      e.target.value = "";
-    }
-  };
-
-  const insertExtractedText = () => {
-    if (!extractedText) return;
-    setFields((prev) => ({
-      ...prev,
-      body: prev.body
-        ? `${prev.body}\n\n${extractedText}`
-        : extractedText,
-    }));
-  };
-
   const handleSave = async () => {
-    if (pdfRequired && !pendingUpload) {
-      window.alert("Bitte zuerst ein PDF für das Buch hochladen.");
-      return;
-    }
-
     setSaving(true);
     try {
       const pageStart = fields.pageStart
@@ -180,18 +104,6 @@ export function CaptureForm({
         placeName: fields.placeName || undefined,
         topicNames: fields.topic ? [fields.topic] : [],
         parentEntryId: parentEntryId || undefined,
-        initialAttachment:
-          !isEdit && pendingUpload
-            ? {
-                name: pendingUpload.name,
-                mimeType: pendingUpload.mimeType,
-                storageKey: pendingUpload.storageKey,
-                publicUrl: pendingUpload.url,
-                label: "Bei Anlage hochgeladen",
-                extractedText:
-                  pendingUpload.text || extractedText || undefined,
-              }
-            : undefined,
       };
 
       const result = isEdit
@@ -215,14 +127,6 @@ export function CaptureForm({
     }
   };
 
-  const extractionHint = pendingUpload
-    ? extractedText
-      ? "Text aus digitalem PDF extrahiert."
-      : isPdfMime(pendingUpload.mimeType, pendingUpload.name)
-        ? "Kein Text extrahiert — vermutlich Scan oder geschütztes PDF."
-        : "Kein Text verfügbar."
-    : null;
-
   return (
     <ViewFrame
       title={
@@ -238,8 +142,8 @@ export function CaptureForm({
           : parentEntryTitle
             ? `Kapitel, Seite oder Abschnitt für „${parentEntryTitle}"`
             : fields.type === "book"
-              ? "Buch anlegen — PDF ist erforderlich"
-              : "Felder ausfüllen — Quelle optional hochladen"
+              ? "Buch anlegen — PDF kann danach in der Detailansicht unter Material hinzugefügt werden"
+              : "Felder ausfüllen und speichern"
       }
       maxWidth="md"
     >
@@ -271,62 +175,6 @@ export function CaptureForm({
             {ENTRY_TYPE_HINTS[fields.type as keyof typeof ENTRY_TYPE_HINTS]}
           </p>
         </Field>
-
-        {!isEdit && (
-          <details
-            open={uploadOpen || pdfRequired}
-            onToggle={(e) => setUploadOpen((e.target as HTMLDetailsElement).open)}
-            className="rounded-lg border border-border/80 bg-surface-2/40"
-          >
-            <summary className="cursor-pointer px-4 py-3 text-[0.82rem] font-medium text-foreground select-none">
-              {pdfRequired
-                ? "PDF hochladen (erforderlich)"
-                : "Quelle hochladen (optional)"}
-            </summary>
-            <div className="space-y-3 border-t border-border/60 px-4 py-3">
-              <p className="text-[0.78rem] text-muted-foreground">
-                {pdfRequired
-                  ? "Digitales PDF hochladen — eingebetteter Text wird automatisch extrahiert (kein Scan-OCR). Der Anhang wird beim Speichern verknüpft."
-                  : "PDF oder Bild hochladen — bei digitalen PDFs wird Text extrahiert. Der Anhang wird beim Speichern automatisch mit dem Eintrag verknüpft."}
-              </p>
-              <Input
-                type="file"
-                accept={pdfRequired ? ".pdf,application/pdf" : ".pdf,image/*"}
-                onChange={handleUpload}
-                disabled={uploading}
-              />
-              {uploading && (
-                <p className="text-sm text-muted-foreground">Wird hochgeladen…</p>
-              )}
-              {pendingUpload && (
-                <p className="text-[0.78rem] text-green">
-                  ✓ {pendingUpload.name} bereit — wird beim Speichern als Anhang
-                  angelegt
-                </p>
-              )}
-              {extractionHint && (
-                <p
-                  className={`text-[0.75rem] ${extractedText ? "text-muted-foreground" : "text-amber-600 dark:text-amber-400"}`}
-                >
-                  {extractionHint}
-                </p>
-              )}
-              {extractedText && (
-                <div className="space-y-2">
-                  <Textarea
-                    value={extractedText.slice(0, 2000)}
-                    readOnly
-                    rows={6}
-                    className="font-mono text-xs"
-                  />
-                  <Button size="sm" variant="outline" onClick={insertExtractedText}>
-                    Text optional in Inhalt übernehmen
-                  </Button>
-                </div>
-              )}
-            </div>
-          </details>
-        )}
 
         <Field label="Titel">
           <Input
@@ -443,10 +291,7 @@ export function CaptureForm({
           />
         </Field>
 
-        <Button
-          onClick={handleSave}
-          disabled={saving || !fields.title || (pdfRequired && !pendingUpload)}
-        >
+        <Button onClick={handleSave} disabled={saving || !fields.title}>
           {saving ? "Speichern…" : isEdit ? "Änderungen speichern" : "Eintrag speichern"}
         </Button>
       </div>

@@ -240,13 +240,6 @@ export function AttachmentsSection({
           ))}
         </div>
       )}
-
-      <input
-        type="file"
-        id={`attach-input-${entryId}`}
-        accept=".pdf,.jpg,.jpeg,.png,.webp"
-        className="hidden"
-      />
     </>
   );
 
