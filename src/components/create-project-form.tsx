@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
 
 import { createProject } from "@/actions/projects";
 import { ProjectIconPicker } from "@/components/project-icon-picker";
@@ -21,7 +20,6 @@ export function CreateProjectForm({
   onCancel,
   submitLabel = "Ober-Thema anlegen",
 }: CreateProjectFormProps) {
-  const router = useRouter();
   const [name, setName] = React.useState("");
   const [slug, setSlug] = React.useState("");
   const [slugTouched, setSlugTouched] = React.useState(false);
@@ -40,24 +38,32 @@ export function CreateProjectForm({
     setError(null);
     setPending(true);
 
-    const result = await createProject({
-      name: name.trim(),
-      slug: slug.trim() || slugify(name),
-      icon: icon.trim() || DEFAULT_PROJECT_ICON,
-    });
+    try {
+      const result = await createProject({
+        name: name.trim(),
+        slug: slug.trim() || slugify(name),
+        icon: icon.trim() || DEFAULT_PROJECT_ICON,
+      });
 
-    setPending(false);
+      if (!result?.success) {
+        setError(result?.error ?? "Projekt konnte nicht angelegt werden");
+        return;
+      }
 
-    if (!result.success) {
-      setError(result.error);
-      return;
-    }
-
-    if (onSuccess) {
-      onSuccess(result.data.slug);
-    } else {
-      router.push(`/p/${result.data.slug}/dashboard`);
-      router.refresh();
+      const targetSlug = result.data.slug;
+      if (onSuccess) {
+        onSuccess(targetSlug);
+      } else {
+        window.location.href = `/p/${targetSlug}/dashboard`;
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Netzwerkfehler — bitte erneut versuchen.",
+      );
+    } finally {
+      setPending(false);
     }
   };
 

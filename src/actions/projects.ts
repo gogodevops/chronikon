@@ -6,7 +6,7 @@ import { cookies } from "next/headers";
 import { z } from "zod";
 
 import type { ActionResult } from "@/actions/auth";
-import { requireAuth, requireProjectRole } from "@/lib/auth-helpers";
+import { getSession, requireAuth, requireProjectRole } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { slugify } from "@/lib/slug";
 import { uniqueProjectSlug } from "@/lib/slugify";
@@ -21,7 +21,7 @@ const createProjectSchema = z.object({
     .max(60)
     .regex(/^[a-z0-9-]+$/, "Nur Kleinbuchstaben, Zahlen und Bindestriche")
     .optional(),
-  icon: z.string().min(1).max(8).default("✦"),
+  icon: z.string().min(1).max(16).default("✦"),
   description: z.string().max(500).optional(),
 });
 
@@ -42,60 +42,81 @@ export async function getUserLandingPath(userId: string): Promise<string> {
 export async function createProject(
   input: z.infer<typeof createProjectSchema>,
 ): Promise<ActionResult<{ slug: string }>> {
-  const parsed = createProjectSchema.safeParse(input);
-  if (!parsed.success) {
-    return {
-      success: false,
-      error: parsed.error.issues[0]?.message ?? "Ungültige Eingabe",
-    };
-  }
+  try {
+    const parsed = createProjectSchema.safeParse(input);
+    if (!parsed.success) {
+      return {
+        success: false,
+        error: parsed.error.issues[0]?.message ?? "Ungültige Eingabe",
+      };
+    }
 
-  const session = await requireAuth();
-  const { name, icon, description } = parsed.data;
+    const session = await getSession();
+    if (!session?.user?.id) {
+      return {
+        success: false,
+        error: "Sitzung abgelaufen — bitte erneut anmelden.",
+      };
+    }
 
-  const slug = parsed.data.slug
-    ? parsed.data.slug
-    : await uniqueProjectSlug(name, async (candidate) => {
-        const existing = await db.project.findUnique({
-          where: { slug: candidate },
+    const { name, icon, description } = parsed.data;
+
+    const slug = parsed.data.slug
+      ? parsed.data.slug
+      : await uniqueProjectSlug(name, async (candidate) => {
+          const existing = await db.project.findUnique({
+            where: { slug: candidate },
+          });
+          return Boolean(existing);
         });
-        return Boolean(existing);
+
+    const existing = await db.project.findUnique({ where: { slug } });
+    if (existing) {
+      return { success: false, error: "Diese Kurz-URL ist bereits vergeben" };
+    }
+
+    const project = await db.$transaction(async (tx) => {
+      const created = await tx.project.create({
+        data: {
+          slug,
+          name,
+          icon,
+          description: description || null,
+        },
       });
+      await tx.projectMember.create({
+        data: {
+          projectId: created.id,
+          userId: session.user.id,
+          role: "owner",
+        },
+      });
+      return created;
+    });
 
-  const existing = await db.project.findUnique({ where: { slug } });
-  if (existing) {
-    return { success: false, error: "Diese Kurz-URL ist bereits vergeben" };
+    try {
+      const cookieStore = await cookies();
+      cookieStore.set(PROJECT_COOKIE, project.id, {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        maxAge: 60 * 60 * 24 * 365,
+      });
+    } catch {
+      /* Cookie optional — Projekt wurde trotzdem angelegt */
+    }
+
+    revalidatePath("/");
+    return { success: true, data: { slug: project.slug } };
+  } catch (error) {
+    console.error("createProject failed:", error);
+    const message =
+      error instanceof Error ? error.message : "Projekt konnte nicht angelegt werden";
+    if (message.includes("DATABASE_URL")) {
+      return { success: false, error: "Datenbank nicht erreichbar — bitte später erneut versuchen." };
+    }
+    return { success: false, error: message };
   }
-
-  const project = await db.$transaction(async (tx) => {
-    const created = await tx.project.create({
-      data: {
-        slug,
-        name,
-        icon,
-        description: description || null,
-      },
-    });
-    await tx.projectMember.create({
-      data: {
-        projectId: created.id,
-        userId: session.user.id,
-        role: "owner",
-      },
-    });
-    return created;
-  });
-
-  const cookieStore = await cookies();
-  cookieStore.set(PROJECT_COOKIE, project.id, {
-    httpOnly: true,
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 365,
-  });
-
-  revalidatePath("/");
-  return { success: true, data: { slug: project.slug } };
 }
 
 const inviteSchema = z.object({

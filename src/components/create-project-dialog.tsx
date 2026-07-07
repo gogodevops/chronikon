@@ -32,7 +32,7 @@ export function CreateProjectDialog({
           onCancel={() => onOpenChange(false)}
           onSuccess={(slug) => {
             onOpenChange(false);
-            window.location.href = `/p/${slug}/dashboard`;
+            window.location.assign(`/p/${slug}/dashboard`);
           }}
         />
       </DialogContent>
