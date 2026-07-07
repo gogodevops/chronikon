@@ -117,6 +117,7 @@ function toDetail(e: SerializedEntryDetail): EntryDetail {
     questions: e.questions,
     comments: e.comments,
     relations: e.relations,
+    versions: e.versions,
   };
 }
 
@@ -178,6 +179,7 @@ export function AppShell({
       "behauptungen",
       "diskussion",
       "verknuepfungen",
+      "historie",
     ];
     if (tab && validTabs.includes(tab)) {
       setActiveTab(tab);
@@ -712,6 +714,8 @@ export function AppShell({
             onExpandList={() => setListLimit((l) => l + LIST_LIMIT)}
             onCommandPaletteOpen={() => setPaletteOpen(true)}
             onClearFilters={handleClearFilters}
+            canCreateEntry={canEdit}
+            onNewEntry={() => router.push(`${basePath}/new`)}
           />
         )}
 
@@ -742,6 +746,8 @@ export function AppShell({
             canDiscuss={canDiscussRole}
             discussionComposerMode={discussionComposerMode}
             onDiscussionComposerModeChange={setDiscussionComposerMode}
+            canCreateEntry={canEdit}
+            onNewEntry={() => router.push(`${basePath}/new`)}
             className="max-[900px]:hidden"
           />
         )}

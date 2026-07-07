@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { BookOpen, ChevronRight, Filter, List, Search, X } from "lucide-react";
+import { BookOpen, ChevronRight, Filter, List, Plus, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -53,6 +53,8 @@ export interface NavPanelProps {
   onExpandList?: () => void;
   onCommandPaletteOpen?: () => void;
   onClearFilters?: () => void;
+  canCreateEntry?: boolean;
+  onNewEntry?: () => void;
 }
 
 const DEFAULT_TOPICS: FilterChip[] = [
@@ -210,6 +212,8 @@ export function NavPanel({
   onExpandList,
   onCommandPaletteOpen,
   onClearFilters,
+  canCreateEntry = false,
+  onNewEntry,
 }: NavPanelProps) {
   const total = totalCount ?? entries.length;
   const hiddenCount = Math.max(0, total - listLimit);
@@ -355,17 +359,30 @@ export function NavPanel({
         className="min-h-0 flex-1"
       >
         <div className="flex min-h-0 flex-1 flex-col">
-          <div className="flex shrink-0 items-center justify-between border-b border-border/50 px-3 py-2">
+          <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border/50 px-3 py-2">
             <span className="text-[0.68rem] text-muted-foreground">
               {total === 0
                 ? "Keine Treffer"
                 : `${showing} von ${total} angezeigt`}
             </span>
-            {selectedEntryId && (
-              <span className="rounded-md bg-accent-dim px-1.5 py-0.5 text-[0.62rem] text-accent">
-                1 ausgewählt
-              </span>
-            )}
+            <div className="flex shrink-0 items-center gap-1.5">
+              {canCreateEntry && onNewEntry && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 gap-1 px-2 text-[0.68rem] text-accent hover:border-accent/40 hover:bg-accent-dim"
+                  onClick={onNewEntry}
+                >
+                  <Plus className="h-3 w-3" />
+                  Neuer Eintrag
+                </Button>
+              )}
+              {selectedEntryId && (
+                <span className="rounded-md bg-accent-dim px-1.5 py-0.5 text-[0.62rem] text-accent">
+                  1 ausgewählt
+                </span>
+              )}
+            </div>
           </div>
 
           <ScrollArea className="flex-1">
@@ -391,8 +408,18 @@ export function NavPanel({
                   <p className="mt-1 text-[0.72rem] text-muted-foreground">
                     {searchQuery.trim() || activeFilterCount > 0
                       ? "Filter anpassen oder zurücksetzen."
-                      : "Lege unter „+ Neu“ den ersten Eintrag an."}
+                      : "Lege den ersten Eintrag an."}
                   </p>
+                  {canCreateEntry && onNewEntry && (
+                    <Button
+                      size="sm"
+                      className="mt-4 gap-1.5"
+                      onClick={onNewEntry}
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      Neuer Eintrag
+                    </Button>
+                  )}
                 </div>
               ) : (
                 entries.map((entry) => (

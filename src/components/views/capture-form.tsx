@@ -47,7 +47,8 @@ export function CaptureForm({
 }) {
   const router = useRouter();
   const isEdit = !!editEntryId;
-  const [step, setStep] = React.useState<Step>(isEdit ? 3 : 1);
+  const [step, setStep] = React.useState<Step>(3);
+  const [uploadOpen, setUploadOpen] = React.useState(false);
   const [uploading, setUploading] = React.useState(false);
   const [analyzing, setAnalyzing] = React.useState(false);
   const [analysis, setAnalysis] = React.useState<DocumentAnalysis | null>(null);
@@ -78,7 +79,8 @@ export function CaptureForm({
       const res = await fetch("/api/upload", { method: "POST", body: fd });
       const data = await res.json();
       if (data.text) setExtractedText(data.text);
-      setStep(2);
+      setUploadOpen(true);
+      setStep(3);
     } finally {
       setUploading(false);
     }
@@ -173,28 +175,10 @@ export function CaptureForm({
       description={
         isEdit
           ? "Felder anpassen und speichern"
-          : `Schritt ${step} von 3 — ${step === 1 ? "Upload" : step === 2 ? "KI-Analyse" : "Felder prüfen"}`
+          : "Felder ausfüllen — Quelle optional hochladen"
       }
       maxWidth="md"
     >
-      {!isEdit && step === 1 && (
-        <div className="space-y-4 rounded-lg border border-dashed border-border p-8 text-center">
-          <p className="text-muted-foreground">
-            PDF oder Bild hochladen (OCR für PDFs)
-          </p>
-          <Input
-            type="file"
-            accept=".pdf,image/*"
-            onChange={handleUpload}
-            disabled={uploading}
-          />
-          {uploading && <p className="text-sm">Wird hochgeladen…</p>}
-          <Button variant="outline" onClick={() => setStep(3)}>
-            Ohne Upload fortfahren
-          </Button>
-        </div>
-      )}
-
       {!isEdit && step === 2 && (
         <div className="space-y-4">
           {extractedText && (
@@ -216,6 +200,50 @@ export function CaptureForm({
 
       {step === 3 && (
         <div className="space-y-4">
+          {!isEdit && (
+            <details
+              open={uploadOpen}
+              onToggle={(e) => setUploadOpen((e.target as HTMLDetailsElement).open)}
+              className="rounded-lg border border-border/80 bg-surface-2/40"
+            >
+              <summary className="cursor-pointer px-4 py-3 text-[0.82rem] font-medium text-foreground select-none">
+                Quelle hochladen (optional)
+              </summary>
+              <div className="space-y-3 border-t border-border/60 px-4 py-3">
+                <p className="text-[0.78rem] text-muted-foreground">
+                  PDF oder Bild hochladen (OCR für PDFs), optional mit KI-Analyse
+                  vorausfüllen.
+                </p>
+                <Input
+                  type="file"
+                  accept=".pdf,image/*"
+                  onChange={handleUpload}
+                  disabled={uploading}
+                />
+                {uploading && (
+                  <p className="text-sm text-muted-foreground">Wird hochgeladen…</p>
+                )}
+                {extractedText && step === 3 && (
+                  <div className="space-y-2">
+                    <Textarea
+                      value={extractedText.slice(0, 2000)}
+                      readOnly
+                      rows={6}
+                      className="font-mono text-xs"
+                    />
+                    <Button
+                      size="sm"
+                      onClick={handleAnalyze}
+                      disabled={analyzing}
+                    >
+                      {analyzing ? "Analysiere…" : "KI-Analyse starten"}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </details>
+          )}
+
           {analysis && (
             <div className="rounded-lg border border-accent/30 bg-accent-dim p-3 text-sm">
               <p>{analysis.reply}</p>

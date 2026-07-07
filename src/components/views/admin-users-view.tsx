@@ -10,7 +10,6 @@ import { ArrowLeft, UserPlus, Users } from "lucide-react";
 import { createAppUser } from "@/actions/users";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { runServerAction } from "@/lib/action-feedback";
 
 export type AdminUserRow = {
   id: string;
@@ -27,10 +26,12 @@ export function AdminUsersView({ users }: { users: AdminUserRow[] }) {
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
+  const [sendEmail, setSendEmail] = React.useState(false);
   const [pending, setPending] = React.useState(false);
   const [lastCreated, setLastCreated] = React.useState<{
     email: string;
-    password: string;
+    password?: string;
+    emailSent?: boolean;
   } | null>(null);
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -38,22 +39,29 @@ export function AdminUsersView({ users }: { users: AdminUserRow[] }) {
     setPending(true);
     setLastCreated(null);
 
-    const ok = await runServerAction(() =>
-      createAppUser({
-        name: name.trim(),
-        email: email.trim(),
-        password,
-      }),
-    );
+    const result = await createAppUser({
+      name: name.trim(),
+      email: email.trim(),
+      password: sendEmail ? undefined : password,
+      sendEmail,
+    });
 
     setPending(false);
-    if (ok) {
-      setLastCreated({ email: email.trim().toLowerCase(), password });
+    if (result.success) {
+      setLastCreated({
+        email: email.trim().toLowerCase(),
+        password: result.data.temporaryPassword,
+        emailSent: result.data.emailSent,
+      });
       setName("");
       setEmail("");
       setPassword("");
+      setSendEmail(false);
       router.refresh();
+      return;
     }
+
+    window.alert(result.error ?? "Aktion fehlgeschlagen");
   };
 
   return (
@@ -79,8 +87,8 @@ export function AdminUsersView({ users }: { users: AdminUserRow[] }) {
             Neuen Nutzer anlegen
           </h1>
           <p className="mb-4 text-[0.82rem] text-muted-foreground">
-            Du legst E-Mail und Passwort fest und gibst die Zugangsdaten selbst
-            weiter. Öffentliche Registrierung ist deaktiviert.
+            Lege E-Mail und Passwort fest oder lasse ein Zufallspasswort per
+            E-Mail zusenden (Resend muss konfiguriert sein).
           </p>
 
           <form onSubmit={handleCreate} className="space-y-3">
@@ -115,11 +123,25 @@ export function AdminUsersView({ users }: { users: AdminUserRow[] }) {
                 type="text"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Min. 8 Zeichen — wird an Nutzer weitergegeben"
-                minLength={8}
-                required
+                placeholder={
+                  sendEmail
+                    ? "Wird automatisch erzeugt"
+                    : "Min. 8 Zeichen — wird an Nutzer weitergegeben"
+                }
+                minLength={sendEmail ? undefined : 8}
+                required={!sendEmail}
+                disabled={sendEmail}
               />
             </div>
+            <label className="flex cursor-pointer items-center gap-2 text-[0.78rem]">
+              <input
+                type="checkbox"
+                checked={sendEmail}
+                onChange={(e) => setSendEmail(e.target.checked)}
+                className="rounded border-border"
+              />
+              Zugangsdaten per E-Mail senden
+            </label>
             <Button type="submit" disabled={pending} className="w-full sm:w-auto">
               {pending ? "Wird angelegt…" : "Nutzer erstellen"}
             </Button>
@@ -127,13 +149,30 @@ export function AdminUsersView({ users }: { users: AdminUserRow[] }) {
 
           {lastCreated && (
             <div className="mt-4 rounded-lg border border-accent/30 bg-accent-dim p-3 text-[0.82rem]">
-              <p className="font-medium text-accent">Zugangsdaten zum Weitergeben:</p>
-              <p className="mt-1">
-                E-Mail: <strong>{lastCreated.email}</strong>
-              </p>
-              <p>
-                Passwort: <strong>{lastCreated.password}</strong>
-              </p>
+              {lastCreated.emailSent ? (
+                <>
+                  <p className="font-medium text-accent">
+                    Willkommens-E-Mail wurde gesendet an:
+                  </p>
+                  <p className="mt-1">
+                    <strong>{lastCreated.email}</strong>
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="font-medium text-accent">
+                    Zugangsdaten zum Weitergeben:
+                  </p>
+                  <p className="mt-1">
+                    E-Mail: <strong>{lastCreated.email}</strong>
+                  </p>
+                  {lastCreated.password && (
+                    <p>
+                      Passwort: <strong>{lastCreated.password}</strong>
+                    </p>
+                  )}
+                </>
+              )}
             </div>
           )}
         </section>

@@ -74,15 +74,22 @@ export function TeamView({
   const [createAccount, setCreateAccount] = React.useState(false);
   const [name, setName] = React.useState("");
   const [password, setPassword] = React.useState("");
+  const [sendEmail, setSendEmail] = React.useState(false);
   const [pending, setPending] = React.useState(false);
   const [lastInviteLink, setLastInviteLink] = React.useState<string | null>(
     null,
   );
+  const [lastFeedback, setLastFeedback] = React.useState<{
+    emailSent?: boolean;
+    temporaryPassword?: string;
+    email?: string;
+  } | null>(null);
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     setPending(true);
     setLastInviteLink(null);
+    setLastFeedback(null);
 
     const ok = await runServerAction(async () => {
       const result = await addProjectMember({
@@ -90,11 +97,19 @@ export function TeamView({
         email,
         role: role as TeamMember["role"],
         name: createAccount ? name : undefined,
-        password: createAccount ? password : undefined,
+        password: createAccount ? password || undefined : undefined,
+        sendEmail,
       });
       if (result.success && result.data.inviteToken) {
         const link = `${window.location.origin}/invite/${result.data.inviteToken}`;
         setLastInviteLink(link);
+      }
+      if (result.success) {
+        setLastFeedback({
+          emailSent: result.data.emailSent,
+          temporaryPassword: result.data.temporaryPassword,
+          email: email.trim().toLowerCase(),
+        });
       }
       return result;
     });
@@ -105,6 +120,7 @@ export function TeamView({
       setName("");
       setPassword("");
       setCreateAccount(false);
+      setSendEmail(false);
       router.refresh();
     }
   };
@@ -381,16 +397,33 @@ export function TeamView({
                       </label>
                       <Input
                         type="password"
-                        required={createAccount}
+                        required={createAccount && !sendEmail}
                         minLength={8}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Min. 8 Zeichen"
+                        placeholder={
+                          sendEmail
+                            ? "Wird automatisch erzeugt"
+                            : "Min. 8 Zeichen"
+                        }
+                        disabled={sendEmail}
                         className="h-9 text-[0.82rem]"
                       />
                     </div>
                   </>
                 )}
+
+                <label className="flex cursor-pointer items-center gap-2 text-[0.78rem]">
+                  <input
+                    type="checkbox"
+                    checked={sendEmail}
+                    onChange={(e) => setSendEmail(e.target.checked)}
+                    className="rounded border-border"
+                  />
+                  {createAccount && isAppAdmin
+                    ? "Zugangsdaten per E-Mail senden"
+                    : "Einladung per E-Mail senden"}
+                </label>
 
                 <p className="text-[0.68rem] leading-relaxed text-muted-foreground">
                   {createAccount && isAppAdmin
@@ -405,6 +438,24 @@ export function TeamView({
                 >
                   {pending ? "Wird hinzugefügt…" : "Hinzufügen"}
                 </Button>
+
+                {lastFeedback?.emailSent && (
+                  <div className="rounded-lg border border-accent/30 bg-accent-dim p-3 text-[0.72rem] text-accent">
+                    E-Mail wurde an <strong>{lastFeedback.email}</strong> gesendet.
+                  </div>
+                )}
+
+                {lastFeedback?.temporaryPassword && (
+                  <div className="rounded-lg border border-accent/30 bg-accent-dim p-3 text-[0.72rem]">
+                    <p className="font-medium text-accent">Zugangsdaten zum Weitergeben:</p>
+                    <p className="mt-1">
+                      E-Mail: <strong>{lastFeedback.email}</strong>
+                    </p>
+                    <p>
+                      Passwort: <strong>{lastFeedback.temporaryPassword}</strong>
+                    </p>
+                  </div>
+                )}
 
                 {lastInviteLink && (
                   <div className="rounded-lg border border-accent/30 bg-accent-dim p-3">

@@ -13,6 +13,7 @@ import {
   DiscussionFeed,
   RelationsList,
   SourcesList,
+  VersionsList,
 } from "@/components/entry/entry-tab-content";
 import { SourceComposer } from "@/components/entry/source-composer";
 import { ClaimComposer } from "@/components/entry/claim-composer";
@@ -22,6 +23,7 @@ import type { EntryTitleIndex, LinkableEntryResult } from "@/lib/queries";
 import type {
   SerializedClaim,
   SerializedComment,
+  SerializedEntryVersion,
   SerializedQuestion,
   SerializedRelation,
   SerializedSource,
@@ -39,6 +41,7 @@ export interface EntryTabsProps {
   questions?: SerializedQuestion[];
   comments?: SerializedComment[];
   relations?: SerializedRelation[];
+  versions?: SerializedEntryVersion[];
   entryIndex?: EntryTitleIndex[];
   activeTab?: string;
   onTabChange?: (tab: string) => void;
@@ -64,6 +67,7 @@ export function EntryTabs({
   questions = [],
   comments = [],
   relations = [],
+  versions = [],
   entryIndex = [],
   activeTab = "inhalt",
   onTabChange,
@@ -88,6 +92,9 @@ export function EntryTabs({
           Diskussion {discussionCount === 0 ? "(+)" : `(${discussionCount})`}
         </TabsTrigger>
         <TabsTrigger value="verknuepfungen">Verknüpfungen</TabsTrigger>
+        <TabsTrigger value="historie">
+          Historie {versions.length > 0 ? `(${versions.length})` : ""}
+        </TabsTrigger>
       </TabsList>
 
       <TabsContent value="inhalt">
@@ -187,6 +194,10 @@ export function EntryTabs({
             onSubmit={(data) => onAction?.("verknuepfungen", "submit", data)}
           />
         )}
+      </TabsContent>
+
+      <TabsContent value="historie">
+        <VersionsList versions={versions} />
       </TabsContent>
     </Tabs>
   );

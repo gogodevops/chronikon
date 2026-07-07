@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { FileSearch, Sparkles } from "lucide-react";
+import { FileSearch, Plus, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,7 @@ import type { EntryTitleIndex, LinkableEntryResult } from "@/lib/queries";
 import type {
   SerializedClaim,
   SerializedComment,
+  SerializedEntryVersion,
   SerializedQuestion,
   SerializedRelation,
   SerializedSource,
@@ -47,6 +48,7 @@ export interface EntryDetail {
   questions?: SerializedQuestion[];
   comments?: SerializedComment[];
   relations?: SerializedRelation[];
+  versions?: SerializedEntryVersion[];
 }
 
 export interface DetailPanelProps {
@@ -70,6 +72,8 @@ export interface DetailPanelProps {
   canDiscuss?: boolean;
   discussionComposerMode?: "question" | "comment";
   onDiscussionComposerModeChange?: (mode: "question" | "comment") => void;
+  canCreateEntry?: boolean;
+  onNewEntry?: () => void;
 }
 
 function yearLabel(year?: number | null) {
@@ -99,6 +103,8 @@ export function DetailPanel({
   canDiscuss = true,
   discussionComposerMode = "question",
   onDiscussionComposerModeChange,
+  canCreateEntry = false,
+  onNewEntry,
 }: DetailPanelProps) {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -134,6 +140,16 @@ export function DetailPanel({
             Schritt 2 links: Eintrag anklicken — hier erscheinen Inhalt, Quellen
             und Diskussion.
           </p>
+          {canCreateEntry && onNewEntry && (
+            <Button
+              size="sm"
+              className="mt-4 gap-1.5"
+              onClick={onNewEntry}
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Neuer Eintrag
+            </Button>
+          )}
         </div>
       </aside>
     );
@@ -276,6 +292,7 @@ export function DetailPanel({
             questions={entry.questions}
             comments={entry.comments}
             relations={entry.relations}
+            versions={entry.versions}
             entryIndex={entryIndex}
             activeTab={activeTab}
             onTabChange={onTabChange}

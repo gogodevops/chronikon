@@ -8,6 +8,7 @@ import { SOURCE_TYPE_LABELS } from "@/lib/constants";
 import type {
   SerializedClaim,
   SerializedComment,
+  SerializedEntryVersion,
   SerializedQuestion,
   SerializedRelation,
   SerializedSource,
@@ -358,5 +359,55 @@ export function RelationsList({
         </div>
       ))}
     </div>
+  );
+}
+
+export function VersionsList({
+  versions,
+}: {
+  versions: SerializedEntryVersion[];
+}) {
+  if (versions.length === 0) {
+    return (
+      <p className="text-[0.82rem] text-muted-foreground">
+        Noch keine gespeicherten Versionen — beim Bearbeiten wird automatisch
+        ein Snapshot angelegt.
+      </p>
+    );
+  }
+
+  return (
+    <ul className="space-y-2">
+      {versions.map((v) => (
+        <li
+          key={v.id}
+          className="rounded-lg border border-border/60 bg-surface-2/50 px-3 py-2.5"
+        >
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-[0.82rem] font-medium leading-snug">{v.title}</p>
+            <time
+              className="shrink-0 text-[0.68rem] text-muted-foreground"
+              dateTime={new Date(v.createdAt).toISOString()}
+            >
+              {new Intl.DateTimeFormat("de-DE", {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              }).format(new Date(v.createdAt))}
+            </time>
+          </div>
+          {v.summary && (
+            <p className="mt-1 line-clamp-2 text-[0.75rem] text-muted-foreground">
+              {v.summary}
+            </p>
+          )}
+          <p className="mt-1.5 text-[0.68rem] text-muted-foreground">
+            {v.changedByName ? `Geändert von ${v.changedByName}` : "Unbekannter Autor"}
+          </p>
+        </li>
+      ))}
+    </ul>
   );
 }
