@@ -120,7 +120,7 @@ model ProjectInvite {
   createdAt DateTime    @default(now())
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  sender  User    @relation("InviteSender", fields: [invitedBy], references: [id])
+  sender  User    @relation("InviteSender", fields: [invitedBy], references: [id], onDelete: Cascade)
 }
 
 model UserInvite {
@@ -132,7 +132,7 @@ model UserInvite {
   acceptedAt DateTime?
   createdAt  DateTime  @default(now())
 
-  sender User @relation("UserInviteSender", fields: [invitedBy], references: [id])
+  sender User @relation("UserInviteSender", fields: [invitedBy], references: [id], onDelete: Cascade)
 
   @@index([email])
 }
@@ -201,7 +201,7 @@ model Entry {
   project       Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
   parentEntry   Entry?           @relation("EntryChildren", fields: [parentEntryId], references: [id], onDelete: Cascade)
   childEntries  Entry[]          @relation("EntryChildren")
-  createdBy     User?            @relation("EntryCreator", fields: [createdById], references: [id])
+  createdBy     User?            @relation("EntryCreator", fields: [createdById], references: [id], onDelete: SetNull)
   topics        EntryTopic[]
   attachments   Attachment[]
   sources       Source[]
@@ -244,7 +244,7 @@ model Attachment {
   createdAt     DateTime @default(now())
 
   entry      Entry @relation(fields: [entryId], references: [id], onDelete: Cascade)
-  uploadedBy User? @relation(fields: [uploadedById], references: [id])
+  uploadedBy User? @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
 }
 
 enum SourceType {
@@ -263,7 +263,7 @@ model Source {
   linkedEntryId  String?
 
   entry       Entry  @relation(fields: [entryId], references: [id], onDelete: Cascade)
-  linkedEntry Entry? @relation("SourceLinkedEntry", fields: [linkedEntryId], references: [id])
+  linkedEntry Entry? @relation("SourceLinkedEntry", fields: [linkedEntryId], references: [id], onDelete: SetNull)
 }
 
 model Claim {
@@ -276,7 +276,7 @@ model Claim {
   createdAt   DateTime   @default(now())
 
   entry  Entry @relation(fields: [entryId], references: [id], onDelete: Cascade)
-  author User? @relation(fields: [authorId], references: [id])
+  author User? @relation(fields: [authorId], references: [id], onDelete: SetNull)
 }
 
 enum RelationType {
@@ -318,7 +318,7 @@ model EntryVersion {
   createdAt   DateTime @default(now())
 
   entry     Entry @relation(fields: [entryId], references: [id], onDelete: Cascade)
-  changedBy User? @relation(fields: [changedById], references: [id])
+  changedBy User? @relation(fields: [changedById], references: [id], onDelete: SetNull)
 }
 
 // ── Discussions ─────────────────────────────────────────────────────────────
@@ -340,7 +340,7 @@ model Question {
   updatedAt  DateTime       @updatedAt
 
   entry   Entry    @relation(fields: [entryId], references: [id], onDelete: Cascade)
-  author  User     @relation(fields: [authorId], references: [id])
+  author  User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
   answers Answer[]
 }
 
@@ -353,7 +353,7 @@ model Answer {
   createdAt  DateTime @default(now())
 
   question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  author   User     @relation(fields: [authorId], references: [id])
+  author   User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
 }
 
 model Comment {
@@ -365,7 +365,7 @@ model Comment {
   createdAt DateTime @default(now())
 
   entry  Entry @relation(fields: [entryId], references: [id], onDelete: Cascade)
-  author User  @relation(fields: [authorId], references: [id])
+  author User  @relation(fields: [authorId], references: [id], onDelete: Cascade)
 }
 
 model Notification {
@@ -404,5 +404,5 @@ model CompareItem {
   sortOrder    Int    @default(0)
 
   compareSet CompareSet @relation(fields: [compareSetId], references: [id], onDelete: Cascade)
-  entry      Entry?     @relation(fields: [entryId], references: [id])
+  entry      Entry?     @relation(fields: [entryId], references: [id], onDelete: SetNull)
 }

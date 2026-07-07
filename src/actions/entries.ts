@@ -10,6 +10,10 @@ import { z } from "zod";
 
 import type { ActionResult } from "@/actions/auth";
 import { requireAuth, requireProjectRole } from "@/lib/auth-helpers";
+import {
+  collectDescendantEntryIds,
+  deleteAttachmentFilesForEntries,
+} from "@/lib/cleanup";
 import { db } from "@/lib/db";
 import { notifyProjectMembers, projectEntryLink } from "@/lib/notifications";
 import { revalidateProject } from "@/lib/revalidate-project";
@@ -277,6 +281,8 @@ export async function deleteEntry(
     return { success: false, error: "Eintrag nicht gefunden" };
   }
 
+  const entryIds = await collectDescendantEntryIds(entryId);
+  await deleteAttachmentFilesForEntries(entryIds);
   await db.entry.delete({ where: { id: entryId } });
   await revalidateProject(projectId);
   return { success: true, data: undefined };

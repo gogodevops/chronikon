@@ -63,7 +63,11 @@ export function DeleteUserDialog({
                 <strong className="text-foreground">{displayName}</strong>{" "}
                 wirklich entfernen?
               </p>
-              <p>Alle Projekt-Mitgliedschaften werden gelöscht.</p>
+              <p>
+                Alle Projekt-Mitgliedschaften, gesendeten Einladungen, Fragen,
+                Kommentare und Antworten sowie Sitzungen werden gelöscht.
+                Erstellte Einträge und Anhänge bleiben im Projekt erhalten.
+              </p>
             </div>
           </DialogDescription>
         </DialogHeader>

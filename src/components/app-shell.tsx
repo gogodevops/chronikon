@@ -371,7 +371,7 @@ export function AppShell({
       case "delete":
         if (
           window.confirm(
-            `Eintrag „${selectedEntry.title}" wirklich löschen?`,
+            `Eintrag „${selectedEntry.title}" wirklich löschen?\n\nAlle zugehörigen Quellen, Behauptungen, Verknüpfungen, Diskussionen, Versionen, Anhänge (inkl. Dateien) und Untereinträge werden dabei entfernt.`,
           )
         ) {
           const ok = await runServerAction(

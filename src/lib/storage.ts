@@ -92,6 +92,12 @@ export async function deleteStoredFile(storageKey: string): Promise<void> {
   await deleteFromS3(storageKey);
 }
 
+/** Best-effort removal of multiple stored files (S3 or local). */
+export async function deleteStoredFiles(storageKeys: string[]): Promise<void> {
+  if (storageKeys.length === 0) return;
+  await Promise.allSettled(storageKeys.map((key) => deleteStoredFile(key)));
+}
+
 export function isLocalStorage() {
   return storageMode() === "local";
 }

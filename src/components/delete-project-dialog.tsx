@@ -71,8 +71,9 @@ export function DeleteProjectDialog({
                 unwiderruflich gelöscht.
               </p>
               <p>
-                Alle Einträge, Quellen, Team-Daten und Verknüpfungen dieses
-                Ober-Themas werden dabei entfernt.
+                Alle Einträge, Untereinträge, Quellen, Anhänge (inkl. Dateien),
+                Team-Daten, Themen, gespeicherte Ansichten, Vergleichssets und
+                Verknüpfungen dieses Ober-Themas werden dabei entfernt.
               </p>
             </div>
           </DialogDescription>

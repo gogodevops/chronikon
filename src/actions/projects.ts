@@ -14,6 +14,9 @@ import {
   requireProjectRole,
   verifySessionUserExists,
 } from "@/lib/auth-helpers";
+import {
+  deleteAttachmentFilesForProject,
+} from "@/lib/cleanup";
 import { db } from "@/lib/db";
 import { slugify } from "@/lib/slug";
 import { uniqueProjectSlug } from "@/lib/slugify";
@@ -299,6 +302,7 @@ export async function deleteProject(
       cookieStore.delete(PROJECT_COOKIE);
     }
 
+    await deleteAttachmentFilesForProject(projectId);
     await db.project.delete({ where: { id: projectId } });
 
     const redirectTo = "/app";
