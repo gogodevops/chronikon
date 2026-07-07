@@ -4,8 +4,10 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 
 import { createProject } from "@/actions/projects";
+import { ProjectIconPicker } from "@/components/project-icon-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DEFAULT_PROJECT_ICON } from "@/lib/project-icons";
 import { slugify } from "@/lib/slug";
 
 type CreateProjectFormProps = {
@@ -17,13 +19,13 @@ type CreateProjectFormProps = {
 export function CreateProjectForm({
   onSuccess,
   onCancel,
-  submitLabel = "Projekt anlegen",
+  submitLabel = "Ober-Thema anlegen",
 }: CreateProjectFormProps) {
   const router = useRouter();
   const [name, setName] = React.useState("");
   const [slug, setSlug] = React.useState("");
   const [slugTouched, setSlugTouched] = React.useState(false);
-  const [icon, setIcon] = React.useState("✦");
+  const [icon, setIcon] = React.useState<string>(DEFAULT_PROJECT_ICON);
   const [error, setError] = React.useState<string | null>(null);
   const [pending, setPending] = React.useState(false);
 
@@ -41,7 +43,7 @@ export function CreateProjectForm({
     const result = await createProject({
       name: name.trim(),
       slug: slug.trim() || slugify(name),
-      icon: icon.trim() || "✦",
+      icon: icon.trim() || DEFAULT_PROJECT_ICON,
     });
 
     setPending(false);
@@ -85,7 +87,7 @@ export function CreateProjectForm({
             setSlugTouched(true);
             setSlug(e.target.value);
           }}
-          placeholder="bibel"
+          placeholder="fruehes-christentum"
           required
           maxLength={60}
           pattern="[a-z0-9-]+"
@@ -97,15 +99,13 @@ export function CreateProjectForm({
       </div>
 
       <div>
-        <label className="mb-1 block text-[0.72rem] uppercase tracking-wide text-muted-foreground">
-          Icon
+        <label className="mb-2 block text-[0.72rem] uppercase tracking-wide text-muted-foreground">
+          Symbol
         </label>
-        <Input
-          value={icon}
-          onChange={(e) => setIcon(e.target.value)}
-          maxLength={4}
-          className="w-24 text-center text-lg"
-        />
+        <ProjectIconPicker value={icon} onChange={setIcon} />
+        <p className="mt-2 text-[0.68rem] text-muted-foreground">
+          Gewählt: <span className="text-lg leading-none">{icon}</span>
+        </p>
       </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}

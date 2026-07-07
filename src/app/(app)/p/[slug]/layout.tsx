@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { getUserLandingPath, listUserProjects } from "@/actions/projects";
 import { auth } from "@/auth";
 import { ProjectProvider } from "@/context/project-context";
-import { getUserProjectRole } from "@/lib/auth-helpers";
+import { getUserProjectRole, isAppAdmin } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { getNotifications, getProjectBySlug } from "@/lib/queries";
 
@@ -25,7 +25,7 @@ export default async function ProjectLayout({
     redirect(await getUserLandingPath(session.user.id));
   }
 
-  const [memberships, role, user, notifications] = await Promise.all([
+  const [memberships, role, user, notifications, appAdmin] = await Promise.all([
     listUserProjects(),
     getUserProjectRole(project.id, session.user.id),
     db.user.findUnique({
@@ -33,6 +33,7 @@ export default async function ProjectLayout({
       select: { name: true, avatarInitials: true, image: true },
     }),
     getNotifications(session.user.id),
+    isAppAdmin(session.user.id),
   ]);
 
   if (!role) {
@@ -55,6 +56,7 @@ export default async function ProjectLayout({
     userImage: user?.image,
     projects: memberships.map((m) => m.project),
     notifications,
+    isAppAdmin: appAdmin,
   };
 
   return <ProjectProvider value={ctx}>{children}</ProjectProvider>;

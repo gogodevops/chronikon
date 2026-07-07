@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 
 import type { ActionResult } from "@/actions/auth";
-import { requireProjectRole } from "@/lib/auth-helpers";
+import { requireAppAdmin, requireProjectRole } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { revalidateProject } from "@/lib/revalidate-project";
 
@@ -151,6 +151,8 @@ export async function addProjectMember(
       data: { inviteToken: invite.token },
     };
   }
+
+  await requireAppAdmin();
 
   const passwordHash = await bcrypt.hash(parsed.data.password, 12);
   const user = await db.user.create({

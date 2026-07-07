@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useActionState } from "react";
 
@@ -66,11 +65,8 @@ function LoginForm() {
         </Button>
       </form>
 
-      <p className="mt-4 text-center text-[0.82rem] text-muted-foreground">
-        Noch kein Konto?{" "}
-        <Link href="/register" className="text-accent hover:underline">
-          Registrieren
-        </Link>
+      <p className="mt-4 text-center text-[0.78rem] text-muted-foreground">
+        Zugang nur mit Einladung durch den Administrator.
       </p>
     </div>
   );

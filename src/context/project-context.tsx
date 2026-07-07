@@ -17,6 +17,7 @@ export type ProjectContextValue = {
   userImage?: string | null;
   projects: { id: string; slug: string; name: string; icon: string }[];
   notifications: SerializedNotification[];
+  isAppAdmin: boolean;
 };
 
 const ProjectContext = React.createContext<ProjectContextValue | null>(null);

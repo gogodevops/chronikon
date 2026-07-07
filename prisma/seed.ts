@@ -58,13 +58,14 @@ export async function runSeed() {
       name: SEED_ADMIN.name,
       passwordHash,
       avatarInitials: initials || "AD",
+      isAdmin: true,
     },
   });
 
   console.log("Seed abgeschlossen.");
   console.log(`Admin-Login: ${SEED_ADMIN.email} / ${SEED_ADMIN.password}`);
   console.log(
-    "Hinweis: Passwort über SEED_ADMIN_PASSWORD änderbar. Nach Login unter „Projekt“ ein Ober-Thema anlegen.",
+    "Hinweis: Passwort über SEED_ADMIN_PASSWORD änderbar. Nach Login Ober-Thema unter Projekt-Menü anlegen.",
   );
 }
 

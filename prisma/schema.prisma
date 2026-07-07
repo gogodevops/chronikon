@@ -16,6 +16,7 @@ model User {
   passwordHash  String?
   image         String?
   avatarInitials String?
+  isAdmin       Boolean   @default(false)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 

@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { Search } from "lucide-react";
+import Link from "next/link";
+import { Search, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -43,6 +44,10 @@ export interface AppHeaderProps {
   notifications?: SerializedNotification[];
   showTeamNav?: boolean;
   canCreateProject?: boolean;
+  isAppAdmin?: boolean;
+  navDisabled?: boolean;
+  createDialogOpen?: boolean;
+  onCreateDialogOpenChange?: (open: boolean) => void;
   onViewChange?: (view: AppView) => void;
   onProjectChange?: (projectId: string) => void;
   onCommandPaletteOpen?: () => void;
@@ -79,11 +84,17 @@ export function AppHeader({
   notifications = [],
   showTeamNav = false,
   canCreateProject = false,
+  isAppAdmin = false,
+  navDisabled = false,
+  createDialogOpen: createDialogOpenProp,
+  onCreateDialogOpenChange,
   onViewChange,
   onProjectChange,
   onCommandPaletteOpen,
 }: AppHeaderProps) {
-  const [createOpen, setCreateOpen] = React.useState(false);
+  const [createOpenInternal, setCreateOpenInternal] = React.useState(false);
+  const createOpen = createDialogOpenProp ?? createOpenInternal;
+  const setCreateOpen = onCreateDialogOpenChange ?? setCreateOpenInternal;
   const activeProject = currentProject ?? projects[0] ?? {
     id: "",
     name: "Kein Projekt",
@@ -154,13 +165,20 @@ export function AppHeader({
           <button
             key={view}
             type="button"
-            onClick={() => onViewChange?.(view)}
+            disabled={navDisabled}
+            title={navDisabled ? "Zuerst ein Ober-Thema anlegen" : undefined}
+            onClick={() => !navDisabled && onViewChange?.(view)}
             className={cn(
-              "cursor-pointer whitespace-nowrap rounded-md px-2.5 py-1.5 text-[0.8rem] text-muted-foreground transition-all hover:text-foreground",
+              "whitespace-nowrap rounded-md px-2.5 py-1.5 text-[0.8rem] text-muted-foreground transition-all",
+              navDisabled
+                ? "cursor-not-allowed opacity-40"
+                : "cursor-pointer hover:text-foreground",
               activeView === view &&
+                !navDisabled &&
                 "bg-accent-dim font-medium text-accent shadow-[inset_0_0_0_1px_rgba(196,163,90,0.18)]",
               view === "form" &&
                 activeView !== view &&
+                !navDisabled &&
                 "text-accent/80 hover:text-accent",
             )}
           >
@@ -170,6 +188,15 @@ export function AppHeader({
       </nav>
 
       <div className="flex items-center gap-2.5">
+        {isAppAdmin && (
+          <Link
+            href="/admin/users"
+            title="Nutzer verwalten"
+            className="flex h-[30px] w-[30px] items-center justify-center rounded-lg border border-border/80 bg-surface-2/80 text-muted-foreground transition-colors hover:border-accent/30 hover:text-accent"
+          >
+            <Users className="h-3.5 w-3.5" />
+          </Link>
+        )}
         <button
           type="button"
           onClick={onCommandPaletteOpen}

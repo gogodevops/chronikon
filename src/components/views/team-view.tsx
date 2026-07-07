@@ -60,11 +60,13 @@ export function TeamView({
   invites,
   currentUserId,
   projectId,
+  isAppAdmin = false,
 }: {
   members: TeamMember[];
   invites: TeamInvite[];
   currentUserId: string;
   projectId: string;
+  isAppAdmin?: boolean;
 }) {
   const router = useRouter();
   const [email, setEmail] = React.useState("");
@@ -344,11 +346,22 @@ export function TeamView({
                     checked={createAccount}
                     onChange={(e) => setCreateAccount(e.target.checked)}
                     className="rounded border-border"
+                    disabled={!isAppAdmin}
                   />
                   Neuen Account direkt anlegen
                 </label>
 
-                {createAccount && (
+                {!isAppAdmin && (
+                  <p className="text-[0.68rem] text-muted-foreground">
+                    Neue Accounts legst du unter{" "}
+                    <a href="/admin/users" className="text-accent hover:underline">
+                      Nutzer verwalten
+                    </a>{" "}
+                    an.
+                  </p>
+                )}
+
+                {createAccount && isAppAdmin && (
                   <>
                     <div>
                       <label className="mb-1 block text-[0.72rem] text-muted-foreground">
@@ -380,7 +393,7 @@ export function TeamView({
                 )}
 
                 <p className="text-[0.68rem] leading-relaxed text-muted-foreground">
-                  {createAccount
+                  {createAccount && isAppAdmin
                     ? "Legt sofort einen Account an und fügt ihn dem Projekt hinzu."
                     : "Bestehende Nutzer werden direkt hinzugefügt. Unbekannte E-Mails erhalten eine Einladung."}
                 </p>

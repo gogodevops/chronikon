@@ -36,7 +36,7 @@ export async function getUserLandingPath(userId: string): Promise<string> {
     return `/p/${firstMembership.project.slug}/dashboard`;
   }
 
-  return "/projects/new";
+  return "/app";
 }
 
 export async function createProject(

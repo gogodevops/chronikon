@@ -32,7 +32,7 @@ async function resolveLoginRedirect(
     return hasAccess ? target : landing;
   }
 
-  if (target.startsWith("/invite/") || target.startsWith("/projects/")) {
+  if (target.startsWith("/invite/") || target.startsWith("/projects/") || target === "/app") {
     return target;
   }
 

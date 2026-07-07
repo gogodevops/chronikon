@@ -53,3 +53,30 @@ export async function getUserProjectRole(
   });
   return membership?.role ?? null;
 }
+
+export async function isAppAdmin(userId: string): Promise<boolean> {
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: { isAdmin: true, email: true },
+  });
+  if (!user) return false;
+  if (user.isAdmin) return true;
+
+  const adminEmails = [
+    process.env.SEED_ADMIN_EMAIL,
+    process.env.ADMIN_EMAIL,
+    "admin@chronikon.dev",
+  ]
+    .filter(Boolean)
+    .map((e) => e!.toLowerCase());
+
+  return adminEmails.includes(user.email.toLowerCase());
+}
+
+export async function requireAppAdmin() {
+  const session = await requireAuth();
+  if (!(await isAppAdmin(session.user.id))) {
+    throw new Error("Nur für App-Administratoren");
+  }
+  return session;
+}

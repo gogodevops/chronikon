@@ -670,6 +670,7 @@ export function AppShell({
         notifications={ctx.notifications}
         showTeamNav={canManageTeam(ctx.userRole)}
         canCreateProject
+        isAppAdmin={ctx.isAppAdmin}
         onViewChange={handleViewChange}
         onProjectChange={handleProjectChange}
         onCommandPaletteOpen={() => setPaletteOpen(true)}
