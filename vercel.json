@@ -3,7 +3,6 @@
   "framework": "nextjs",
   "regions": ["fra1"],
   "env": {
-    "AI_MOCK_MODE": "true",
     "AUTH_TRUST_HOST": "true"
   }
 }

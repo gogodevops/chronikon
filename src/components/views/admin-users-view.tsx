@@ -8,7 +8,7 @@ import { de } from "date-fns/locale";
 import {
   ArrowLeft,
   Copy,
-  Mail,
+  Link2,
   UserPlus,
   Users,
   X,
@@ -181,7 +181,7 @@ export function AdminUsersView({
         {invites.length > 0 && (
           <section className="rounded-xl border border-border bg-surface p-5">
             <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold">
-              <Mail className="h-4 w-4 text-accent" />
+              <Link2 className="h-4 w-4 text-accent" />
               Einladungen ({pendingInvites.length} offen)
             </h2>
             <ul className="space-y-2">

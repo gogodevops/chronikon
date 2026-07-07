@@ -74,7 +74,6 @@ Ohne Public URL: Dateien laufen über `/api/files/…` (nur eingeloggte Projekt-
 | `S3_BUCKET` | `chronikon-attachments` |
 | `S3_ACCESS_KEY` | R2 Key |
 | `S3_SECRET_KEY` | R2 Secret |
-| `AI_MOCK_MODE` | `true` |
 
 4. **Deploy**
 

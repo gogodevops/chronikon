@@ -1,5 +1,4 @@
 import { AppShell } from "@/components/app-shell";
-import { generateKiChecks } from "@/lib/ki-review";
 import { db } from "@/lib/db";
 import {
   getEntriesForProject,
@@ -23,10 +22,12 @@ export default async function ProjectBrowsePage({
   if (!project) return null;
 
   const filters = parseFiltersFromSearchParams(sp);
-  const [{ entries, total }, recentActivityEntryIds] = await Promise.all([
-    getEntriesForProject(project.id, filters),
-    getRecentActivityEntryIds(project.id),
-  ]);
+  const [{ entries, total }, recentActivityEntryIds, entryIndex] =
+    await Promise.all([
+      getEntriesForProject(project.id, filters),
+      getRecentActivityEntryIds(project.id),
+      getEntryTitleIndex(project.id),
+    ]);
 
   const selectedId =
     typeof sp.entry === "string" ? sp.entry : entries[0]?.id ?? null;
@@ -34,26 +35,6 @@ export default async function ProjectBrowsePage({
   const selectedEntry = selectedId
     ? await getEntryDetail(project.id, selectedId)
     : null;
-
-  const [fullEntry, allEntries, entryIndex] = selectedId
-    ? await Promise.all([
-        db.entry.findFirst({
-          where: { id: selectedId },
-          include: {
-            sources: true,
-            relationsFrom: true,
-            relationsTo: true,
-          },
-        }),
-        db.entry.findMany({ where: { projectId: project.id } }),
-        getEntryTitleIndex(project.id),
-      ])
-    : [null, [], await getEntryTitleIndex(project.id)];
-
-  let kiChecks: ReturnType<typeof generateKiChecks> = [];
-  if (fullEntry) {
-    kiChecks = generateKiChecks(fullEntry, allEntries);
-  }
 
   return (
     <AppShell
@@ -64,7 +45,6 @@ export default async function ProjectBrowsePage({
       selectedEntry={selectedEntry}
       entryIndex={entryIndex}
       viewMode="browse"
-      kiChecks={kiChecks}
       recentActivityEntryIds={recentActivityEntryIds}
     />
   );

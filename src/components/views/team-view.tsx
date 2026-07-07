@@ -7,7 +7,7 @@ import { de } from "date-fns/locale";
 import {
   Check,
   Copy,
-  Mail,
+  Link2,
   Shield,
   Trash2,
   UserPlus,
@@ -246,7 +246,7 @@ export function TeamView({
                       key={invite.id}
                       className="flex items-center gap-3 rounded-lg border border-dashed border-border px-3 py-2.5"
                     >
-                      <Mail className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <Link2 className="h-4 w-4 shrink-0 text-muted-foreground" />
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-[0.82rem]">{invite.email}</p>
                         <p className="text-[0.68rem] text-muted-foreground">

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { FileSearch, Plus, Sparkles } from "lucide-react";
+import { FileSearch, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -58,14 +58,12 @@ export interface DetailPanelProps {
   entryIndex?: EntryTitleIndex[];
   activeTab?: string;
   onTabChange?: (tab: string) => void;
-  kiCheckCount?: number;
   relationSearchResults?: LinkableEntryResult[];
   onRelationSearch?: (query: string) => void;
   className?: string;
   onAction?: (action: EntryAction) => void;
   onTabAction?: (tab: string, action: string, data?: unknown) => void;
   onNavigateEntry?: (entryId: string, projectSlug?: string) => void;
-  onKiReviewOpen?: () => void;
   onAttachmentUpload?: (file: File) => void;
   onAttachmentDelete?: (attachmentId: string) => void;
   canEdit?: boolean;
@@ -89,14 +87,12 @@ export function DetailPanel({
   entryIndex = [],
   activeTab = "inhalt",
   onTabChange,
-  kiCheckCount = 0,
   relationSearchResults = [],
   onRelationSearch,
   className,
   onAction,
   onTabAction,
   onNavigateEntry,
-  onKiReviewOpen,
   onAttachmentUpload,
   onAttachmentDelete,
   canEdit = true,
@@ -235,17 +231,6 @@ export function DetailPanel({
             commentCount={entry.commentCount ?? entry.comments?.length ?? 0}
           />
 
-          {kiCheckCount > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-3 h-8 gap-1.5 border-accent/30 bg-accent-dim/30 text-[0.72rem] text-accent hover:bg-accent-dim"
-              onClick={onKiReviewOpen}
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-              KI-Prüfung ({kiCheckCount})
-            </Button>
-          )}
         </div>
 
         <div className="px-5 py-4">

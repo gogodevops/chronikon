@@ -1,6 +1,6 @@
 # Chronikon
 
-Historische Forschungsplattform — Einträge, Quellen, Diskussionen und KI-gestützte Erfassung.
+Historische Forschungsplattform — Einträge, Quellen und Diskussionen.
 
 ## Voraussetzungen
 
@@ -31,7 +31,6 @@ DATABASE_URL="postgresql://...@...neon.tech/neondb?sslmode=require"
 AUTH_SECRET="irgendein-langer-zufallsstring"
 AUTH_URL="http://localhost:3000"
 STORAGE_MODE="local"
-AI_MOCK_MODE="true"
 ```
 
 Vorlage: `.env.example` nach `.env` kopieren.

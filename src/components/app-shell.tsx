@@ -27,7 +27,6 @@ import type { RelationType } from "@prisma/client";
 import type { Confidence } from "@prisma/client";
 import { canDeleteProject, canDiscuss, canEditProject, canSeeTeamNav, runServerAction } from "@/lib/action-feedback";
 import { CommandPalette, type CommandResult } from "@/components/command-palette";
-import { KiReviewModal } from "@/components/ki-review-modal";
 import {
   AppHeader,
   type AppView,
@@ -38,7 +37,6 @@ import { NavPanel, type EntryListItem } from "@/components/layout/nav-panel";
 import type { EntryAction } from "@/components/entry/entry-action-bar";
 import { useProject } from "@/context/project-context";
 import { CONF_META, LIST_LIMIT, TYPE_META } from "@/lib/constants";
-import type { KiCheck } from "@/lib/ki-review";
 import type {
   EntryTitleIndex,
   LinkableEntryResult,
@@ -54,7 +52,6 @@ export type AppShellProps = {
   selectedEntry?: SerializedEntryDetail | null;
   entryIndex?: EntryTitleIndex[];
   viewMode: AppView;
-  kiChecks?: KiCheck[];
   recentActivityEntryIds?: string[];
   children?: React.ReactNode;
 };
@@ -129,7 +126,6 @@ export function AppShell({
   selectedEntry,
   entryIndex = [],
   viewMode,
-  kiChecks = [],
   recentActivityEntryIds = [],
   children,
 }: AppShellProps) {
@@ -145,7 +141,6 @@ export function AppShell({
   }, [router]);
 
   const [paletteOpen, setPaletteOpen] = React.useState(false);
-  const [kiOpen, setKiOpen] = React.useState(false);
   const [listLimit, setListLimit] = React.useState(LIST_LIMIT);
   const [searchResults, setSearchResults] = React.useState<CommandResult[]>([]);
   const [activeTab, setActiveTab] = React.useState("inhalt");
@@ -160,16 +155,6 @@ export function AppShell({
   );
 
   const basePath = `/p/${ctx.slug}`;
-
-  React.useEffect(() => {
-    if (searchParams.get("kiReview") === "1" && kiChecks.length > 0) {
-      setKiOpen(true);
-      const params = new URLSearchParams(searchParams.toString());
-      params.delete("kiReview");
-      const qs = params.toString();
-      router.replace(qs ? `${pathname}?${qs}` : pathname);
-    }
-  }, [searchParams, kiChecks.length, pathname, router]);
 
   React.useEffect(() => {
     const tab = searchParams.get("tab");
@@ -337,38 +322,6 @@ export function AppShell({
       return;
     }
     router.push(`${basePath}?entry=${result.id}`);
-  };
-
-  const handleKiApply = async (checkId: string) => {
-    const check = kiChecks.find((c) => c.id === checkId);
-    if (!check?.action) return;
-
-    const { action } = check;
-    if (action.type === "create_relation") {
-      await addRelation({
-        projectId: ctx.id,
-        fromEntryId: action.fromEntryId,
-        toEntryId: action.toEntryId,
-        type: action.relationType,
-      });
-    } else if (action.type === "swap_years") {
-      const entry = selectedEntry;
-      if (entry) {
-        await updateEntry({
-          projectId: ctx.id,
-          id: entry.id,
-          yearStart: entry.yearEnd,
-          yearEnd: entry.yearStart,
-        });
-      }
-    } else if (action.type === "set_confidence") {
-      await updateEntry({
-        projectId: ctx.id,
-        id: action.entryId,
-        confidence: action.confidence,
-      });
-    }
-    router.refresh();
   };
 
   const handleRelationSearch = React.useCallback(
@@ -735,13 +688,11 @@ export function AppShell({
             entryIndex={entryIndex}
             activeTab={activeTab}
             onTabChange={setActiveTab}
-            kiCheckCount={kiChecks.length}
             relationSearchResults={relationSearchResults}
             onRelationSearch={handleRelationSearch}
             onAction={handleEntryAction}
             onTabAction={handleTabAction}
             onNavigateEntry={handleNavigateEntry}
-            onKiReviewOpen={() => setKiOpen(true)}
             onAttachmentUpload={handleAttachmentUpload}
             onAttachmentDelete={handleAttachmentDelete}
             canEdit={canEdit}
@@ -763,18 +714,6 @@ export function AppShell({
         onSelect={handlePaletteSelect}
       />
 
-      <KiReviewModal
-        open={kiOpen}
-        onOpenChange={setKiOpen}
-        entryTitle={selectedEntry?.title}
-        checks={kiChecks.map((c) => ({
-          id: c.id,
-          title: c.title,
-          text: c.text,
-          detail: c.detail,
-        }))}
-        onApply={handleKiApply}
-      />
     </div>
   );
 }

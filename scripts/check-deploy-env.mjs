@@ -71,10 +71,6 @@ if (hasS3) {
   );
 }
 
-if (!process.env.OPENAI_API_KEY && process.env.AI_MOCK_MODE !== "true") {
-  warnings.push("OPENAI_API_KEY leer — setze AI_MOCK_MODE=true für Demo");
-}
-
 console.log("\n  Chronikon — Deploy Check\n");
 
 if (errors.length) {

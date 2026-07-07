@@ -1,6 +1,5 @@
 "use server";
 
-import type { ProjectRole } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { z } from "zod";
@@ -16,7 +15,6 @@ import {
   verifySessionUserExists,
 } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
-import { generateInviteToken, inviteExpiresAt } from "@/lib/invite-token";
 import { slugify } from "@/lib/slug";
 import { uniqueProjectSlug } from "@/lib/slugify";
 
@@ -135,12 +133,6 @@ export async function createProject(
   }
 }
 
-const inviteSchema = z.object({
-  projectId: z.string().cuid(),
-  email: z.string().email(),
-  role: z.enum(["owner", "editor", "commenter", "viewer"]).default("commenter"),
-});
-
 export async function switchProject(
   projectId: string,
 ): Promise<ActionResult<{ slug: string }>> {
@@ -193,50 +185,6 @@ export async function getActiveProjectId(): Promise<string | null> {
   });
 
   return firstMembership?.projectId ?? null;
-}
-
-export async function inviteMember(
-  input: z.infer<typeof inviteSchema>,
-): Promise<ActionResult<{ inviteId: string; token: string }>> {
-  const parsed = inviteSchema.safeParse(input);
-  if (!parsed.success) {
-    return {
-      success: false,
-      error: parsed.error.issues[0]?.message ?? "Ungültige Eingabe",
-    };
-  }
-
-  const { session } = await requireProjectRole(parsed.data.projectId, "owner");
-
-  const existingMember = await db.user.findUnique({
-    where: { email: parsed.data.email },
-    include: {
-      memberships: {
-        where: { projectId: parsed.data.projectId },
-      },
-    },
-  });
-
-  if (existingMember?.memberships.length) {
-    return { success: false, error: "Benutzer ist bereits Mitglied" };
-  }
-
-  const invite = await db.projectInvite.create({
-    data: {
-      projectId: parsed.data.projectId,
-      email: parsed.data.email,
-      role: parsed.data.role as ProjectRole,
-      token: generateInviteToken(),
-      invitedBy: session.user.id,
-      expiresAt: inviteExpiresAt(),
-    },
-  });
-
-  revalidatePath(`/projects/${parsed.data.projectId}/team`);
-  return {
-    success: true,
-    data: { inviteId: invite.id, token: invite.token },
-  };
 }
 
 export async function acceptInvite(
