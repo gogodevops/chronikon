@@ -60,6 +60,77 @@ export function parseEntryFilterParams(
   });
 }
 
+function buildTypeFilter(types: EntryType[]): Prisma.EntryWhereInput | undefined {
+  if (!types.length) return undefined;
+
+  const conditions: Prisma.EntryWhereInput[] = [];
+  const hasBook = types.includes("book");
+  const hasText = types.includes("text");
+
+  if (hasBook) {
+    conditions.push({ type: "book" });
+    conditions.push({ parentEntry: { type: "book" } });
+  }
+
+  if (hasText) {
+    conditions.push({
+      type: "text",
+      OR: [
+        { parentEntryId: null },
+        { parentEntry: { type: { not: "book" } } },
+      ],
+    });
+  }
+
+  for (const type of types) {
+    if (type !== "book" && type !== "text") {
+      conditions.push({ type });
+    }
+  }
+
+  return { OR: conditions };
+}
+
+export function sortEntriesHierarchically(
+  entries: Array<{ id: string; parentEntryId: string | null; title: string }>,
+): string[] {
+  const byId = new Set(entries.map((entry) => entry.id));
+  const childrenByParent = new Map<string, typeof entries>();
+
+  for (const entry of entries) {
+    if (entry.parentEntryId && byId.has(entry.parentEntryId)) {
+      const siblings = childrenByParent.get(entry.parentEntryId) ?? [];
+      siblings.push(entry);
+      childrenByParent.set(entry.parentEntryId, siblings);
+    }
+  }
+
+  const roots = entries.filter(
+    (entry) => !entry.parentEntryId || !byId.has(entry.parentEntryId),
+  );
+
+  const ordered: string[] = [];
+  const visit = (entry: (typeof entries)[number]) => {
+    ordered.push(entry.id);
+    const children = [...(childrenByParent.get(entry.id) ?? [])].sort((a, b) =>
+      a.title.localeCompare(b.title, "de"),
+    );
+    for (const child of children) visit(child);
+  };
+
+  for (const root of [...roots].sort((a, b) =>
+    a.title.localeCompare(b.title, "de"),
+  )) {
+    visit(root);
+  }
+
+  for (const entry of entries) {
+    if (!ordered.includes(entry.id)) ordered.push(entry.id);
+  }
+
+  return ordered;
+}
+
 export function buildEntryFilter(
   projectId: string,
   params: EntryFilterParams,
@@ -73,8 +144,9 @@ export function buildEntryFilter(
   }
 
   const types = toArray(params.type) as EntryType[];
-  if (types.length) {
-    where.type = { in: types };
+  const typeFilter = buildTypeFilter(types);
+  if (typeFilter) {
+    where.AND = [...(Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []), typeFilter];
   }
 
   const confidences = toArray(params.confidence) as Confidence[];
@@ -137,7 +209,13 @@ function applySavedViewFilter(
   }
 
   if (typeof filter.type === "string") {
-    where.type = filter.type as EntryType;
+    const typeFilter = buildTypeFilter([filter.type as EntryType]);
+    if (typeFilter) {
+      where.AND = [
+        ...(Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []),
+        typeFilter,
+      ];
+    }
   }
 
   if (typeof filter.sourcesMax === "number" && filter.sourcesMax <= 1) {

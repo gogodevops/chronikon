@@ -22,6 +22,7 @@ import {
   buildEntryFilter,
   buildEntryOrderBy,
   parseEntryFilterParams,
+  sortEntriesHierarchically,
   type EntryFilterParams,
 } from "@/lib/search";
 
@@ -155,6 +156,8 @@ export type SerializedEntryDetail = SerializedEntryListItem & {
     mimeType: string;
     publicUrl: string | null;
     label: string | null;
+    ocrStatus: string;
+    extractedText: string | null;
   }>;
   sources: SerializedSource[];
   claims: SerializedClaim[];
@@ -324,7 +327,14 @@ export async function getEntriesForProject(
   ]);
 
   return {
-    entries: entries.map(mapEntryListItem),
+    entries: (() => {
+      const mapped = entries.map(mapEntryListItem);
+      const order = sortEntriesHierarchically(mapped);
+      const byId = new Map(mapped.map((entry) => [entry.id, entry]));
+      return order
+        .map((id) => byId.get(id))
+        .filter((entry): entry is SerializedEntryListItem => Boolean(entry));
+    })(),
     total,
   };
 }
@@ -476,6 +486,8 @@ export async function getEntryDetail(
       mimeType: a.mimeType,
       publicUrl: a.publicUrl,
       label: a.label,
+      ocrStatus: a.ocrStatus,
+      extractedText: a.extractedText,
     })),
     sources: entry.sources.map((s) => ({
       id: s.id,

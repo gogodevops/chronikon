@@ -11,6 +11,9 @@ export interface AttachmentItem {
   filename: string;
   mimeType?: string;
   url?: string;
+  label?: string | null;
+  ocrStatus?: string;
+  extractedText?: string | null;
 }
 
 export interface AttachmentsSectionProps {

@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
 
 export interface FilterChip {
   id: string;
@@ -188,6 +189,96 @@ function FilterChipButton({
   );
 }
 
+function buildNavGroups(entries: EntryListItem[]) {
+  const childrenByBook = new Map<string, EntryListItem[]>();
+  for (const entry of entries) {
+    if (entry.parentEntryId) {
+      const siblings = childrenByBook.get(entry.parentEntryId) ?? [];
+      siblings.push(entry);
+      childrenByBook.set(entry.parentEntryId, siblings);
+    }
+  }
+
+  const renderedChildIds = new Set<string>();
+  const groups: Array<
+    | { kind: "book"; book: EntryListItem; children: EntryListItem[] }
+    | { kind: "entry"; entry: EntryListItem }
+  > = [];
+
+  for (const entry of entries) {
+    if (renderedChildIds.has(entry.id)) continue;
+    const children =
+      entry.type === "book" ? (childrenByBook.get(entry.id) ?? []) : [];
+    if (children.length > 0) {
+      groups.push({ kind: "book", book: entry, children });
+      for (const child of children) renderedChildIds.add(child.id);
+    } else {
+      groups.push({ kind: "entry", entry });
+    }
+  }
+
+  return groups;
+}
+
+function EntryNavButton({
+  entry,
+  selectedEntryId,
+  recentActivityEntryIds,
+  onEntrySelect,
+  nested = false,
+}: {
+  entry: EntryListItem;
+  selectedEntryId?: string | null;
+  recentActivityEntryIds?: Set<string>;
+  onEntrySelect?: (id: string) => void;
+  nested?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onEntrySelect?.(entry.id)}
+      className={cn(
+        "mb-1.5 flex w-full cursor-pointer items-start gap-2.5 rounded-lg border p-2.5 text-left transition-all",
+        nested && "ml-3 border-l-2 border-l-accent/30",
+        selectedEntryId === entry.id
+          ? "border-accent/40 bg-accent-dim/60 shadow-[inset_3px_0_0_0_var(--accent)]"
+          : "border-border/50 bg-surface/40 hover:border-border hover:bg-surface-2/80",
+      )}
+    >
+      <span
+        className="mt-1 w-1 min-h-8 shrink-0 self-stretch rounded-full"
+        style={{ background: entry.typeColor }}
+      />
+      <div className="min-w-0 flex-1">
+        <h3 className="flex items-center gap-1.5 text-[0.82rem] font-medium leading-snug">
+          {nested && (
+            <span
+              className="shrink-0 text-[0.68rem] text-muted-foreground"
+              title={entry.parentEntryTitle ?? "Untereintrag"}
+            >
+              ↳
+            </span>
+          )}
+          <span className="truncate">{entry.title}</span>
+          {recentActivityEntryIds?.has(entry.id) && (
+            <span
+              className="shrink-0 rounded-full bg-accent/15 px-1.5 py-px text-[0.58rem] font-semibold uppercase tracking-wider text-accent"
+              title="Aktivität in den letzten 7 Tagen"
+            >
+              Neu
+            </span>
+          )}
+        </h3>
+        <p className="mt-0.5 text-[0.68rem] text-muted-foreground">
+          {entry.typeLabel}
+          {entry.parentEntryTitle ? ` · in ${entry.parentEntryTitle}` : ""}
+          {entry.topic ? ` · ${entry.topic}` : ""}
+        </p>
+      </div>
+    </button>
+  );
+}
+
 export function NavPanel({
   className,
   topics = DEFAULT_TOPICS,
@@ -226,6 +317,8 @@ export function NavPanel({
     activeConfidence.size +
     (activeSavedView ? 1 : 0) +
     (searchQuery.trim() ? 1 : 0);
+
+  const navGroups = buildNavGroups(entries);
 
   return (
     <aside
@@ -424,53 +517,42 @@ export function NavPanel({
                   )}
                 </div>
               ) : (
-                entries.map((entry) => (
-                  <button
-                    key={entry.id}
-                    type="button"
-                    onClick={() => onEntrySelect?.(entry.id)}
-                    className={cn(
-                      "mb-1.5 flex w-full cursor-pointer items-start gap-2.5 rounded-lg border p-2.5 text-left transition-all",
-                      entry.parentEntryId && "ml-3 border-l-2 border-l-accent/30",
-                      selectedEntryId === entry.id
-                        ? "border-accent/40 bg-accent-dim/60 shadow-[inset_3px_0_0_0_var(--accent)]"
-                        : "border-border/50 bg-surface/40 hover:border-border hover:bg-surface-2/80",
-                    )}
-                  >
-                    <span
-                      className="mt-1 w-1 min-h-8 shrink-0 self-stretch rounded-full"
-                      style={{ background: entry.typeColor }}
+                navGroups.map((group) =>
+                  group.kind === "book" ? (
+                    <CollapsibleSection
+                      key={group.book.id}
+                      title={group.book.title}
+                      count={group.children.length + 1}
+                      defaultOpen={group.children.length <= 3}
+                      className="mb-2 border-border/50 bg-transparent"
+                    >
+                      <EntryNavButton
+                        entry={group.book}
+                        selectedEntryId={selectedEntryId}
+                        recentActivityEntryIds={recentActivityEntryIds}
+                        onEntrySelect={onEntrySelect}
+                      />
+                      {group.children.map((child) => (
+                        <EntryNavButton
+                          key={child.id}
+                          entry={child}
+                          selectedEntryId={selectedEntryId}
+                          recentActivityEntryIds={recentActivityEntryIds}
+                          onEntrySelect={onEntrySelect}
+                          nested
+                        />
+                      ))}
+                    </CollapsibleSection>
+                  ) : (
+                    <EntryNavButton
+                      key={group.entry.id}
+                      entry={group.entry}
+                      selectedEntryId={selectedEntryId}
+                      recentActivityEntryIds={recentActivityEntryIds}
+                      onEntrySelect={onEntrySelect}
                     />
-                    <div className="min-w-0 flex-1">
-                      <h3 className="flex items-center gap-1.5 text-[0.82rem] font-medium leading-snug">
-                        {entry.parentEntryId && (
-                          <span
-                            className="shrink-0 text-[0.68rem] text-muted-foreground"
-                            title={entry.parentEntryTitle ?? "Untereintrag"}
-                          >
-                            ↳
-                          </span>
-                        )}
-                        <span className="truncate">{entry.title}</span>
-                        {recentActivityEntryIds?.has(entry.id) && (
-                          <span
-                            className="shrink-0 rounded-full bg-accent/15 px-1.5 py-px text-[0.58rem] font-semibold uppercase tracking-wider text-accent"
-                            title="Aktivität in den letzten 7 Tagen"
-                          >
-                            Neu
-                          </span>
-                        )}
-                      </h3>
-                      <p className="mt-0.5 text-[0.68rem] text-muted-foreground">
-                        {entry.typeLabel}
-                        {entry.parentEntryTitle
-                          ? ` · in ${entry.parentEntryTitle}`
-                          : ""}
-                        {entry.topic ? ` · ${entry.topic}` : ""}
-                      </p>
-                    </div>
-                  </button>
-                ))
+                  ),
+                )
               )}
             </div>
           </ScrollArea>

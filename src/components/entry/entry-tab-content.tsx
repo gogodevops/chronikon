@@ -14,6 +14,12 @@ import type {
   SerializedSource,
 } from "@/lib/queries";
 import { cn } from "@/lib/utils";
+import {
+  COLLAPSE_LIST_THRESHOLD,
+  CollapsibleItem,
+  CollapsibleListControls,
+  useCollapsibleList,
+} from "@/components/ui/collapsible-section";
 
 export function SourcesList({
   sources,
@@ -26,6 +32,12 @@ export function SourcesList({
   onDelete?: (sourceId: string) => void;
   canEdit?: boolean;
 }) {
+  const collapsible = sources.length > COLLAPSE_LIST_THRESHOLD;
+  const list = useCollapsibleList(
+    sources.map((source) => source.id),
+    collapsible,
+  );
+
   if (sources.length === 0) {
     return (
       <p className="mb-3 text-[0.82rem] text-muted-foreground">
@@ -34,52 +46,83 @@ export function SourcesList({
     );
   }
 
-  return (
-    <div className="mb-3 space-y-2">
-      {sources.map((s) => (
-        <div
-          key={s.id}
-          className={cn(
-            "relative rounded-xl border border-border/70 bg-surface-2/60 p-3 pr-9 text-[0.82rem] transition-colors hover:border-border",
-            s.type === "primary" && "border-l-[3px] border-l-green/80",
-            s.type === "secondary" && "border-l-[3px] border-l-blue/80",
-          )}
+  const renderSource = (s: SerializedSource, nested = false) => (
+    <div
+      key={s.id}
+      className={cn(
+        "relative rounded-xl border border-border/70 bg-surface-2/60 p-3 pr-9 text-[0.82rem] transition-colors hover:border-border",
+        s.type === "primary" && "border-l-[3px] border-l-green/80",
+        s.type === "secondary" && "border-l-[3px] border-l-blue/80",
+        nested && "border-none bg-transparent p-0 pr-9",
+      )}
+    >
+      {canEdit && onDelete && (
+        <button
+          type="button"
+          onClick={() => onDelete(s.id)}
+          className="absolute right-2 top-2 cursor-pointer rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+          title="Quelle löschen"
         >
-          {canEdit && onDelete && (
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      )}
+      <div className="font-medium">{s.title}</div>
+      <div className="mt-0.5 text-[0.72rem] text-muted-foreground">
+        {SOURCE_TYPE_LABELS[s.type as keyof typeof SOURCE_TYPE_LABELS] ??
+          s.type}
+        {s.ref ? ` · ${s.ref}` : ""}
+        {s.linkedEntryId && s.linkedEntryTitle ? (
+          <>
+            {" · "}
             <button
               type="button"
-              onClick={() => onDelete(s.id)}
-              className="absolute right-2 top-2 cursor-pointer rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-              title="Quelle löschen"
+              onClick={() => onNavigate?.(s.linkedEntryId!)}
+              className="cursor-pointer text-accent hover:underline"
             >
-              <Trash2 className="h-3.5 w-3.5" />
+              → {s.linkedEntryTitle}
             </button>
-          )}
-          <div className="font-medium">{s.title}</div>
-          <div className="mt-0.5 text-[0.72rem] text-muted-foreground">
-            {SOURCE_TYPE_LABELS[s.type as keyof typeof SOURCE_TYPE_LABELS] ??
-              s.type}
-            {s.ref ? ` · ${s.ref}` : ""}
-            {s.linkedEntryId && s.linkedEntryTitle ? (
-              <>
-                {" · "}
-                <button
-                  type="button"
-                  onClick={() => onNavigate?.(s.linkedEntryId!)}
-                  className="cursor-pointer text-accent hover:underline"
-                >
-                  → {s.linkedEntryTitle}
-                </button>
-              </>
-            ) : null}
-          </div>
-          {s.note && (
-            <div className="mt-1 text-[0.78rem] text-muted-foreground">
-              {s.note}
-            </div>
-          )}
-        </div>
-      ))}
+          </>
+        ) : null}
+      </div>
+      {s.note && (
+        <div className="mt-1 text-[0.78rem] text-muted-foreground">{s.note}</div>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="mb-3 space-y-2">
+      {collapsible && (
+        <CollapsibleListControls
+          onExpandAll={list.expandAll}
+          onCollapseAll={list.collapseAll}
+          allExpanded={list.allExpanded}
+          noneExpanded={list.noneExpanded}
+        />
+      )}
+      {sources.map((s) =>
+        collapsible ? (
+          <CollapsibleItem
+            key={s.id}
+            id={s.id}
+            isOpen={list.isExpanded(s.id)}
+            onToggle={list.toggle}
+            header={
+              <div className="min-w-0 text-[0.82rem]">
+                <div className="truncate font-medium">{s.title}</div>
+                <div className="truncate text-[0.72rem] text-muted-foreground">
+                  {SOURCE_TYPE_LABELS[s.type as keyof typeof SOURCE_TYPE_LABELS] ??
+                    s.type}
+                </div>
+              </div>
+            }
+          >
+            {renderSource(s, true)}
+          </CollapsibleItem>
+        ) : (
+          renderSource(s)
+        ),
+      )}
     </div>
   );
 }
@@ -93,6 +136,12 @@ export function ClaimsList({
   onDelete?: (claimId: string) => void;
   canEdit?: boolean;
 }) {
+  const collapsible = claims.length > COLLAPSE_LIST_THRESHOLD;
+  const list = useCollapsibleList(
+    claims.map((claim) => claim.id),
+    collapsible,
+  );
+
   if (claims.length === 0) {
     return (
       <p className="mb-3 text-[0.82rem] text-muted-foreground">
@@ -101,42 +150,82 @@ export function ClaimsList({
     );
   }
 
+  const renderClaim = (c: SerializedClaim, nested = false) => (
+    <div
+      key={c.id}
+      className={cn(
+        "relative flex gap-2 rounded-xl border border-border/70 bg-surface-2/60 p-3 pr-9",
+        nested && "border-none bg-transparent p-0 pr-9",
+      )}
+    >
+      {canEdit && onDelete && (
+        <button
+          type="button"
+          onClick={() => onDelete(c.id)}
+          className="absolute right-2 top-2 cursor-pointer rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+          title="Behauptung löschen"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      )}
+      <span
+        className="h-fit shrink-0 rounded px-1.5 py-0.5 text-[0.65rem] font-medium"
+        style={{
+          background: `${c.confidenceColor}22`,
+          color: c.confidenceColor,
+        }}
+      >
+        {c.confidenceLabel}
+      </span>
+      <div className="min-w-0 text-[0.82rem]">
+        <p>{c.text}</p>
+        {c.authorName && (
+          <p className="mt-1 text-[0.72rem] text-muted-foreground">
+            {c.authorName}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <div className="mb-3 space-y-2">
-      {claims.map((c) => (
-        <div
-          key={c.id}
-          className="relative flex gap-2 rounded-xl border border-border/70 bg-surface-2/60 p-3 pr-9"
-        >
-          {canEdit && onDelete && (
-            <button
-              type="button"
-              onClick={() => onDelete(c.id)}
-              className="absolute right-2 top-2 cursor-pointer rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-              title="Behauptung löschen"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
-          )}
-          <span
-            className="h-fit shrink-0 rounded px-1.5 py-0.5 text-[0.65rem] font-medium"
-            style={{
-              background: `${c.confidenceColor}22`,
-              color: c.confidenceColor,
-            }}
+      {collapsible && (
+        <CollapsibleListControls
+          onExpandAll={list.expandAll}
+          onCollapseAll={list.collapseAll}
+          allExpanded={list.allExpanded}
+          noneExpanded={list.noneExpanded}
+        />
+      )}
+      {claims.map((c) =>
+        collapsible ? (
+          <CollapsibleItem
+            key={c.id}
+            id={c.id}
+            isOpen={list.isExpanded(c.id)}
+            onToggle={list.toggle}
+            header={
+              <div className="flex min-w-0 items-center gap-2 text-[0.82rem]">
+                <span
+                  className="shrink-0 rounded px-1.5 py-0.5 text-[0.65rem] font-medium"
+                  style={{
+                    background: `${c.confidenceColor}22`,
+                    color: c.confidenceColor,
+                  }}
+                >
+                  {c.confidenceLabel}
+                </span>
+                <span className="truncate">{c.text}</span>
+              </div>
+            }
           >
-            {c.confidenceLabel}
-          </span>
-          <div className="min-w-0 text-[0.82rem]">
-            <p>{c.text}</p>
-            {c.authorName && (
-              <p className="mt-1 text-[0.72rem] text-muted-foreground">
-                {c.authorName}
-              </p>
-            )}
-          </div>
-        </div>
-      ))}
+            {renderClaim(c, true)}
+          </CollapsibleItem>
+        ) : (
+          renderClaim(c)
+        ),
+      )}
     </div>
   );
 }
@@ -289,6 +378,12 @@ export function RelationsList({
   onDelete?: (relationId: string) => void;
   canEdit?: boolean;
 }) {
+  const collapsible = relations.length > COLLAPSE_LIST_THRESHOLD;
+  const list = useCollapsibleList(
+    relations.map((relation) => relation.id),
+    collapsible,
+  );
+
   if (relations.length === 0) {
     return (
       <p className="mb-3 text-[0.82rem] text-muted-foreground">
@@ -299,40 +394,71 @@ export function RelationsList({
 
   return (
     <div className="mb-3 space-y-1.5">
-      {relations.map((r) => (
-        <div key={r.id} className="relative">
-          <button
-            type="button"
-            onClick={() =>
-              onNavigate?.(r.otherEntryId, r.otherEntryProjectSlug ?? undefined)
-            }
-            className="flex w-full cursor-pointer items-center gap-2 rounded-xl border border-border/70 bg-surface-2/60 p-2.5 pr-9 text-left text-[0.82rem] transition-all hover:border-accent/30 hover:bg-surface-3/50"
-          >
-            <span
-              className="h-1.5 w-1.5 shrink-0 rounded-full"
-              style={{ background: r.otherEntryTypeColor }}
-            />
-            <span className="min-w-0 flex-1 truncate">
-              {r.typeLabel}: <strong className="font-medium">{r.otherEntryTitle}</strong>
-              {r.isCrossProject && r.otherEntryProjectName && (
-                <span className="ml-1.5 text-[0.68rem] font-normal text-accent">
-                  {r.otherEntryProjectIcon} {r.otherEntryProjectName}
-                </span>
-              )}
-            </span>
-          </button>
-          {canEdit && onDelete && (
+      {collapsible && (
+        <CollapsibleListControls
+          onExpandAll={list.expandAll}
+          onCollapseAll={list.collapseAll}
+          allExpanded={list.allExpanded}
+          noneExpanded={list.noneExpanded}
+        />
+      )}
+      {relations.map((r) => {
+        const row = (
+          <div className="relative">
             <button
               type="button"
-              onClick={() => onDelete(r.id)}
-              className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-              title="Verknüpfung löschen"
+              onClick={() =>
+                onNavigate?.(r.otherEntryId, r.otherEntryProjectSlug ?? undefined)
+              }
+              className="flex w-full cursor-pointer items-center gap-2 rounded-xl border border-border/70 bg-surface-2/60 p-2.5 pr-9 text-left text-[0.82rem] transition-all hover:border-accent/30 hover:bg-surface-3/50"
             >
-              <Trash2 className="h-3.5 w-3.5" />
+              <span
+                className="h-1.5 w-1.5 shrink-0 rounded-full"
+                style={{ background: r.otherEntryTypeColor }}
+              />
+              <span className="min-w-0 flex-1 truncate">
+                {r.typeLabel}:{" "}
+                <strong className="font-medium">{r.otherEntryTitle}</strong>
+                {r.isCrossProject && r.otherEntryProjectName && (
+                  <span className="ml-1.5 text-[0.68rem] font-normal text-accent">
+                    {r.otherEntryProjectIcon} {r.otherEntryProjectName}
+                  </span>
+                )}
+              </span>
             </button>
-          )}
-        </div>
-      ))}
+            {canEdit && onDelete && (
+              <button
+                type="button"
+                onClick={() => onDelete(r.id)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                title="Verknüpfung löschen"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+        );
+
+        if (!collapsible) {
+          return <div key={r.id}>{row}</div>;
+        }
+
+        return (
+          <CollapsibleItem
+            key={r.id}
+            id={r.id}
+            isOpen={list.isExpanded(r.id)}
+            onToggle={list.toggle}
+            header={
+              <span className="truncate text-[0.82rem]">
+                {r.typeLabel}: <strong>{r.otherEntryTitle}</strong>
+              </span>
+            }
+          >
+            {row}
+          </CollapsibleItem>
+        );
+      })}
     </div>
   );
 }
