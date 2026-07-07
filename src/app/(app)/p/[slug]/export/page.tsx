@@ -16,9 +16,13 @@ export default async function ExportPage({
       project={{ id: slug, name: project.name, icon: project.icon }}
       entries={[]}
       totalCount={0}
-      viewMode="browse"
+      viewMode="export"
     >
-      <ExportView projectId={project.id} />
+      <ExportView
+        projectId={project.id}
+        projectName={project.name}
+        projectSlug={slug}
+      />
     </AppShell>
   );
 }

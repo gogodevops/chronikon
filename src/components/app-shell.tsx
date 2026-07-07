@@ -66,6 +66,7 @@ const VIEW_ROUTES: Record<AppView, string> = {
   notifications: "/notifications",
   team: "/team",
   form: "/new",
+  export: "/export",
 };
 
 function toListItem(e: SerializedEntryListItem): EntryListItem {
@@ -679,6 +680,7 @@ export function AppShell({
                     )
                 : undefined
             }
+            projectName={ctx.name}
             className="max-[900px]:hidden"
           />
         )}

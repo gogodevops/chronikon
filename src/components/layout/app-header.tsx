@@ -28,7 +28,8 @@ export type AppView =
   | "discussions"
   | "notifications"
   | "team"
-  | "form";
+  | "form"
+  | "export";
 
 export interface ProjectOption {
   id: string;

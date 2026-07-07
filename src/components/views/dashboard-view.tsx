@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
+  Archive,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
@@ -65,6 +66,21 @@ export function DashboardView({
             color="var(--red)"
           />
         </div>
+
+        <Link
+          href={`/p/${projectSlug}/export`}
+          className="mb-3 flex shrink-0 items-center gap-3 rounded-xl border border-accent/25 bg-accent-dim/30 px-4 py-3 transition-colors hover:border-accent/40"
+        >
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-accent/30 bg-surface text-accent">
+            <Archive className="h-4 w-4" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-[0.82rem] font-medium">Export & Online-KI</p>
+            <p className="text-[0.68rem] text-muted-foreground">
+              Projekt als ZIP — Vorlagen für ChatGPT & Co.
+            </p>
+          </div>
+        </Link>
 
         <div className="grid min-h-0 flex-1 gap-3 overflow-hidden lg:grid-cols-5">
           <section className="flex min-h-0 flex-col overflow-hidden lg:col-span-3">

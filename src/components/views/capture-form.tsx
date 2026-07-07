@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { TYPE_META } from "@/lib/constants";
 import { ViewFrame } from "@/components/ui/chronikon-shell";
+import { ENTRY_TYPE_HINTS } from "@/lib/ki-templates";
 
 export function CaptureForm({
   projectId,
@@ -215,6 +216,9 @@ export function CaptureForm({
               ))}
             </SelectContent>
           </Select>
+          <p className="mt-1.5 rounded-lg border border-border/50 bg-surface-2/50 px-2.5 py-2 text-[0.75rem] leading-relaxed text-muted-foreground">
+            {ENTRY_TYPE_HINTS[fields.type as keyof typeof ENTRY_TYPE_HINTS]}
+          </p>
         </Field>
 
         <Field label="Titel">

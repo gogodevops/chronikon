@@ -7,6 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ChildEntriesSection } from "@/components/entry/child-entries-section";
+import { OnlineKiSection } from "@/components/entry/online-ki-section";
 import { EntryActionBar, type EntryAction } from "@/components/entry/entry-action-bar";
 import { AttachmentsSection, type AttachmentItem } from "@/components/entry/attachments-section";
 import { EntryTabs } from "@/components/entry/entry-tabs";
@@ -75,6 +76,7 @@ export interface DetailPanelProps {
   canCreateEntry?: boolean;
   onNewEntry?: () => void;
   onCreateChildEntry?: () => void;
+  projectName?: string;
 }
 
 function yearLabel(year?: number | null) {
@@ -103,6 +105,7 @@ export function DetailPanel({
   canCreateEntry = false,
   onNewEntry,
   onCreateChildEntry,
+  projectName = "",
 }: DetailPanelProps) {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -263,6 +266,10 @@ export function DetailPanel({
             {entry.author && <ChMetaPill label="Autor" value={entry.author} />}
             {entry.place && <ChMetaPill label="Ort" value={entry.place} />}
           </div>
+
+          {projectName && (
+            <OnlineKiSection entry={entry} projectName={projectName} />
+          )}
 
           {entry.type === "book" && (
             <ChildEntriesSection
