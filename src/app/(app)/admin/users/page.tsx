@@ -1,8 +1,12 @@
+import { listUserInvitesForAdmin } from "@/actions/invites";
 import { listAppUsers } from "@/actions/users";
 import { AdminUsersView } from "@/components/views/admin-users-view";
 
 export default async function AdminUsersPage() {
-  const users = await listAppUsers();
+  const [users, invites] = await Promise.all([
+    listAppUsers(),
+    listUserInvitesForAdmin(),
+  ]);
 
   return (
     <AdminUsersView
@@ -15,6 +19,7 @@ export default async function AdminUsersPage() {
         avatarInitials: u.avatarInitials,
         projectCount: u._count.memberships,
       }))}
+      invites={invites}
     />
   );
 }

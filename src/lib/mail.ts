@@ -112,18 +112,40 @@ export async function sendProjectInviteEmail(options: {
     "",
     "Chronikon ist eine Plattform für historische Forschung.",
     "",
-    "Falls du noch keinen Account hast, legt der Administrator deinen Zugang an.",
-    "Melde dich dann mit der E-Mail-Adresse an, für die diese Einladung gilt:",
-    `  ${options.to}`,
+    "Öffne den Link, um dein Konto anzulegen und die Einladung anzunehmen:",
+    `  ${options.inviteUrl}`,
     "",
-    `Einladung annehmen: ${options.inviteUrl}`,
-    "",
+    "Die E-Mail-Adresse ist fest mit dieser Einladung verknüpft.",
     "Der Link ist 14 Tage gültig.",
   ];
 
   return sendMail({
     to: options.to,
     subject: `Einladung: ${options.projectName} (Chronikon)`,
+    text: lines.join("\n"),
+  });
+}
+
+export async function sendUserInviteEmail(options: {
+  to: string;
+  inviteUrl: string;
+  invitedBy: string;
+}): Promise<MailResult> {
+  const lines = [
+    "Hallo,",
+    "",
+    `${options.invitedBy} hat dich zu Chronikon eingeladen — einer Plattform für historische Forschung.`,
+    "",
+    "Öffne den Link, um dein Konto anzulegen:",
+    `  ${options.inviteUrl}`,
+    "",
+    "Die E-Mail-Adresse ist fest mit dieser Einladung verknüpft.",
+    "Der Link ist 14 Tage gültig.",
+  ];
+
+  return sendMail({
+    to: options.to,
+    subject: "Einladung zu Chronikon",
     text: lines.join("\n"),
   });
 }

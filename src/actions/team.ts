@@ -1,15 +1,14 @@
 "use server";
 
 import type { ProjectRole } from "@prisma/client";
-import bcrypt from "bcryptjs";
 import { z } from "zod";
 
 import type { ActionResult } from "@/actions/auth";
-import { requireAppAdmin, requireProjectRole } from "@/lib/auth-helpers";
+import { requireProjectRole } from "@/lib/auth-helpers";
 import { ROLE_META } from "@/lib/constants";
 import { db } from "@/lib/db";
-import { generatePassword } from "@/lib/generate-password";
-import { sendProjectInviteEmail, sendWelcomeEmail } from "@/lib/mail";
+import { generateInviteToken, inviteExpiresAt } from "@/lib/invite-token";
+import { sendProjectInviteEmail } from "@/lib/mail";
 import { revalidateProject } from "@/lib/revalidate-project";
 
 const roleSchema = z.enum(["owner", "editor", "commenter", "viewer"]);
@@ -18,8 +17,6 @@ const addMemberSchema = z.object({
   projectId: z.string().cuid(),
   email: z.string().email(),
   role: roleSchema.default("commenter"),
-  name: z.string().min(1).optional(),
-  password: z.string().min(8).optional(),
   sendEmail: z.boolean().optional(),
 });
 
@@ -29,13 +26,13 @@ const updateRoleSchema = z.object({
   role: roleSchema,
 });
 
-function initials(name: string): string {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase() ?? "")
-    .join("");
+function appBaseUrl(): string {
+  return (
+    process.env.AUTH_URL?.replace(/\/$/, "") ??
+    (process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : "http://localhost:3000")
+  );
 }
 
 async function countOwners(projectId: string): Promise<number> {
@@ -104,7 +101,6 @@ export async function addProjectMember(
     memberId?: string;
     inviteToken?: string;
     emailSent?: boolean;
-    temporaryPassword?: string;
   }>
 > {
   const parsed = addMemberSchema.safeParse(input);
@@ -115,7 +111,7 @@ export async function addProjectMember(
     };
   }
 
-  await requireProjectRole(parsed.data.projectId, "owner");
+  const { session } = await requireProjectRole(parsed.data.projectId, "owner");
 
   const email = parsed.data.email.toLowerCase().trim();
   const sendEmail = parsed.data.sendEmail ?? false;
@@ -150,78 +146,26 @@ export async function addProjectMember(
     return { success: true, data: { memberId: member.id } };
   }
 
-  if (!parsed.data.name || !parsed.data.password) {
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 14);
-
-    const { session } = await requireProjectRole(parsed.data.projectId, "owner");
-    const invite = await db.projectInvite.create({
-      data: {
-        projectId: parsed.data.projectId,
-        email,
-        role: parsed.data.role as ProjectRole,
-        invitedBy: session.user.id,
-        expiresAt,
-      },
-    });
-
-    let emailSent = false;
-    if (sendEmail) {
-      const inviteUrl = `${process.env.AUTH_URL?.replace(/\/$/, "") ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000")}/invite/${invite.token}`;
-      const mail = await sendProjectInviteEmail({
-        to: email,
-        projectName: project.name,
-        inviteUrl,
-        invitedBy: session.user.name ?? session.user.email ?? "Administrator",
-        roleLabel: ROLE_META[parsed.data.role].label,
-      });
-      emailSent = mail.ok;
-    }
-
-    await revalidateProject(parsed.data.projectId);
-    return {
-      success: true,
-      data: { inviteToken: invite.token, emailSent },
-    };
-  }
-
-  await requireAppAdmin();
-
-  const password = parsed.data.password ?? (sendEmail ? generatePassword() : "");
-  if (!password || password.length < 8) {
-    return {
-      success: false,
-      error: "Passwort mindestens 8 Zeichen — oder „Per E-Mail senden“ aktivieren",
-    };
-  }
-
-  const passwordHash = await bcrypt.hash(password, 12);
-  const user = await db.user.create({
-    data: {
-      name: parsed.data.name!,
-      email,
-      passwordHash,
-      avatarInitials: initials(parsed.data.name!),
-    },
-  });
-
-  const member = await db.projectMember.create({
+  const invite = await db.projectInvite.create({
     data: {
       projectId: parsed.data.projectId,
-      userId: user.id,
+      email,
       role: parsed.data.role as ProjectRole,
+      token: generateInviteToken(),
+      invitedBy: session.user.id,
+      expiresAt: inviteExpiresAt(),
     },
   });
 
   let emailSent = false;
   if (sendEmail) {
-    const { session } = await requireProjectRole(parsed.data.projectId, "owner");
-    const mail = await sendWelcomeEmail({
+    const inviteUrl = `${appBaseUrl()}/invite/${invite.token}`;
+    const mail = await sendProjectInviteEmail({
       to: email,
-      name: parsed.data.name!,
-      password,
-      invitedBy: session.user.name ?? session.user.email ?? "Administrator",
       projectName: project.name,
+      inviteUrl,
+      invitedBy: session.user.name ?? session.user.email ?? "Administrator",
+      roleLabel: ROLE_META[parsed.data.role].label,
     });
     emailSent = mail.ok;
   }
@@ -229,11 +173,7 @@ export async function addProjectMember(
   await revalidateProject(parsed.data.projectId);
   return {
     success: true,
-    data: {
-      memberId: member.id,
-      emailSent,
-      temporaryPassword: emailSent ? undefined : password,
-    },
+    data: { inviteToken: invite.token, emailSent },
   };
 }
 

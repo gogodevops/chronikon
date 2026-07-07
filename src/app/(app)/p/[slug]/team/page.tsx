@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { TeamView } from "@/components/views/team-view";
 import { getTeamData } from "@/actions/team";
-import { getUserProjectRole, isAppAdmin } from "@/lib/auth-helpers";
+import { getUserProjectRole } from "@/lib/auth-helpers";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 
@@ -24,10 +24,7 @@ export default async function TeamPage({
     redirect(`/p/${slug}/dashboard`);
   }
 
-  const [team, appAdmin] = await Promise.all([
-    getTeamData(project.id),
-    isAppAdmin(session.user.id),
-  ]);
+  const team = await getTeamData(project.id);
 
   return (
     <AppShell
@@ -41,7 +38,6 @@ export default async function TeamPage({
         invites={team.invites}
         currentUserId={team.currentUserId}
         projectId={project.id}
-        isAppAdmin={appAdmin}
       />
     </AppShell>
   );

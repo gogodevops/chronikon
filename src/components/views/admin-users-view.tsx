@@ -5,9 +5,20 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
-import { ArrowLeft, UserPlus, Users } from "lucide-react";
+import {
+  ArrowLeft,
+  Copy,
+  Mail,
+  UserPlus,
+  Users,
+  X,
+} from "lucide-react";
 
-import { createAppUser } from "@/actions/users";
+import {
+  createUserInvite,
+  revokeUserInvite,
+} from "@/actions/invites";
+import type { InviteStatus } from "@/lib/invite-status";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -21,48 +32,87 @@ export type AdminUserRow = {
   projectCount: number;
 };
 
-export function AdminUsersView({ users }: { users: AdminUserRow[] }) {
+export type AdminInviteRow = {
+  id: string;
+  email: string;
+  token: string;
+  createdAt: Date;
+  expiresAt: Date;
+  acceptedAt: Date | null;
+  invitedByName: string;
+  status: InviteStatus;
+  registeredAt: Date | null;
+};
+
+const STATUS_STYLES: Record<InviteStatus, string> = {
+  Eingeladen: "bg-accent-dim text-accent",
+  Angemeldet: "bg-green/15 text-green",
+  Abgelaufen: "bg-muted text-muted-foreground",
+};
+
+export function AdminUsersView({
+  users,
+  invites,
+}: {
+  users: AdminUserRow[];
+  invites: AdminInviteRow[];
+}) {
   const router = useRouter();
-  const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
-  const [password, setPassword] = React.useState("");
   const [sendEmail, setSendEmail] = React.useState(false);
   const [pending, setPending] = React.useState(false);
-  const [lastCreated, setLastCreated] = React.useState<{
+  const [lastInviteLink, setLastInviteLink] = React.useState<string | null>(
+    null,
+  );
+  const [lastFeedback, setLastFeedback] = React.useState<{
     email: string;
-    password?: string;
     emailSent?: boolean;
   } | null>(null);
 
-  const handleCreate = async (e: React.FormEvent) => {
+  const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
     setPending(true);
-    setLastCreated(null);
+    setLastInviteLink(null);
+    setLastFeedback(null);
 
-    const result = await createAppUser({
-      name: name.trim(),
+    const result = await createUserInvite({
       email: email.trim(),
-      password: sendEmail ? undefined : password,
       sendEmail,
     });
 
     setPending(false);
-    if (result.success) {
-      setLastCreated({
-        email: email.trim().toLowerCase(),
-        password: result.data.temporaryPassword,
-        emailSent: result.data.emailSent,
-      });
-      setName("");
-      setEmail("");
-      setPassword("");
-      setSendEmail(false);
-      router.refresh();
+    if (!result.success) {
+      window.alert(result.error ?? "Aktion fehlgeschlagen");
       return;
     }
 
-    window.alert(result.error ?? "Aktion fehlgeschlagen");
+    const link = `${window.location.origin}/invite/${result.data.token}`;
+    setLastInviteLink(link);
+    setLastFeedback({
+      email: email.trim().toLowerCase(),
+      emailSent: result.data.emailSent,
+    });
+    setEmail("");
+    setSendEmail(false);
+    router.refresh();
   };
+
+  const copyInviteLink = async (token: string) => {
+    const link = `${window.location.origin}/invite/${token}`;
+    await navigator.clipboard.writeText(link);
+    window.alert("Einladungslink kopiert");
+  };
+
+  const handleRevokeInvite = async (inviteId: string) => {
+    const result = await revokeUserInvite(inviteId);
+    if (!result.success) {
+      window.alert(result.error ?? "Aktion fehlgeschlagen");
+      return;
+    }
+    router.refresh();
+  };
+
+  const pendingInvites = invites.filter((invite) => invite.status === "Eingeladen");
 
   return (
     <div className="min-h-screen bg-background">
@@ -84,25 +134,14 @@ export function AdminUsersView({ users }: { users: AdminUserRow[] }) {
         <section className="rounded-xl border border-border bg-surface p-5">
           <h1 className="mb-1 flex items-center gap-2 text-lg font-semibold">
             <UserPlus className="h-5 w-5 text-accent" />
-            Neuen Nutzer anlegen
+            Neuen Nutzer einladen
           </h1>
           <p className="mb-4 text-[0.82rem] text-muted-foreground">
-            Lege E-Mail und Passwort fest oder lasse ein Zufallspasswort per
-            E-Mail zusenden (Resend muss konfiguriert sein).
+            Nur die E-Mail-Adresse eingeben. Der eingeladene Nutzer legt Name
+            und Passwort selbst über den Einladungslink fest (14 Tage gültig).
           </p>
 
-          <form onSubmit={handleCreate} className="space-y-3">
-            <div>
-              <label className="mb-1 block text-[0.72rem] uppercase tracking-wide text-muted-foreground">
-                Name
-              </label>
-              <Input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Max Forscher"
-                required
-              />
-            </div>
+          <form onSubmit={handleInvite} className="space-y-3">
             <div>
               <label className="mb-1 block text-[0.72rem] uppercase tracking-wide text-muted-foreground">
                 E-Mail
@@ -115,24 +154,6 @@ export function AdminUsersView({ users }: { users: AdminUserRow[] }) {
                 required
               />
             </div>
-            <div>
-              <label className="mb-1 block text-[0.72rem] uppercase tracking-wide text-muted-foreground">
-                Passwort
-              </label>
-              <Input
-                type="text"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder={
-                  sendEmail
-                    ? "Wird automatisch erzeugt"
-                    : "Min. 8 Zeichen — wird an Nutzer weitergegeben"
-                }
-                minLength={sendEmail ? undefined : 8}
-                required={!sendEmail}
-                disabled={sendEmail}
-              />
-            </div>
             <label className="flex cursor-pointer items-center gap-2 text-[0.78rem]">
               <input
                 type="checkbox"
@@ -140,47 +161,125 @@ export function AdminUsersView({ users }: { users: AdminUserRow[] }) {
                 onChange={(e) => setSendEmail(e.target.checked)}
                 className="rounded border-border"
               />
-              Zugangsdaten per E-Mail senden
+              Einladung per E-Mail senden
             </label>
             <Button type="submit" disabled={pending} className="w-full sm:w-auto">
-              {pending ? "Wird angelegt…" : "Nutzer erstellen"}
+              {pending ? "Wird erstellt…" : "Einladung senden"}
             </Button>
           </form>
 
-          {lastCreated && (
+          {lastFeedback?.emailSent && (
             <div className="mt-4 rounded-lg border border-accent/30 bg-accent-dim p-3 text-[0.82rem]">
-              {lastCreated.emailSent ? (
-                <>
-                  <p className="font-medium text-accent">
-                    Willkommens-E-Mail wurde gesendet an:
-                  </p>
-                  <p className="mt-1">
-                    <strong>{lastCreated.email}</strong>
-                  </p>
-                </>
-              ) : (
-                <>
-                  <p className="font-medium text-accent">
-                    Zugangsdaten zum Weitergeben:
-                  </p>
-                  <p className="mt-1">
-                    E-Mail: <strong>{lastCreated.email}</strong>
-                  </p>
-                  {lastCreated.password && (
-                    <p>
-                      Passwort: <strong>{lastCreated.password}</strong>
-                    </p>
-                  )}
-                </>
-              )}
+              <p className="font-medium text-accent">
+                Einladungs-E-Mail wurde gesendet an:
+              </p>
+              <p className="mt-1">
+                <strong>{lastFeedback.email}</strong>
+              </p>
+            </div>
+          )}
+
+          {lastInviteLink && (
+            <div className="mt-4 rounded-lg border border-accent/30 bg-accent-dim p-3">
+              <p className="mb-2 text-[0.82rem] font-medium text-accent">
+                Einladungslink erstellt
+              </p>
+              <div className="flex gap-2">
+                <Input
+                  readOnly
+                  value={lastInviteLink}
+                  className="h-8 text-[0.68rem]"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8 shrink-0"
+                  onClick={() =>
+                    copyInviteLink(lastInviteLink.split("/").pop()!)
+                  }
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                </Button>
+              </div>
             </div>
           )}
         </section>
 
+        {invites.length > 0 && (
+          <section className="rounded-xl border border-border bg-surface p-5">
+            <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold">
+              <Mail className="h-4 w-4 text-accent" />
+              Einladungen ({pendingInvites.length} offen)
+            </h2>
+            <ul className="space-y-2">
+              {invites.map((invite) => (
+                <li
+                  key={invite.id}
+                  className="flex items-center gap-3 rounded-lg border border-border/60 bg-surface-2/50 px-3 py-2.5"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[0.85rem] font-medium">
+                      {invite.email}
+                      <span
+                        className={`ml-2 rounded px-1.5 py-0.5 text-[0.62rem] ${STATUS_STYLES[invite.status]}`}
+                      >
+                        {invite.status}
+                      </span>
+                    </p>
+                    <p className="text-[0.72rem] text-muted-foreground">
+                      Eingeladen{" "}
+                      {format(new Date(invite.createdAt), "d. MMM yyyy", {
+                        locale: de,
+                      })}
+                      {" · "}
+                      Gültig bis{" "}
+                      {format(new Date(invite.expiresAt), "d. MMM yyyy", {
+                        locale: de,
+                      })}
+                      {invite.registeredAt && (
+                        <>
+                          {" · "}
+                          Angemeldet{" "}
+                          {format(new Date(invite.registeredAt), "d. MMM yyyy", {
+                            locale: de,
+                          })}
+                        </>
+                      )}
+                    </p>
+                  </div>
+                  {invite.status === "Eingeladen" && (
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 shrink-0"
+                        onClick={() => copyInviteLink(invite.token)}
+                        title="Link kopieren"
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+                        onClick={() => handleRevokeInvite(invite.id)}
+                        title="Widerrufen"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    </>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         <section className="rounded-xl border border-border bg-surface p-5">
           <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold">
             <Users className="h-4 w-4 text-accent" />
-            Alle Nutzer ({users.length})
+            Registrierte Nutzer ({users.length})
           </h2>
           <ul className="space-y-2">
             {users.map((user) => (
@@ -196,6 +295,9 @@ export function AdminUsersView({ users }: { users: AdminUserRow[] }) {
                         Admin
                       </span>
                     )}
+                    <span className="ml-2 rounded bg-green/15 px-1.5 py-0.5 text-[0.62rem] text-green">
+                      Angemeldet
+                    </span>
                   </p>
                   <p className="truncate text-[0.75rem] text-muted-foreground">
                     {user.email}

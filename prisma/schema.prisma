@@ -32,6 +32,7 @@ model User {
   entryVersions EntryVersion[]
   notifications Notification[]
   invitesSent   ProjectInvite[] @relation("InviteSender")
+  userInvitesSent UserInvite[]  @relation("UserInviteSender")
 }
 
 model Account {
@@ -112,7 +113,7 @@ model ProjectInvite {
   projectId String
   email     String
   role      ProjectRole @default(commenter)
-  token     String      @unique @default(cuid())
+  token     String      @unique
   invitedBy String
   expiresAt DateTime
   acceptedAt DateTime?
@@ -120,6 +121,20 @@ model ProjectInvite {
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   sender  User    @relation("InviteSender", fields: [invitedBy], references: [id])
+}
+
+model UserInvite {
+  id         String    @id @default(cuid())
+  email      String
+  token      String    @unique
+  invitedBy  String
+  expiresAt  DateTime
+  acceptedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  sender User @relation("UserInviteSender", fields: [invitedBy], references: [id])
+
+  @@index([email])
 }
 
 model Topic {

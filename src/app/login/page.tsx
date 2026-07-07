@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 
 function sanitizeCallbackUrl(url: string | null): string {
   if (!url) return "/";
+  if (url.startsWith("/invite/")) return url;
   if (url.startsWith("/p/")) return "/";
   return url;
 }

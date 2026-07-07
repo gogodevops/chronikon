@@ -208,3 +208,43 @@ body {
 .chronikon-timeline .vis-panel.vis-background.vis-horizontal .vis-grid.vis-major {
   border-color: #3a424c;
 }
+
+/* Leaflet — Chronikon Dark Theme */
+.chronikon-map .leaflet-control-zoom a {
+  background: var(--surface-2);
+  color: var(--foreground);
+  border-color: var(--border);
+}
+
+.chronikon-map .leaflet-control-zoom a:hover {
+  background: var(--surface-3);
+  color: var(--accent);
+}
+
+.chronikon-map .leaflet-control-attribution {
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  color: var(--muted);
+  font-size: 10px;
+  backdrop-filter: blur(4px);
+}
+
+.chronikon-map .leaflet-control-attribution a {
+  color: var(--accent);
+}
+
+.chronikon-map .leaflet-popup-content-wrapper {
+  background: var(--surface-2);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+.chronikon-map .leaflet-popup-tip {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+
+.chronikon-map-tiles-bw {
+  filter: grayscale(1) contrast(1.05) brightness(0.95);
+}

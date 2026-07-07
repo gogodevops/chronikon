@@ -15,6 +15,7 @@ import {
   verifySessionUserExists,
 } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
+import { generateInviteToken, inviteExpiresAt } from "@/lib/invite-token";
 import { slugify } from "@/lib/slug";
 import { uniqueProjectSlug } from "@/lib/slugify";
 
@@ -219,16 +220,14 @@ export async function inviteMember(
     return { success: false, error: "Benutzer ist bereits Mitglied" };
   }
 
-  const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + 14);
-
   const invite = await db.projectInvite.create({
     data: {
       projectId: parsed.data.projectId,
       email: parsed.data.email,
       role: parsed.data.role as ProjectRole,
+      token: generateInviteToken(),
       invitedBy: session.user.id,
-      expiresAt,
+      expiresAt: inviteExpiresAt(),
     },
   });
 

@@ -60,20 +60,15 @@ export function TeamView({
   invites,
   currentUserId,
   projectId,
-  isAppAdmin = false,
 }: {
   members: TeamMember[];
   invites: TeamInvite[];
   currentUserId: string;
   projectId: string;
-  isAppAdmin?: boolean;
 }) {
   const router = useRouter();
   const [email, setEmail] = React.useState("");
   const [role, setRole] = React.useState<string>("commenter");
-  const [createAccount, setCreateAccount] = React.useState(false);
-  const [name, setName] = React.useState("");
-  const [password, setPassword] = React.useState("");
   const [sendEmail, setSendEmail] = React.useState(false);
   const [pending, setPending] = React.useState(false);
   const [lastInviteLink, setLastInviteLink] = React.useState<string | null>(
@@ -81,7 +76,6 @@ export function TeamView({
   );
   const [lastFeedback, setLastFeedback] = React.useState<{
     emailSent?: boolean;
-    temporaryPassword?: string;
     email?: string;
   } | null>(null);
 
@@ -96,8 +90,6 @@ export function TeamView({
         projectId,
         email,
         role: role as TeamMember["role"],
-        name: createAccount ? name : undefined,
-        password: createAccount ? password || undefined : undefined,
         sendEmail,
       });
       if (result.success && result.data.inviteToken) {
@@ -107,7 +99,6 @@ export function TeamView({
       if (result.success) {
         setLastFeedback({
           emailSent: result.data.emailSent,
-          temporaryPassword: result.data.temporaryPassword,
           email: email.trim().toLowerCase(),
         });
       }
@@ -117,9 +108,6 @@ export function TeamView({
     setPending(false);
     if (ok) {
       setEmail("");
-      setName("");
-      setPassword("");
-      setCreateAccount(false);
       setSendEmail(false);
       router.refresh();
     }
@@ -320,7 +308,7 @@ export function TeamView({
             >
               <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold">
                 <UserPlus className="h-4 w-4 text-accent" />
-                Mitglied hinzufügen
+                Mitglied einladen
               </h3>
 
               <div className="space-y-3">
@@ -359,76 +347,17 @@ export function TeamView({
                 <label className="flex cursor-pointer items-center gap-2 text-[0.78rem]">
                   <input
                     type="checkbox"
-                    checked={createAccount}
-                    onChange={(e) => setCreateAccount(e.target.checked)}
-                    className="rounded border-border"
-                    disabled={!isAppAdmin}
-                  />
-                  Neuen Account direkt anlegen
-                </label>
-
-                {!isAppAdmin && (
-                  <p className="text-[0.68rem] text-muted-foreground">
-                    Neue Accounts legst du unter{" "}
-                    <a href="/admin/users" className="text-accent hover:underline">
-                      Nutzer verwalten
-                    </a>{" "}
-                    an.
-                  </p>
-                )}
-
-                {createAccount && isAppAdmin && (
-                  <>
-                    <div>
-                      <label className="mb-1 block text-[0.72rem] text-muted-foreground">
-                        Name
-                      </label>
-                      <Input
-                        required={createAccount}
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        placeholder="Vor- und Nachname"
-                        className="h-9 text-[0.82rem]"
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-[0.72rem] text-muted-foreground">
-                        Passwort
-                      </label>
-                      <Input
-                        type="password"
-                        required={createAccount && !sendEmail}
-                        minLength={8}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder={
-                          sendEmail
-                            ? "Wird automatisch erzeugt"
-                            : "Min. 8 Zeichen"
-                        }
-                        disabled={sendEmail}
-                        className="h-9 text-[0.82rem]"
-                      />
-                    </div>
-                  </>
-                )}
-
-                <label className="flex cursor-pointer items-center gap-2 text-[0.78rem]">
-                  <input
-                    type="checkbox"
                     checked={sendEmail}
                     onChange={(e) => setSendEmail(e.target.checked)}
                     className="rounded border-border"
                   />
-                  {createAccount && isAppAdmin
-                    ? "Zugangsdaten per E-Mail senden"
-                    : "Einladung per E-Mail senden"}
+                  Einladung per E-Mail senden
                 </label>
 
                 <p className="text-[0.68rem] leading-relaxed text-muted-foreground">
-                  {createAccount && isAppAdmin
-                    ? "Legt sofort einen Account an und fügt ihn dem Projekt hinzu."
-                    : "Bestehende Nutzer werden direkt hinzugefügt. Unbekannte E-Mails erhalten eine Einladung."}
+                  Bestehende Nutzer werden direkt hinzugefügt. Unbekannte
+                  E-Mails erhalten einen Einladungslink (14 Tage gültig) und
+                  legen ihr Konto selbst an.
                 </p>
 
                 <Button
@@ -436,24 +365,12 @@ export function TeamView({
                   className="w-full"
                   disabled={pending}
                 >
-                  {pending ? "Wird hinzugefügt…" : "Hinzufügen"}
+                  {pending ? "Wird eingeladen…" : "Einladung senden"}
                 </Button>
 
                 {lastFeedback?.emailSent && (
                   <div className="rounded-lg border border-accent/30 bg-accent-dim p-3 text-[0.72rem] text-accent">
                     E-Mail wurde an <strong>{lastFeedback.email}</strong> gesendet.
-                  </div>
-                )}
-
-                {lastFeedback?.temporaryPassword && (
-                  <div className="rounded-lg border border-accent/30 bg-accent-dim p-3 text-[0.72rem]">
-                    <p className="font-medium text-accent">Zugangsdaten zum Weitergeben:</p>
-                    <p className="mt-1">
-                      E-Mail: <strong>{lastFeedback.email}</strong>
-                    </p>
-                    <p>
-                      Passwort: <strong>{lastFeedback.temporaryPassword}</strong>
-                    </p>
                   </div>
                 )}
 
