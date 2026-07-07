@@ -1,0 +1,388 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ── Auth (NextAuth) ─────────────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  passwordHash  String?
+  image         String?
+  avatarInitials String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  memberships   ProjectMember[]
+  entriesCreated Entry[]       @relation("EntryCreator")
+  claims        Claim[]
+  questions     Question[]
+  answers       Answer[]
+  comments      Comment[]
+  attachments   Attachment[]
+  entryVersions EntryVersion[]
+  notifications Notification[]
+  invitesSent   ProjectInvite[] @relation("InviteSender")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ── Projects & Team ─────────────────────────────────────────────────────────
+
+model Project {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  icon        String   @default("✦")
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members     ProjectMember[]
+  invites     ProjectInvite[]
+  topics      Topic[]
+  entries     Entry[]
+  savedViews  SavedView[]
+  compareSets CompareSet[]
+}
+
+enum ProjectRole {
+  owner
+  editor
+  commenter
+  viewer
+}
+
+model ProjectMember {
+  id        String      @id @default(cuid())
+  projectId String
+  userId    String
+  role      ProjectRole @default(viewer)
+  joinedAt  DateTime    @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+}
+
+model ProjectInvite {
+  id        String      @id @default(cuid())
+  projectId String
+  email     String
+  role      ProjectRole @default(commenter)
+  token     String      @unique @default(cuid())
+  invitedBy String
+  expiresAt DateTime
+  acceptedAt DateTime?
+  createdAt DateTime    @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sender  User    @relation("InviteSender", fields: [invitedBy], references: [id])
+}
+
+model Topic {
+  id        String @id @default(cuid())
+  projectId String
+  name      String
+
+  project Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  entries EntryTopic[]
+
+  @@unique([projectId, name])
+}
+
+model SavedView {
+  id        String @id @default(cuid())
+  projectId String
+  label     String
+  filter    Json
+  createdBy String?
+  createdAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+// ── Entries ─────────────────────────────────────────────────────────────────
+
+enum EntryType {
+  book
+  text
+  person
+  place
+  discovery
+  note
+}
+
+enum Confidence {
+  verified
+  likely
+  disputed
+  unknown
+}
+
+model Entry {
+  id          String     @id @default(cuid())
+  projectId   String
+  legacyId    String?
+  type        EntryType
+  title       String
+  summary     String?
+  body        String?    @db.Text
+  yearStart   Int
+  yearEnd     Int
+  confidence  Confidence @default(likely)
+  language    String?
+  author      String?
+  placeName   String?
+  lat         Float?
+  lng         Float?
+  createdById String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  project     Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy   User?            @relation("EntryCreator", fields: [createdById], references: [id])
+  topics      EntryTopic[]
+  attachments Attachment[]
+  sources     Source[]
+  claims      Claim[]
+  questions   Question[]
+  comments    Comment[]
+  versions    EntryVersion[]
+  relationsFrom EntryRelation[] @relation("RelationFrom")
+  relationsTo   EntryRelation[] @relation("RelationTo")
+  sourcesLinked Source[]       @relation("SourceLinkedEntry")
+  compareItems  CompareItem[]
+
+  @@index([projectId])
+  @@index([projectId, type])
+  @@index([projectId, confidence])
+  @@index([title])
+}
+
+model EntryTopic {
+  entryId String
+  topicId String
+  entry   Entry  @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  topic   Topic  @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@id([entryId, topicId])
+}
+
+model Attachment {
+  id            String   @id @default(cuid())
+  entryId       String
+  name          String
+  mimeType      String
+  storageKey    String
+  publicUrl     String?
+  label         String?
+  extractedText String?  @db.Text
+  ocrStatus     String   @default("pending")
+  uploadedById  String?
+  createdAt     DateTime @default(now())
+
+  entry      Entry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  uploadedBy User? @relation(fields: [uploadedById], references: [id])
+}
+
+enum SourceType {
+  primary
+  secondary
+  tertiary
+}
+
+model Source {
+  id             String     @id @default(cuid())
+  entryId        String
+  type           SourceType @default(secondary)
+  title          String
+  ref            String?
+  note           String?
+  linkedEntryId  String?
+
+  entry       Entry  @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  linkedEntry Entry? @relation("SourceLinkedEntry", fields: [linkedEntryId], references: [id])
+}
+
+model Claim {
+  id          String     @id @default(cuid())
+  entryId     String
+  text        String     @db.Text
+  confidence  Confidence @default(likely)
+  basedOnIds  String[]   @default([])
+  authorId    String?
+  createdAt   DateTime   @default(now())
+
+  entry  Entry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  author User? @relation(fields: [authorId], references: [id])
+}
+
+enum RelationType {
+  found_at
+  discovered_in
+  edited_in
+  discussed_in
+  translated_in
+  located_at
+  authored
+  associated_with
+  founded
+  ruled_in
+  contemporary
+  based_on
+  discusses
+  cited_in
+  contradicts
+}
+
+model EntryRelation {
+  id         String       @id @default(cuid())
+  fromEntryId String
+  toEntryId   String
+  type       RelationType
+  createdAt  DateTime     @default(now())
+
+  fromEntry Entry @relation("RelationFrom", fields: [fromEntryId], references: [id], onDelete: Cascade)
+  toEntry   Entry @relation("RelationTo", fields: [toEntryId], references: [id], onDelete: Cascade)
+
+  @@unique([fromEntryId, toEntryId, type])
+}
+
+model EntryVersion {
+  id          String   @id @default(cuid())
+  entryId     String
+  snapshot    Json
+  changedById String?
+  createdAt   DateTime @default(now())
+
+  entry     Entry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  changedBy User? @relation(fields: [changedById], references: [id])
+}
+
+// ── Discussions ─────────────────────────────────────────────────────────────
+
+enum QuestionStatus {
+  open
+  resolved
+}
+
+model Question {
+  id         String         @id @default(cuid())
+  entryId    String
+  authorId   String
+  status     QuestionStatus @default(open)
+  category   String
+  text       String         @db.Text
+  passageRef String?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  entry   Entry    @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  author  User     @relation(fields: [authorId], references: [id])
+  answers Answer[]
+}
+
+model Answer {
+  id         String   @id @default(cuid())
+  questionId String
+  authorId   String
+  text       String   @db.Text
+  sourceIds  String[] @default([])
+  createdAt  DateTime @default(now())
+
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  author   User     @relation(fields: [authorId], references: [id])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  entryId   String
+  authorId  String
+  text      String   @db.Text
+  mentions  String[] @default([])
+  createdAt DateTime @default(now())
+
+  entry  Entry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  author User  @relation(fields: [authorId], references: [id])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  body      String?
+  link      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+}
+
+// ── Compare & Export ────────────────────────────────────────────────────────
+
+model CompareSet {
+  id        String   @id @default(cuid())
+  projectId String
+  title     String
+  createdAt DateTime @default(now())
+
+  project Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  items   CompareItem[]
+}
+
+model CompareItem {
+  id           String @id @default(cuid())
+  compareSetId String
+  entryId      String?
+  label        String
+  content      String @db.Text
+  sortOrder    Int    @default(0)
+
+  compareSet CompareSet @relation(fields: [compareSetId], references: [id], onDelete: Cascade)
+  entry      Entry?     @relation(fields: [entryId], references: [id])
+}

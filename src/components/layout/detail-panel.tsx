@@ -1,0 +1,268 @@
+"use client";
+
+import * as React from "react";
+import { FileSearch, Sparkles } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { EntryActionBar, type EntryAction } from "@/components/entry/entry-action-bar";
+import { AttachmentsSection, type AttachmentItem } from "@/components/entry/attachments-section";
+import { EntryTabs } from "@/components/entry/entry-tabs";
+import { ChMetaPill } from "@/components/ui/chronikon-shell";
+import type { EntryTitleIndex, LinkableEntryResult } from "@/lib/queries";
+import type {
+  SerializedClaim,
+  SerializedComment,
+  SerializedQuestion,
+  SerializedRelation,
+  SerializedSource,
+} from "@/lib/queries";
+
+export interface EntryDetail {
+  id: string;
+  title: string;
+  summary?: string;
+  type: string;
+  typeLabel: string;
+  typeColor: string;
+  topics?: string[];
+  yearStart?: number | null;
+  yearEnd?: number | null;
+  confidence?: string;
+  confidenceLabel?: string;
+  confidenceColor?: string;
+  language?: string;
+  author?: string;
+  place?: string;
+  body?: string;
+  attachments?: AttachmentItem[];
+  sourceCount?: number;
+  claimCount?: number;
+  discussionCount?: number;
+  questionCount?: number;
+  commentCount?: number;
+  sources?: SerializedSource[];
+  claims?: SerializedClaim[];
+  questions?: SerializedQuestion[];
+  comments?: SerializedComment[];
+  relations?: SerializedRelation[];
+}
+
+export interface DetailPanelProps {
+  entry?: EntryDetail | null;
+  expanded?: boolean;
+  projectSlug?: string;
+  entryIndex?: EntryTitleIndex[];
+  activeTab?: string;
+  onTabChange?: (tab: string) => void;
+  kiCheckCount?: number;
+  relationSearchResults?: LinkableEntryResult[];
+  onRelationSearch?: (query: string) => void;
+  className?: string;
+  onAction?: (action: EntryAction) => void;
+  onTabAction?: (tab: string, action: string, data?: unknown) => void;
+  onNavigateEntry?: (entryId: string, projectSlug?: string) => void;
+  onKiReviewOpen?: () => void;
+  onAttachmentUpload?: (file: File) => void;
+  onAttachmentDelete?: (attachmentId: string) => void;
+  canEdit?: boolean;
+  canDiscuss?: boolean;
+  discussionComposerMode?: "question" | "comment";
+  onDiscussionComposerModeChange?: (mode: "question" | "comment") => void;
+}
+
+function yearLabel(year?: number | null) {
+  if (year == null) return "—";
+  if (year < 0) return `${Math.abs(year)} v.Chr.`;
+  return `${year} n.Chr.`;
+}
+
+export function DetailPanel({
+  entry,
+  expanded = false,
+  projectSlug = "",
+  entryIndex = [],
+  activeTab = "inhalt",
+  onTabChange,
+  kiCheckCount = 0,
+  relationSearchResults = [],
+  onRelationSearch,
+  className,
+  onAction,
+  onTabAction,
+  onNavigateEntry,
+  onKiReviewOpen,
+  onAttachmentUpload,
+  onAttachmentDelete,
+  canEdit = true,
+  canDiscuss = true,
+  discussionComposerMode = "question",
+  onDiscussionComposerModeChange,
+}: DetailPanelProps) {
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const panelClass = cn(
+    "flex flex-col border-l border-border/80 bg-surface min-h-0",
+    expanded ? "min-w-0 flex-1" : "w-[var(--detail-w)] shrink-0",
+    className,
+  );
+
+  if (!entry) {
+    return (
+      <aside className={panelClass}>
+        <div className="flex flex-1 flex-col items-center justify-center p-8 text-center">
+          <FileSearch
+            className="mb-3 h-10 w-10 text-muted-foreground/40"
+            strokeWidth={1.25}
+          />
+          <p className="text-sm font-medium text-foreground">Eintrag auswählen</p>
+          <p className="mt-1 max-w-[220px] text-[0.78rem] text-muted-foreground">
+            Wähle links einen Eintrag, um Details, Quellen und Diskussion zu sehen.
+          </p>
+        </div>
+      </aside>
+    );
+  }
+
+  const handleAttachmentAdd = () => {
+    if (onAttachmentUpload) {
+      fileInputRef.current?.click();
+    } else {
+      onAction?.("attachment");
+    }
+  };
+
+  return (
+    <aside className={panelClass}>
+      <ScrollArea className="flex-1">
+        <div className="border-b border-border/80 bg-surface-2/30 px-5 py-4">
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <Badge
+              className="border-0 font-medium"
+              style={{
+                background: `${entry.typeColor}18`,
+                color: entry.typeColor,
+              }}
+            >
+              {entry.typeLabel}
+            </Badge>
+            {entry.confidenceLabel && (
+              <Badge
+                variant="outline"
+                className="border-0 font-medium"
+                style={{
+                  background: `${entry.confidenceColor ?? "#7a756a"}14`,
+                  color: entry.confidenceColor ?? "#7a756a",
+                }}
+              >
+                {entry.confidenceLabel}
+              </Badge>
+            )}
+          </div>
+
+          <h2 className="text-[1.1rem] font-semibold leading-snug tracking-tight">
+            {entry.title}
+          </h2>
+
+          {entry.summary && (
+            <p className="mt-1.5 text-[0.82rem] leading-relaxed text-muted-foreground">
+              {entry.summary}
+            </p>
+          )}
+
+          {entry.topics && entry.topics.length > 0 && (
+            <div className="mt-2.5 flex flex-wrap gap-1">
+              {entry.topics.map((t) => (
+                <span
+                  key={t}
+                  className="rounded-md bg-surface-3/80 px-2 py-0.5 text-[0.68rem] text-muted-foreground"
+                >
+                  {t}
+                </span>
+              ))}
+            </div>
+          )}
+
+          <EntryActionBar
+            onAction={onAction}
+            canEdit={canEdit}
+            canDiscuss={canDiscuss}
+            questionCount={entry.questionCount ?? entry.questions?.length ?? 0}
+            commentCount={entry.commentCount ?? entry.comments?.length ?? 0}
+          />
+
+          {kiCheckCount > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-3 h-8 gap-1.5 border-accent/30 bg-accent-dim/30 text-[0.72rem] text-accent hover:bg-accent-dim"
+              onClick={onKiReviewOpen}
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              KI-Prüfung ({kiCheckCount})
+            </Button>
+          )}
+        </div>
+
+        <div className="px-5 py-4">
+          <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
+            <ChMetaPill
+              label="Zeitraum"
+              value={`${yearLabel(entry.yearStart)} – ${yearLabel(entry.yearEnd)}`}
+            />
+            {entry.language && (
+              <ChMetaPill label="Sprache" value={entry.language} />
+            )}
+            {entry.author && <ChMetaPill label="Autor" value={entry.author} />}
+            {entry.place && <ChMetaPill label="Ort" value={entry.place} />}
+          </div>
+
+          <AttachmentsSection
+            attachments={entry.attachments ?? []}
+            entryId={entry.id}
+            onAdd={handleAttachmentAdd}
+            onDelete={onAttachmentDelete}
+            canEdit={canEdit}
+          />
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,.jpg,.jpeg,.png,.webp"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) onAttachmentUpload?.(file);
+              e.target.value = "";
+            }}
+          />
+
+          <EntryTabs
+            entryId={entry.id}
+            projectSlug={projectSlug}
+            body={entry.body}
+            sourceCount={entry.sourceCount ?? 0}
+            claimCount={entry.claimCount ?? 0}
+            discussionCount={entry.discussionCount ?? 0}
+            sources={entry.sources}
+            claims={entry.claims}
+            questions={entry.questions}
+            comments={entry.comments}
+            relations={entry.relations}
+            entryIndex={entryIndex}
+            activeTab={activeTab}
+            onTabChange={onTabChange}
+            relationSearchResults={relationSearchResults}
+            onRelationSearch={onRelationSearch}
+            onNavigateEntry={onNavigateEntry}
+            onAction={onTabAction}
+            canEdit={canEdit}
+            canDiscuss={canDiscuss}
+            discussionComposerMode={discussionComposerMode}
+            onDiscussionComposerModeChange={onDiscussionComposerModeChange}
+          />
+        </div>
+      </ScrollArea>
+    </aside>
+  );
+}

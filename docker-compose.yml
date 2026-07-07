@@ -1,0 +1,49 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: chronikon-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: chronikon
+      POSTGRES_PASSWORD: chronikon
+      POSTGRES_DB: chronikon
+    ports:
+      - "5432:5432"
+    volumes:
+      - chronikon_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chronikon -d chronikon"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    container_name: chronikon-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: chronikon
+      MINIO_ROOT_PASSWORD: chronikonsecret
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - chronikon_minio:/data
+
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      sleep 3;
+      mc alias set local http://minio:9000 chronikon chronikonsecret;
+      mc mb local/chronikon-attachments --ignore-existing;
+      mc anonymous set download local/chronikon-attachments;
+      exit 0;
+      "
+
+volumes:
+  chronikon_pg:
+  chronikon_minio:

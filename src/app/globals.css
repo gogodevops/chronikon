@@ -1,0 +1,210 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0c0e12;
+  --foreground: #e8e4dc;
+  --surface: #14171c;
+  --surface-2: #1a1e26;
+  --surface-3: #222830;
+  --border: #2a3038;
+  --muted: #7a756a;
+  --muted-foreground: #7a756a;
+  --accent: #c4a35a;
+  --accent-dim: rgba(196, 163, 90, 0.12);
+  --accent-foreground: #0c0e12;
+  --primary: #c4a35a;
+  --primary-foreground: #0c0e12;
+  --secondary: #1a1e26;
+  --secondary-foreground: #e8e4dc;
+  --destructive: #e05a5a;
+  --destructive-foreground: #e8e4dc;
+  --ring: #c4a35a;
+  --input: #2a3038;
+  --card: #14171c;
+  --card-foreground: #e8e4dc;
+  --popover: #14171c;
+  --popover-foreground: #e8e4dc;
+  --radius: 0.5rem;
+
+  --green: #4caf82;
+  --blue: #5b8def;
+  --orange: #e8945a;
+  --red: #e05a5a;
+  --purple: #a78bfa;
+  --cyan: #78b4c4;
+
+  --nav-panel-w: 320px;
+  --detail-w: 420px;
+  --header-h: 52px;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-dim: var(--accent-dim);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-green: var(--green);
+  --color-blue: var(--blue);
+  --color-orange: var(--orange);
+  --color-red: var(--red);
+  --color-purple: var(--purple);
+  --color-cyan: var(--cyan);
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  height: 100%;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), "Segoe UI", system-ui, sans-serif;
+  font-size: 13px;
+  height: 100%;
+  overflow: hidden;
+}
+
+.serif {
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+
+/* vis-timeline — Chronikon Dark Theme */
+.chronikon-timeline .vis-timeline {
+  border: none;
+  background: var(--surface);
+  font-family: inherit;
+  font-size: 12px;
+}
+
+.chronikon-timeline .vis-panel.vis-center,
+.chronikon-timeline .vis-panel.vis-left,
+.chronikon-timeline .vis-panel.vis-top,
+.chronikon-timeline .vis-panel.vis-bottom {
+  border-color: var(--border);
+}
+
+.chronikon-timeline .vis-time-axis .vis-grid.vis-minor {
+  border-color: var(--border);
+}
+
+.chronikon-timeline .vis-time-axis .vis-grid.vis-major {
+  border-color: #3a424c;
+}
+
+.chronikon-timeline .vis-time-axis .vis-text {
+  color: var(--muted);
+}
+
+.chronikon-timeline .vis-labelset .vis-label {
+  color: var(--muted);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+}
+
+.chronikon-timeline .tl-lane-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  margin-right: 6px;
+  flex-shrink: 0;
+}
+
+.chronikon-timeline .vis-item {
+  font-size: 11px;
+  border-width: 1px;
+  border-radius: 4px;
+  line-height: 1.25;
+  padding: 2px 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-height: 22px;
+}
+
+.chronikon-timeline .vis-item.tl-item-point {
+  border-radius: 50%;
+  min-width: 10px !important;
+  width: 10px !important;
+  padding: 0;
+  font-size: 0;
+}
+
+.chronikon-timeline .vis-item.tl-item-point .vis-item-content {
+  display: none;
+}
+
+.chronikon-timeline .vis-item.tl-item-capped {
+  border-style: dashed;
+  opacity: 0.92;
+}
+
+.chronikon-timeline .vis-item.vis-selected {
+  box-shadow: 0 0 0 2px var(--accent);
+  z-index: 2;
+}
+
+.chronikon-timeline .vis-item:hover {
+  filter: brightness(1.12);
+  z-index: 1;
+}
+
+.chronikon-timeline .vis-panel.vis-background.vis-horizontal .vis-grid.vis-minor {
+  border-color: var(--border);
+}
+
+.chronikon-timeline .vis-panel.vis-background.vis-horizontal .vis-grid.vis-major {
+  border-color: #3a424c;
+}
