@@ -79,6 +79,7 @@ function buildItems(entries: SerializedEntryListItem[], mode: LaneMode) {
     type?: string;
     title: string;
     className?: string;
+    style?: string;
   }>();
 
   for (const entry of entries) {
