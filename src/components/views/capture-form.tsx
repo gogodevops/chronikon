@@ -14,6 +14,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TYPE_META } from "@/lib/constants";
+import {
+  getEntryFormConfig,
+  parseEntryYears,
+} from "@/lib/entry-form-config";
 import { cn } from "@/lib/utils";
 import { ViewFrame } from "@/components/ui/chronikon-shell";
 import { ENTRY_TYPE_HINTS } from "@/lib/ki-templates";
@@ -74,6 +78,9 @@ export function CaptureForm({
     placeName: initialFields?.placeName ?? "",
   });
 
+  const config = getEntryFormConfig(fields.type);
+  const showTopic = topics.length > 0;
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -84,19 +91,27 @@ export function CaptureForm({
         ? parseInt(fields.pageEnd, 10)
         : undefined;
 
+      const { yearStart, yearEnd } = parseEntryYears(
+        fields.yearStart,
+        fields.yearEnd,
+        config.yearEndOptional,
+      );
+
       const payload = {
         projectId,
         type: fields.type as "text",
         title: fields.title,
-        yearStart: parseInt(fields.yearStart, 10) || 0,
-        yearEnd: parseInt(fields.yearEnd, 10) || 2025,
+        yearStart,
+        yearEnd,
         pageStart: pageStart && pageStart > 0 ? pageStart : undefined,
         pageEnd: pageEnd && pageEnd > 0 ? pageEnd : undefined,
         confidence: fields.confidence as "likely",
         language: fields.language || DEFAULT_ENTRY_LANGUAGE,
-        author: fields.author || undefined,
-        placeName: fields.placeName || undefined,
-        topicNames: fields.topic ? [fields.topic] : [],
+        author: config.showAuthor ? fields.author || undefined : undefined,
+        placeName: config.showPlaceName
+          ? fields.placeName || undefined
+          : undefined,
+        topicNames: showTopic && fields.topic ? [fields.topic] : [],
         parentEntryId: parentEntryId || undefined,
       };
 
@@ -120,6 +135,33 @@ export function CaptureForm({
       setSaving(false);
     }
   };
+
+  const yearFields = config.showYears ? (
+    <div className="grid grid-cols-2 gap-4">
+      <Field label={config.yearStartLabel}>
+        <Input
+          value={fields.yearStart}
+          onChange={(e) =>
+            setFields((f) => ({ ...f, yearStart: e.target.value }))
+          }
+          placeholder={
+            fields.type === "book" ? "z. B. 1973" : "z. B. 1453"
+          }
+        />
+      </Field>
+      <Field
+        label={config.yearEndLabel}
+        emphasized={fields.type === "book" && !config.yearEndOptional}
+      >
+        <Input
+          value={fields.yearEnd}
+          onChange={(e) =>
+            setFields((f) => ({ ...f, yearEnd: e.target.value }))
+          }
+        />
+      </Field>
+    </div>
+  ) : null;
 
   return (
     <ViewFrame
@@ -170,63 +212,47 @@ export function CaptureForm({
           </p>
         </Field>
 
-        <Field label={fields.type === "book" ? "Name / Titel" : "Titel"} emphasized={fields.type === "book"}>
+        <Field
+          label={config.titleLabel}
+          emphasized={config.titleEmphasized}
+        >
           <Input
             value={fields.title}
             onChange={(e) =>
               setFields((f) => ({ ...f, title: e.target.value }))
             }
-            placeholder={fields.type === "book" ? "z. B. Geschichte des Osmanischen Reiches" : undefined}
+            placeholder={config.titlePlaceholder}
           />
         </Field>
 
-        {fields.type === "book" && !isBookChild && (
-          <div className="rounded-xl border border-accent/25 bg-accent-dim/25 p-3 space-y-3">
+        {config.bookMetadataBox && !isBookChild && (
+          <div className="space-y-3 rounded-xl border border-accent/25 bg-accent-dim/25 p-3">
             <p className="text-[0.72rem] font-medium text-accent">
               Wichtige Buch-Metadaten — PDF danach unter Material hochladen
             </p>
-            <Field label="Autor" emphasized>
-              <Input
-                value={fields.author}
-                onChange={(e) =>
-                  setFields((f) => ({ ...f, author: e.target.value }))
-                }
-                placeholder="z. B. Halil İnalcık"
-              />
-            </Field>
-            <div className="grid grid-cols-2 gap-4">
-              <Field label="Erscheinungsjahr (von)" emphasized>
+            {config.showAuthor && (
+              <Field label={config.authorLabel ?? "Autor"} emphasized>
                 <Input
-                  value={fields.yearStart}
+                  value={fields.author}
                   onChange={(e) =>
-                    setFields((f) => ({ ...f, yearStart: e.target.value }))
+                    setFields((f) => ({ ...f, author: e.target.value }))
                   }
-                  placeholder="z. B. 1973"
+                  placeholder="z. B. Halil İnalcık"
                 />
               </Field>
-              <Field label="Bis (optional)">
-                <Input
-                  value={fields.yearEnd}
-                  onChange={(e) =>
-                    setFields((f) => ({ ...f, yearEnd: e.target.value }))
-                  }
-                />
-              </Field>
-            </div>
+            )}
+            {yearFields}
           </div>
         )}
 
-        {(fields.type === "person" || fields.type === "place") && !isBookChild && (
-          <Field label={fields.type === "person" ? "Autor / Quelle" : "Ort / Region"}>
+        {config.showPlaceName && !isBookChild && (
+          <Field label={config.placeNameLabel ?? "Ort"}>
             <Input
-              value={fields.type === "person" ? fields.author : fields.placeName}
+              value={fields.placeName}
               onChange={(e) =>
-                setFields((f) =>
-                  fields.type === "person"
-                    ? { ...f, author: e.target.value }
-                    : { ...f, placeName: e.target.value },
-                )
+                setFields((f) => ({ ...f, placeName: e.target.value }))
               }
+              placeholder="z. B. Ägypten, Nag Hammadi"
             />
           </Field>
         )}
@@ -254,67 +280,54 @@ export function CaptureForm({
               />
             </Field>
           </div>
-        ) : fields.type !== "book" ? (
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Von (Jahr)">
-              <Input
-                value={fields.yearStart}
-                onChange={(e) =>
-                  setFields((f) => ({ ...f, yearStart: e.target.value }))
-                }
-              />
-            </Field>
-            <Field label="Bis (Jahr)">
-              <Input
-                value={fields.yearEnd}
-                onChange={(e) =>
-                  setFields((f) => ({ ...f, yearEnd: e.target.value }))
-                }
-              />
-            </Field>
-          </div>
-        ) : null}
+        ) : (
+          !config.bookMetadataBox && yearFields
+        )}
 
-        <Field label="Sprache">
-          <Select
-            value={fields.language}
-            onValueChange={(v) =>
-              setFields((f) => ({
-                ...f,
-                language: normalizeEntryLanguage(v) as EntryLanguageCode,
-              }))
-            }
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {ENTRY_LANGUAGES.map((lang) => (
-                <SelectItem key={lang.value} value={lang.value}>
-                  {lang.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </Field>
+        {config.showLanguage && (
+          <Field label="Sprache">
+            <Select
+              value={fields.language}
+              onValueChange={(v) =>
+                setFields((f) => ({
+                  ...f,
+                  language: normalizeEntryLanguage(v) as EntryLanguageCode,
+                }))
+              }
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {ENTRY_LANGUAGES.map((lang) => (
+                  <SelectItem key={lang.value} value={lang.value}>
+                    {lang.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+        )}
 
-        <Field label="Thema">
-          <Select
-            value={fields.topic}
-            onValueChange={(v) => setFields((f) => ({ ...f, topic: v }))}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {topics.map((t) => (
-                <SelectItem key={t} value={t}>
-                  {t}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </Field>
+        {showTopic && (
+          <Field label="Thema">
+            <Select
+              value={fields.topic}
+              onValueChange={(v) => setFields((f) => ({ ...f, topic: v }))}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {topics.map((t) => (
+                  <SelectItem key={t} value={t}>
+                    {t}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+        )}
 
         <Button onClick={handleSave} disabled={saving || !fields.title}>
           {saving ? "Speichern…" : isEdit ? "Änderungen speichern" : "Eintrag speichern"}
