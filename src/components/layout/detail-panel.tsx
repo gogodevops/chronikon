@@ -102,7 +102,11 @@ export interface DetailPanelProps {
   onClaimSubmit?: (data: unknown) => void;
   onClaimDelete?: (claimId: string) => void;
   onRelationSubmit?: (data: unknown) => void;
-  onRelationDelete?: (relationId: string) => void;
+  onRelationDelete?: (
+    relationId: string,
+    otherEntryTitle?: string,
+    typeLabel?: string,
+  ) => void;
   canEdit?: boolean;
   canDiscuss?: boolean;
   canCreateEntry?: boolean;

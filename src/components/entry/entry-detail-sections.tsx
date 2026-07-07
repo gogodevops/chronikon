@@ -6,15 +6,14 @@ import { Pencil } from "lucide-react";
 import { EntryBody } from "@/components/entry/entry-body";
 import { AttachmentsSection, type AttachmentItem, type AttachmentUploadStatus } from "@/components/entry/attachments-section";
 import { OpenPointsSection } from "@/components/entry/open-points-section";
+import { RelationsSection } from "@/components/entry/relations-section";
 import {
   ClaimsList,
-  RelationsList,
   SourcesList,
   VersionsList,
 } from "@/components/entry/entry-tab-content";
 import { SourceComposer } from "@/components/entry/source-composer";
 import { ClaimComposer } from "@/components/entry/claim-composer";
-import { RelationComposer } from "@/components/entry/relation-composer";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import type { EntryTitleIndex, LinkableEntryResult } from "@/lib/queries";
 import type {
@@ -51,7 +50,11 @@ export interface EntryDetailSectionsProps {
   onClaimSubmit?: (data: unknown) => void;
   onClaimDelete?: (claimId: string) => void;
   onRelationSubmit?: (data: unknown) => void;
-  onRelationDelete?: (relationId: string) => void;
+  onRelationDelete?: (
+    relationId: string,
+    otherEntryTitle?: string,
+    typeLabel?: string,
+  ) => void;
   canEdit?: boolean;
   canDiscuss?: boolean;
   /** Rendered after Kern (e.g. child entries / Unterthemen). */
@@ -144,18 +147,28 @@ export function EntryDetailSections({
         />
       </div>
 
+      {(relations.length > 0 || canEdit) && (
+        <RelationsSection
+          entryId={entryId}
+          relations={relations}
+          relationSearchResults={relationSearchResults}
+          onRelationSearch={onRelationSearch}
+          onNavigateEntry={onNavigateEntry}
+          onRelationSubmit={onRelationSubmit}
+          onRelationDelete={onRelationDelete}
+          canEdit={canEdit}
+        />
+      )}
+
       {(sources.length > 0 ||
         claims.length > 0 ||
-        relations.length > 0 ||
         versions.length > 0 ||
         canEdit) && (
         <CollapsibleSection
           title="Weitere Bereiche"
-          count={
-            sources.length + claims.length + relations.length + versions.length
-          }
+          count={sources.length + claims.length + versions.length}
         >
-          <div className="space-y-4 pt-1">
+          <div id="entry-section-weitere" className="space-y-4 pt-1">
             {(sources.length > 0 || canEdit) && (
               <div>
                 <h4 className="mb-2 text-[0.68rem] font-semibold uppercase tracking-wide text-muted-foreground">
@@ -190,28 +203,6 @@ export function EntryDetailSections({
                   <ClaimComposer
                     entryId={entryId}
                     onSubmit={onClaimSubmit}
-                  />
-                )}
-              </div>
-            )}
-
-            {(relations.length > 0 || canEdit) && (
-              <div>
-                <h4 className="mb-2 text-[0.68rem] font-semibold uppercase tracking-wide text-muted-foreground">
-                  Verknüpfungen ({relations.length})
-                </h4>
-                <RelationsList
-                  relations={relations}
-                  onNavigate={onNavigateEntry}
-                  onDelete={onRelationDelete}
-                  canEdit={canEdit}
-                />
-                {canEdit && onRelationSubmit && (
-                  <RelationComposer
-                    entryId={entryId}
-                    searchResults={relationSearchResults}
-                    onSearch={onRelationSearch}
-                    onSubmit={onRelationSubmit}
                   />
                 )}
               </div>

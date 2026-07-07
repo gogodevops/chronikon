@@ -3,7 +3,8 @@
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ChevronDown, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Trash2 } from "lucide-react";
+import { RelationTypeIcon } from "@/components/entry/relation-icons";
 import { SOURCE_TYPE_LABELS } from "@/lib/constants";
 import type {
   SerializedClaim,
@@ -375,91 +376,73 @@ export function RelationsList({
 }: {
   relations: SerializedRelation[];
   onNavigate?: (entryId: string, projectSlug?: string) => void;
-  onDelete?: (relationId: string) => void;
+  onDelete?: (
+    relationId: string,
+    otherEntryTitle?: string,
+    typeLabel?: string,
+  ) => void;
   canEdit?: boolean;
 }) {
-  const collapsible = relations.length > COLLAPSE_LIST_THRESHOLD;
-  const list = useCollapsibleList(
-    relations.map((relation) => relation.id),
-    collapsible,
-  );
-
   if (relations.length === 0) {
     return (
-      <p className="mb-3 text-[0.82rem] text-muted-foreground">
-        Keine Verknüpfungen — unten anlegen.
+      <p className="text-[0.82rem] text-muted-foreground">
+        Noch keine Verknüpfungen.
       </p>
     );
   }
 
   return (
-    <div className="mb-3 space-y-1.5">
-      {collapsible && (
-        <CollapsibleListControls
-          onExpandAll={list.expandAll}
-          onCollapseAll={list.collapseAll}
-          allExpanded={list.allExpanded}
-          noneExpanded={list.noneExpanded}
-        />
-      )}
-      {relations.map((r) => {
-        const row = (
-          <div className="relative">
+    <ul className="space-y-1">
+      {relations.map((r) => (
+        <li key={r.id} className="group relative">
+          <button
+            type="button"
+            onClick={() =>
+              onNavigate?.(r.otherEntryId, r.otherEntryProjectSlug ?? undefined)
+            }
+            className="flex w-full cursor-pointer items-center gap-2 rounded-lg border border-border/70 bg-surface-2/60 py-2 pl-2.5 pr-9 text-left text-[0.82rem] transition-all hover:border-accent/30 hover:bg-surface-3/50"
+          >
+            <span
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-border/60 bg-surface-3/80 text-accent"
+              title={r.typeLabel}
+            >
+              <RelationTypeIcon type={r.type} className="h-3.5 w-3.5" />
+            </span>
+            <span
+              className="h-1.5 w-1.5 shrink-0 rounded-full"
+              style={{ background: r.otherEntryTypeColor }}
+              title="Eintragstyp"
+            />
+            <span className="min-w-0 flex-1 truncate">
+              <span className="text-[0.72rem] text-muted-foreground">
+                {r.typeLabel}
+              </span>
+              <span className="mx-1 text-muted-foreground/50">·</span>
+              <strong className="font-medium">{r.otherEntryTitle}</strong>
+              {r.isCrossProject && r.otherEntryProjectName && (
+                <span className="ml-1.5 text-[0.68rem] font-normal text-accent">
+                  {r.otherEntryProjectIcon} {r.otherEntryProjectName}
+                </span>
+              )}
+            </span>
+            <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+          </button>
+          {canEdit && onDelete && (
             <button
               type="button"
-              onClick={() =>
-                onNavigate?.(r.otherEntryId, r.otherEntryProjectSlug ?? undefined)
-              }
-              className="flex w-full cursor-pointer items-center gap-2 rounded-xl border border-border/70 bg-surface-2/60 p-2.5 pr-9 text-left text-[0.82rem] transition-all hover:border-accent/30 hover:bg-surface-3/50"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(r.id, r.otherEntryTitle, r.typeLabel);
+              }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer rounded p-1 text-muted-foreground opacity-70 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+              title="Verknüpfung entfernen"
             >
-              <span
-                className="h-1.5 w-1.5 shrink-0 rounded-full"
-                style={{ background: r.otherEntryTypeColor }}
-              />
-              <span className="min-w-0 flex-1 truncate">
-                {r.typeLabel}:{" "}
-                <strong className="font-medium">{r.otherEntryTitle}</strong>
-                {r.isCrossProject && r.otherEntryProjectName && (
-                  <span className="ml-1.5 text-[0.68rem] font-normal text-accent">
-                    {r.otherEntryProjectIcon} {r.otherEntryProjectName}
-                  </span>
-                )}
-              </span>
+              <Trash2 className="h-3.5 w-3.5" />
             </button>
-            {canEdit && onDelete && (
-              <button
-                type="button"
-                onClick={() => onDelete(r.id)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                title="Verknüpfung löschen"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
-        );
-
-        if (!collapsible) {
-          return <div key={r.id}>{row}</div>;
-        }
-
-        return (
-          <CollapsibleItem
-            key={r.id}
-            id={r.id}
-            isOpen={list.isExpanded(r.id)}
-            onToggle={list.toggle}
-            header={
-              <span className="truncate text-[0.82rem]">
-                {r.typeLabel}: <strong>{r.otherEntryTitle}</strong>
-              </span>
-            }
-          >
-            {row}
-          </CollapsibleItem>
-        );
-      })}
-    </div>
+          )}
+        </li>
+      ))}
+    </ul>
   );
 }
 

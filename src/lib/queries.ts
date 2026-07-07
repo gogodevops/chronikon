@@ -634,7 +634,6 @@ export async function searchLinkableEntries(
   await requireProjectRole(projectId, "viewer");
 
   const q = query.trim();
-  if (!q) return [];
 
   const memberships = await db.projectMember.findMany({
     where: { userId },
@@ -642,6 +641,33 @@ export async function searchLinkableEntries(
   });
   const projectIds = memberships.map((m) => m.projectId);
   if (!projectIds.length) return [];
+
+  if (!q) {
+    const entries = await db.entry.findMany({
+      where: {
+        projectId,
+        id: excludeEntryId ? { not: excludeEntryId } : undefined,
+      },
+      select: {
+        id: true,
+        title: true,
+        type: true,
+        project: { select: { id: true, slug: true, name: true, icon: true } },
+      },
+      orderBy: { updatedAt: "desc" },
+      take: limit,
+    });
+
+    return entries.map((e) => ({
+      id: e.id,
+      title: e.title,
+      typeColor: TYPE_META[e.type].color,
+      projectSlug: e.project.slug,
+      projectName: e.project.name,
+      projectIcon: e.project.icon,
+      isCurrentProject: e.project.id === projectId,
+    }));
+  }
 
   const entries = await db.entry.findMany({
     where: {

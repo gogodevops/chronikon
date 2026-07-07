@@ -4,6 +4,10 @@ import * as React from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 
 import {
+  OPEN_RELATIONS_EVENT,
+  RELATIONS_SECTION_ID,
+} from "@/components/entry/relations-section";
+import {
   addAttachmentMetadata,
   addClaim,
   addRelation,
@@ -330,13 +334,16 @@ export function AppShell({
       if (relationSearchTimer.current) {
         clearTimeout(relationSearchTimer.current);
       }
-      const q = query.trim();
-      if (!q || !selectedEntry) {
+      if (!selectedEntry) {
         setRelationSearchResults([]);
         return;
       }
       relationSearchTimer.current = setTimeout(async () => {
-        const result = await searchLinkableEntries(ctx.id, q, selectedEntry.id);
+        const result = await searchLinkableEntries(
+          ctx.id,
+          query.trim(),
+          selectedEntry.id,
+        );
         if (result.success) {
           setRelationSearchResults(result.data);
         } else {
@@ -356,8 +363,11 @@ export function AppShell({
         break;
       case "claim":
       case "source":
+        scrollToSection("entry-section-weitere");
+        break;
       case "relation":
-        scrollToSection("entry-section-offen");
+        window.dispatchEvent(new Event(OPEN_RELATIONS_EVENT));
+        scrollToSection(RELATIONS_SECTION_ID);
         break;
       case "attachment":
         document.getElementById("entry-attachment-input")?.click();
@@ -555,9 +565,19 @@ export function AppShell({
     if (ok) refreshAfterAction();
   };
 
-  const handleRelationDelete = async (relationId: string) => {
+  const handleRelationDelete = async (
+    relationId: string,
+    otherEntryTitle?: string,
+    typeLabel?: string,
+  ) => {
     if (!canEdit) return;
-    if (!window.confirm("Verknüpfung wirklich löschen?")) return;
+    const label =
+      otherEntryTitle && typeLabel
+        ? `„${typeLabel}: ${otherEntryTitle}"`
+        : otherEntryTitle
+          ? `„${otherEntryTitle}"`
+          : "diese Verknüpfung";
+    if (!window.confirm(`Verknüpfung zu ${label} wirklich entfernen?`)) return;
     const ok = await runServerAction(() => deleteRelation(ctx.id, relationId));
     if (ok) refreshAfterAction();
   };

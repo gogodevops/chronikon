@@ -100,6 +100,8 @@ export function CollapsibleSection({
   title,
   count,
   defaultOpen,
+  open: controlledOpen,
+  onOpenChange,
   actions,
   children,
   className,
@@ -107,11 +109,24 @@ export function CollapsibleSection({
   title: string;
   count?: number;
   defaultOpen?: boolean;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   actions?: React.ReactNode;
   children: React.ReactNode;
   className?: string;
 }) {
-  const [open, setOpen] = React.useState(defaultOpen ?? false);
+  const [internalOpen, setInternalOpen] = React.useState(defaultOpen ?? false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+
+  const toggleOpen = () => {
+    const next = !open;
+    if (isControlled) {
+      onOpenChange?.(next);
+    } else {
+      setInternalOpen(next);
+    }
+  };
 
   return (
     <section
@@ -123,7 +138,7 @@ export function CollapsibleSection({
       <div className="flex items-center gap-2 px-3 py-2.5">
         <button
           type="button"
-          onClick={() => setOpen((value) => !value)}
+          onClick={toggleOpen}
           aria-expanded={open}
           className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 text-left"
         >

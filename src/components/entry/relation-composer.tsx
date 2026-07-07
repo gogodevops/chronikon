@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Link2 } from "lucide-react";
+import { Link2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -35,6 +35,7 @@ export interface RelationComposerProps {
   }[];
   onSearch?: (query: string) => void;
   onSubmit?: (data: RelationFormData) => void;
+  onCancel?: () => void;
 }
 
 const DEFAULT_RELATION_TYPES = (
@@ -46,6 +47,7 @@ export function RelationComposer({
   searchResults = [],
   onSearch,
   onSubmit,
+  onCancel,
 }: RelationComposerProps) {
   const [query, setQuery] = React.useState("");
   const [selected, setSelected] = React.useState<{
@@ -55,10 +57,12 @@ export function RelationComposer({
   const [relationType, setRelationType] = React.useState<RelationType>(
     relationTypes[0]?.value ?? "discusses",
   );
+  const [browseActive, setBrowseActive] = React.useState(false);
 
   React.useEffect(() => {
+    if (!browseActive && !query.trim()) return;
     onSearch?.(query);
-  }, [query, onSearch]);
+  }, [query, browseActive, onSearch]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,20 +76,50 @@ export function RelationComposer({
     setSelected(null);
   };
 
-  return (
-    <ChComposer title="Neue Verknüpfung" icon={Link2} onSubmit={handleSubmit}>
-      <Input
-        placeholder="Eintrag in allen Projekten suchen…"
-        value={selected ? selected.title : query}
-        onChange={(e) => {
-          setSelected(null);
-          setQuery(e.target.value);
-        }}
-        className="mb-2 h-9 border-border/70 bg-surface-3/50"
-      />
+  const showResults =
+    !selected && browseActive && searchResults.length > 0;
 
-      {searchResults.length > 0 && !selected && (
-        <div className="mb-2 max-h-[140px] overflow-y-auto rounded-lg border border-border/60 bg-surface-3/30 p-1">
+  return (
+    <ChComposer title="Verknüpfung hinzufügen" icon={Link2} onSubmit={handleSubmit}>
+      <div className="mb-2 flex items-start gap-2">
+        <Input
+          placeholder="Eintrag suchen (Titel)…"
+          value={selected ? selected.title : query}
+          onFocus={() => {
+            setBrowseActive(true);
+            onSearch?.(query);
+          }}
+          onBlur={() => {
+            window.setTimeout(() => setBrowseActive(false), 150);
+          }}
+          onChange={(e) => {
+            setSelected(null);
+            setQuery(e.target.value);
+            setBrowseActive(true);
+          }}
+          className="h-9 flex-1 border-border/70 bg-surface-3/50"
+        />
+        {onCancel && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={onCancel}
+            className="h-9 w-9 shrink-0 text-muted-foreground"
+            title="Abbrechen"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
+
+      {showResults && (
+        <div className="mb-2 max-h-[180px] overflow-y-auto rounded-lg border border-border/60 bg-surface-3/30 p-1">
+          {!query.trim() && (
+            <p className="px-2 py-1 text-[0.68rem] text-muted-foreground">
+              Zuletzt bearbeitete Einträge — oder Titel eingeben
+            </p>
+          )}
           {searchResults.map((result) => (
             <button
               key={result.id}
