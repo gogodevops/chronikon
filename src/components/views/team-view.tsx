@@ -20,7 +20,6 @@ import {
   revokeProjectInvite,
   updateMemberRole,
 } from "@/actions/team";
-import { MailConfigNotice } from "@/components/mail-config-notice";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,7 +32,6 @@ import {
 } from "@/components/ui/select";
 import { runServerAction } from "@/lib/action-feedback";
 import { PROJECT_ROLES, ROLE_META } from "@/lib/constants";
-import type { MailConfigStatus } from "@/lib/mail";
 import { ViewFrame } from "@/components/ui/chronikon-shell";
 
 export type TeamMember = {
@@ -62,61 +60,32 @@ export function TeamView({
   invites,
   currentUserId,
   projectId,
-  mailConfig,
 }: {
   members: TeamMember[];
   invites: TeamInvite[];
   currentUserId: string;
   projectId: string;
-  mailConfig: MailConfigStatus;
 }) {
   const router = useRouter();
   const [email, setEmail] = React.useState("");
   const [role, setRole] = React.useState<string>("commenter");
-  const [sendEmail, setSendEmail] = React.useState(false);
   const [pending, setPending] = React.useState(false);
-  const [lastInviteLink, setLastInviteLink] = React.useState<string | null>(
-    null,
-  );
-  const [lastFeedback, setLastFeedback] = React.useState<{
-    emailRequested: boolean;
-    emailSent?: boolean;
-    email?: string;
-    emailError?: string;
-  } | null>(null);
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     setPending(true);
-    setLastInviteLink(null);
-    setLastFeedback(null);
 
-    const ok = await runServerAction(async () => {
-      const result = await addProjectMember({
+    const ok = await runServerAction(() =>
+      addProjectMember({
         projectId,
         email,
         role: role as TeamMember["role"],
-        sendEmail,
-      });
-      if (result.success && result.data.inviteToken) {
-        const link = `${window.location.origin}/invite/${result.data.inviteToken}`;
-        setLastInviteLink(link);
-      }
-      if (result.success) {
-        setLastFeedback({
-          emailRequested: sendEmail,
-          emailSent: result.data.emailSent,
-          email: email.trim().toLowerCase(),
-          emailError: result.data.emailError,
-        });
-      }
-      return result;
-    });
+      }),
+    );
 
     setPending(false);
     if (ok) {
       setEmail("");
-      setSendEmail(false);
       router.refresh();
     }
   };
@@ -153,13 +122,9 @@ export function TeamView({
     <ViewFrame
       eyebrow="Verwaltung"
       title="Team"
-      description="Mitglieder einladen, Rollen vergeben und Zugriffsrechte verwalten."
+      description="Registrierte Nutzer zum Projekt hinzufügen, Rollen vergeben und Zugriffsrechte verwalten."
       maxWidth="xl"
     >
-        <div className="mb-6">
-          <MailConfigNotice status={mailConfig} />
-        </div>
-
         <section className="mb-8 rounded-xl border border-border bg-surface-2/80 p-5">
           <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold">
             <Shield className="h-4 w-4 text-accent" />
@@ -268,9 +233,13 @@ export function TeamView({
 
             {invites.length > 0 && (
               <div className="mt-4 rounded-xl border border-border bg-surface-2/80 p-5">
-                <h3 className="mb-3 text-sm font-semibold">
-                  Offene Einladungen ({invites.length})
+                <h3 className="mb-1 text-sm font-semibold">
+                  Alte Einladungen ({invites.length})
                 </h3>
+                <p className="mb-3 text-[0.68rem] text-muted-foreground">
+                  Veraltete Projekt-Einladungen — neue Konten werden nur noch
+                  vom Administrator eingeladen.
+                </p>
                 <ul className="space-y-2">
                   {invites.map((invite) => (
                     <li
@@ -320,7 +289,7 @@ export function TeamView({
             >
               <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold">
                 <UserPlus className="h-4 w-4 text-accent" />
-                Mitglied einladen
+                Mitglied hinzufügen
               </h3>
 
               <div className="space-y-3">
@@ -356,20 +325,10 @@ export function TeamView({
                   </Select>
                 </div>
 
-                <label className="flex cursor-pointer items-center gap-2 text-[0.78rem]">
-                  <input
-                    type="checkbox"
-                    checked={sendEmail}
-                    onChange={(e) => setSendEmail(e.target.checked)}
-                    className="rounded border-border"
-                  />
-                  Einladung per E-Mail senden
-                </label>
-
                 <p className="text-[0.68rem] leading-relaxed text-muted-foreground">
-                  Bestehende Nutzer werden direkt hinzugefügt. Unbekannte
-                  E-Mails erhalten einen Einladungslink (14 Tage gültig) und
-                  legen ihr Konto selbst an.
+                  Nur bereits registrierte Nutzer können hinzugefügt werden.
+                  Neue Konten legt der Administrator unter „Nutzer verwalten“
+                  an und teilt den Einladungslink.
                 </p>
 
                 <Button
@@ -377,49 +336,8 @@ export function TeamView({
                   className="w-full"
                   disabled={pending}
                 >
-                  {pending ? "Wird eingeladen…" : "Einladung senden"}
+                  {pending ? "Wird hinzugefügt…" : "Hinzufügen"}
                 </Button>
-
-                {lastFeedback?.emailRequested && lastFeedback.emailSent && (
-                  <div className="rounded-lg border border-accent/30 bg-accent-dim p-3 text-[0.72rem] text-accent">
-                    E-Mail wurde an <strong>{lastFeedback.email}</strong> gesendet.
-                  </div>
-                )}
-
-                {lastFeedback?.emailRequested &&
-                  !lastFeedback.emailSent &&
-                  lastFeedback.emailError && (
-                    <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-[0.72rem] text-destructive">
-                      <p className="font-medium">E-Mail nicht versendet</p>
-                      <p className="mt-1">{lastFeedback.emailError}</p>
-                    </div>
-                  )}
-
-                {lastInviteLink && (
-                  <div className="rounded-lg border border-accent/30 bg-accent-dim p-3">
-                    <p className="mb-2 text-[0.72rem] font-medium text-accent">
-                      {lastFeedback?.emailRequested && !lastFeedback.emailSent
-                        ? "Einladungslink (manuell teilen)"
-                        : "Einladungslink erstellt"}
-                    </p>
-                    <div className="flex gap-2">
-                      <Input
-                        readOnly
-                        value={lastInviteLink}
-                        className="h-8 text-[0.68rem]"
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8 shrink-0"
-                        onClick={() => copyInviteLink(lastInviteLink.split("/").pop()!)}
-                      >
-                        <Copy className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  </div>
-                )}
               </div>
             </form>
           </section>

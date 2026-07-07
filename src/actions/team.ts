@@ -5,10 +5,7 @@ import { z } from "zod";
 
 import type { ActionResult } from "@/actions/auth";
 import { requireProjectRole } from "@/lib/auth-helpers";
-import { ROLE_META } from "@/lib/constants";
 import { db } from "@/lib/db";
-import { generateInviteToken, inviteExpiresAt } from "@/lib/invite-token";
-import { sendProjectInviteEmail } from "@/lib/mail";
 import { revalidateProject } from "@/lib/revalidate-project";
 
 const roleSchema = z.enum(["owner", "editor", "commenter", "viewer"]);
@@ -17,7 +14,6 @@ const addMemberSchema = z.object({
   projectId: z.string().cuid(),
   email: z.string().email(),
   role: roleSchema.default("commenter"),
-  sendEmail: z.boolean().optional(),
 });
 
 const updateRoleSchema = z.object({
@@ -25,15 +21,6 @@ const updateRoleSchema = z.object({
   memberId: z.string().cuid(),
   role: roleSchema,
 });
-
-function appBaseUrl(): string {
-  return (
-    process.env.AUTH_URL?.replace(/\/$/, "") ??
-    (process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : "http://localhost:3000")
-  );
-}
 
 async function countOwners(projectId: string): Promise<number> {
   return db.projectMember.count({
@@ -96,14 +83,7 @@ export async function getTeamData(projectId: string) {
 
 export async function addProjectMember(
   input: z.infer<typeof addMemberSchema>,
-): Promise<
-  ActionResult<{
-    memberId?: string;
-    inviteToken?: string;
-    emailSent?: boolean;
-    emailError?: string;
-  }>
-> {
+): Promise<ActionResult<{ memberId: string }>> {
   const parsed = addMemberSchema.safeParse(input);
   if (!parsed.success) {
     return {
@@ -112,17 +92,9 @@ export async function addProjectMember(
     };
   }
 
-  const { session } = await requireProjectRole(parsed.data.projectId, "owner");
+  await requireProjectRole(parsed.data.projectId, "owner");
 
   const email = parsed.data.email.toLowerCase().trim();
-  const sendEmail = parsed.data.sendEmail ?? false;
-  const project = await db.project.findUnique({
-    where: { id: parsed.data.projectId },
-    select: { name: true, slug: true },
-  });
-  if (!project) {
-    return { success: false, error: "Projekt nicht gefunden" };
-  }
 
   const existingUser = await db.user.findUnique({
     where: { email },
@@ -131,55 +103,27 @@ export async function addProjectMember(
     },
   });
 
-  if (existingUser?.memberships.length) {
+  if (!existingUser) {
+    return {
+      success: false,
+      error:
+        "Nutzer nicht im System — neue Konten können nur vom Administrator eingeladen werden",
+    };
+  }
+
+  if (existingUser.memberships.length) {
     return { success: false, error: "Benutzer ist bereits Mitglied" };
   }
 
-  if (existingUser) {
-    const member = await db.projectMember.create({
-      data: {
-        projectId: parsed.data.projectId,
-        userId: existingUser.id,
-        role: parsed.data.role as ProjectRole,
-      },
-    });
-    await revalidateProject(parsed.data.projectId);
-    return { success: true, data: { memberId: member.id } };
-  }
-
-  const invite = await db.projectInvite.create({
+  const member = await db.projectMember.create({
     data: {
       projectId: parsed.data.projectId,
-      email,
+      userId: existingUser.id,
       role: parsed.data.role as ProjectRole,
-      token: generateInviteToken(),
-      invitedBy: session.user.id,
-      expiresAt: inviteExpiresAt(),
     },
   });
-
-  let emailSent = false;
-  let emailError: string | undefined;
-  if (sendEmail) {
-    const inviteUrl = `${appBaseUrl()}/invite/${invite.token}`;
-    const mail = await sendProjectInviteEmail({
-      to: email,
-      projectName: project.name,
-      inviteUrl,
-      invitedBy: session.user.name ?? session.user.email ?? "Administrator",
-      roleLabel: ROLE_META[parsed.data.role].label,
-    });
-    emailSent = mail.ok;
-    if (!mail.ok) {
-      emailError = mail.error;
-    }
-  }
-
   await revalidateProject(parsed.data.projectId);
-  return {
-    success: true,
-    data: { inviteToken: invite.token, emailSent, emailError },
-  };
+  return { success: true, data: { memberId: member.id } };
 }
 
 export async function updateMemberRole(

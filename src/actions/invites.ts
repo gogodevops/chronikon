@@ -12,11 +12,9 @@ import { requireAppAdmin, requireAuth } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { generateInviteToken, inviteExpiresAt } from "@/lib/invite-token";
 import { resolveInviteStatus } from "@/lib/invite-status";
-import { sendUserInviteEmail } from "@/lib/mail";
 
 const createUserInviteSchema = z.object({
   email: z.string().email("Ungültige E-Mail"),
-  sendEmail: z.boolean().optional(),
 });
 
 const registerViaInviteSchema = z
@@ -38,15 +36,6 @@ function initials(name: string): string {
     .slice(0, 2)
     .map((p) => p[0]?.toUpperCase() ?? "")
     .join("");
-}
-
-function appBaseUrl(): string {
-  return (
-    process.env.AUTH_URL?.replace(/\/$/, "") ??
-    (process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : "http://localhost:3000")
-  );
 }
 
 export type InviteLookup =
@@ -146,9 +135,7 @@ export async function listUserInvitesForAdmin() {
 
 export async function createUserInvite(
   input: z.infer<typeof createUserInviteSchema>,
-): Promise<
-  ActionResult<{ token: string; emailSent?: boolean; emailError?: string }>
-> {
+): Promise<ActionResult<{ token: string }>> {
   const session = await requireAppAdmin();
 
   const parsed = createUserInviteSchema.safeParse(input);
@@ -160,7 +147,6 @@ export async function createUserInvite(
   }
 
   const email = parsed.data.email.trim().toLowerCase();
-  const sendEmail = parsed.data.sendEmail ?? false;
 
   const existingUser = await db.user.findUnique({ where: { email } });
   if (existingUser) {
@@ -190,25 +176,10 @@ export async function createUserInvite(
     },
   });
 
-  let emailSent = false;
-  let emailError: string | undefined;
-  if (sendEmail) {
-    const inviteUrl = `${appBaseUrl()}/invite/${invite.token}`;
-    const mail = await sendUserInviteEmail({
-      to: email,
-      inviteUrl,
-      invitedBy: session.user.name ?? session.user.email ?? "Administrator",
-    });
-    emailSent = mail.ok;
-    if (!mail.ok) {
-      emailError = mail.error;
-    }
-  }
-
   revalidatePath("/admin/users");
   return {
     success: true,
-    data: { token: invite.token, emailSent, emailError },
+    data: { token: invite.token },
   };
 }
 

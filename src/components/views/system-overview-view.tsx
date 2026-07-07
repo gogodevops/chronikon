@@ -51,6 +51,7 @@ export function SystemOverviewView({
   userInitials,
   userImage,
   notifications,
+  isAppAdmin,
   stats,
   users,
   systemProjects,
@@ -68,7 +69,7 @@ export function SystemOverviewView({
         userInitials={userInitials}
         notifications={notifications}
         canCreateProject
-        isAppAdmin
+        isAppAdmin={isAppAdmin}
         isSystemView
         createDialogOpen={createOpen}
         onCreateDialogOpenChange={setCreateOpen}
@@ -96,18 +97,22 @@ export function SystemOverviewView({
                 <Plus className="h-3.5 w-3.5" />
                 Neues Ober-Thema
               </Button>
-              <Button size="sm" variant="outline" className="gap-1.5" asChild>
-                <Link href="/admin/users">
-                  <UserPlus className="h-3.5 w-3.5" />
-                  Nutzer einladen
-                </Link>
-              </Button>
-              <Button size="sm" variant="outline" className="gap-1.5" asChild>
-                <Link href="/admin/users">
-                  <Users className="h-3.5 w-3.5" />
-                  Nutzer verwalten
-                </Link>
-              </Button>
+              {isAppAdmin && (
+                <>
+                  <Button size="sm" variant="outline" className="gap-1.5" asChild>
+                    <Link href="/admin/users">
+                      <UserPlus className="h-3.5 w-3.5" />
+                      Nutzer einladen
+                    </Link>
+                  </Button>
+                  <Button size="sm" variant="outline" className="gap-1.5" asChild>
+                    <Link href="/admin/users">
+                      <Users className="h-3.5 w-3.5" />
+                      Nutzer verwalten
+                    </Link>
+                  </Button>
+                </>
+              )}
             </div>
 
             <div className="mb-3 grid shrink-0 grid-cols-2 gap-2 md:grid-cols-4">
@@ -164,13 +169,15 @@ export function SystemOverviewView({
                       </li>
                     ))}
                   </ul>
-                  <Link
-                    href="/admin/users"
-                    className="mt-2 inline-flex items-center gap-1 text-[0.72rem] text-accent hover:underline"
-                  >
-                    Alle Nutzer
-                    <ArrowRight className="h-3 w-3" />
-                  </Link>
+                  {isAppAdmin && (
+                    <Link
+                      href="/admin/users"
+                      className="mt-2 inline-flex items-center gap-1 text-[0.72rem] text-accent hover:underline"
+                    >
+                      Alle Nutzer
+                      <ArrowRight className="h-3 w-3" />
+                    </Link>
+                  )}
                 </SectionCard>
 
                 <SectionCard

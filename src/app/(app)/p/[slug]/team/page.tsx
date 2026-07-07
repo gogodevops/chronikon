@@ -4,7 +4,6 @@ import { AppShell } from "@/components/app-shell";
 import { TeamView } from "@/components/views/team-view";
 import { getTeamData } from "@/actions/team";
 import { getUserProjectRole } from "@/lib/auth-helpers";
-import { getMailConfigStatus } from "@/lib/mail";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 
@@ -39,7 +38,6 @@ export default async function TeamPage({
         invites={team.invites}
         currentUserId={team.currentUserId}
         projectId={project.id}
-        mailConfig={getMailConfigStatus()}
       />
     </AppShell>
   );
