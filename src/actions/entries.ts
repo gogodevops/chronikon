@@ -123,8 +123,6 @@ async function snapshotEntry(entryId: string, userId: string) {
     where: { id: entryId },
     include: {
       topics: { include: { topic: true } },
-      sources: true,
-      claims: true,
     },
   });
   if (!entry) return;
@@ -132,7 +130,15 @@ async function snapshotEntry(entryId: string, userId: string) {
     data: {
       entryId,
       changedById: userId,
-      snapshot: entry as object,
+      snapshot: {
+        type: entry.type,
+        title: entry.title,
+        summary: entry.summary,
+        yearStart: entry.yearStart,
+        yearEnd: entry.yearEnd,
+        confidence: entry.confidence,
+        topics: entry.topics.map((t) => t.topic.name),
+      },
     },
   });
 }

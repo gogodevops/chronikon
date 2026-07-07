@@ -370,44 +370,124 @@ export function VersionsList({
   if (versions.length === 0) {
     return (
       <p className="text-[0.82rem] text-muted-foreground">
-        Noch keine gespeicherten Versionen — beim Bearbeiten wird automatisch
-        ein Snapshot angelegt.
+        Noch keine früheren Versionen — erscheint nach der ersten Bearbeitung.
       </p>
     );
   }
 
   return (
-    <ul className="space-y-2">
-      {versions.map((v) => (
-        <li
-          key={v.id}
-          className="rounded-lg border border-border/60 bg-surface-2/50 px-3 py-2.5"
-        >
-          <div className="flex items-start justify-between gap-2">
-            <p className="text-[0.82rem] font-medium leading-snug">{v.title}</p>
-            <time
-              className="shrink-0 text-[0.68rem] text-muted-foreground"
-              dateTime={new Date(v.createdAt).toISOString()}
-            >
-              {new Intl.DateTimeFormat("de-DE", {
-                day: "numeric",
-                month: "short",
-                year: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              }).format(new Date(v.createdAt))}
-            </time>
-          </div>
-          {v.summary && (
-            <p className="mt-1 line-clamp-2 text-[0.75rem] text-muted-foreground">
-              {v.summary}
+    <ul className="space-y-3">
+      {versions.map((version) => {
+        const { snapshot } = version;
+        const eventLabel =
+          version.eventKind === "created" ? "Eintrag angelegt" : "Bearbeitet";
+
+        return (
+          <li
+            key={version.id}
+            className="rounded-xl border border-border/70 bg-surface-2/50 px-3.5 py-3"
+          >
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <span
+                  className={cn(
+                    "rounded-md px-2 py-0.5 text-[0.68rem] font-medium",
+                    version.eventKind === "created"
+                      ? "bg-green/15 text-green"
+                      : "bg-accent-dim/60 text-accent",
+                  )}
+                >
+                  {eventLabel}
+                </span>
+                <time
+                  className="text-[0.68rem] text-muted-foreground"
+                  dateTime={new Date(version.createdAt).toISOString()}
+                >
+                  {new Intl.DateTimeFormat("de-DE", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  }).format(new Date(version.createdAt))}
+                </time>
+              </div>
+            </div>
+
+            <p className="mt-2 text-[0.75rem] text-muted-foreground">
+              {version.changedByName
+                ? `von ${version.changedByName}`
+                : version.changedByEmail
+                  ? `von ${version.changedByEmail}`
+                  : "von Unbekannt"}
             </p>
-          )}
-          <p className="mt-1.5 text-[0.68rem] text-muted-foreground">
-            {v.changedByName ? `Geändert von ${v.changedByName}` : "Unbekannter Autor"}
-          </p>
-        </li>
-      ))}
+
+            <div className="mt-3 rounded-lg border border-border/50 bg-surface-1/40 px-3 py-2.5">
+              <p className="text-[0.68rem] font-medium uppercase tracking-wide text-muted-foreground">
+                Version vom{" "}
+                {new Intl.DateTimeFormat("de-DE", {
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                }).format(new Date(version.createdAt))}
+              </p>
+              <dl className="mt-2 space-y-1.5 text-[0.78rem]">
+                <div className="grid grid-cols-[5.5rem_1fr] gap-x-2">
+                  <dt className="text-muted-foreground">Titel</dt>
+                  <dd className="font-medium">{snapshot.title}</dd>
+                </div>
+                <div className="grid grid-cols-[5.5rem_1fr] gap-x-2">
+                  <dt className="text-muted-foreground">Typ</dt>
+                  <dd>{snapshot.typeLabel}</dd>
+                </div>
+                <div className="grid grid-cols-[5.5rem_1fr] gap-x-2">
+                  <dt className="text-muted-foreground">Zeitraum</dt>
+                  <dd>{snapshot.yearRangeLabel}</dd>
+                </div>
+                <div className="grid grid-cols-[5.5rem_1fr] gap-x-2">
+                  <dt className="text-muted-foreground">Vertrauen</dt>
+                  <dd>{snapshot.confidenceLabel}</dd>
+                </div>
+                <div className="grid grid-cols-[5.5rem_1fr] gap-x-2">
+                  <dt className="text-muted-foreground">Thema</dt>
+                  <dd>{snapshot.topics.length > 0 ? snapshot.topics.join(", ") : "—"}</dd>
+                </div>
+                {snapshot.summaryPreview && (
+                  <div className="grid grid-cols-[5.5rem_1fr] gap-x-2">
+                    <dt className="text-muted-foreground">Kurztext</dt>
+                    <dd className="text-muted-foreground">{snapshot.summaryPreview}</dd>
+                  </div>
+                )}
+              </dl>
+            </div>
+
+            {version.changes.length > 0 && (
+              <div className="mt-3">
+                <p className="text-[0.68rem] font-medium uppercase tracking-wide text-muted-foreground">
+                  Geändert zu
+                </p>
+                <ul className="mt-1.5 space-y-1.5">
+                  {version.changes.map((change) => (
+                    <li
+                      key={`${version.id}-${change.field}`}
+                      className="rounded-md bg-surface-3/40 px-2.5 py-1.5 text-[0.75rem]"
+                    >
+                      <span className="font-medium">{change.label}:</span>{" "}
+                      <span className="text-muted-foreground line-through">
+                        {change.before}
+                      </span>
+                      <span className="mx-1 text-muted-foreground">→</span>
+                      <span>{change.after}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </li>
+        );
+      })}
     </ul>
   );
 }

@@ -8,6 +8,13 @@ import type {
 
 import { requireProjectRole } from "@/lib/auth-helpers";
 import { CONF_META, RELATION_LABELS, TYPE_META } from "@/lib/constants";
+import {
+  currentEntryState,
+  diffVersionStates,
+  parseVersionSnapshot,
+  type VersionFieldChange,
+  type VersionSnapshotState,
+} from "@/lib/entry-versions";
 
 const ACTIVITY_PREVIEW_LEN = 120;
 import { db } from "@/lib/db";
@@ -109,9 +116,11 @@ export type LinkableEntryResult = {
 export type SerializedEntryVersion = {
   id: string;
   createdAt: Date;
+  eventKind: "created" | "edited";
   changedByName: string | null;
-  title: string;
-  summary: string | null;
+  changedByEmail: string | null;
+  snapshot: VersionSnapshotState;
+  changes: VersionFieldChange[];
 };
 
 export type SerializedEntryDetail = SerializedEntryListItem & {
@@ -207,17 +216,6 @@ export type SearchResult = {
   subtitle?: string;
   entryId?: string;
 };
-
-function versionFromSnapshot(snapshot: unknown): { title: string; summary: string | null } {
-  if (snapshot && typeof snapshot === "object") {
-    const s = snapshot as { title?: unknown; summary?: unknown };
-    return {
-      title: typeof s.title === "string" ? s.title : "Unbenannt",
-      summary: typeof s.summary === "string" ? s.summary : null,
-    };
-  }
-  return { title: "Unbenannt", summary: null };
-}
 
 function mapEntryListItem(
   entry: Entry & {
@@ -368,7 +366,7 @@ export async function getEntryDetail(
       versions: {
         orderBy: { createdAt: "desc" },
         take: 30,
-        include: { changedBy: { select: { name: true } } },
+        include: { changedBy: { select: { name: true, email: true } } },
       },
       _count: {
         select: { sources: true, questions: true, comments: true, claims: true },
@@ -400,16 +398,37 @@ export async function getEntryDetail(
     createdAt: entry.createdAt,
     updatedAt: entry.updatedAt,
     createdByName: entry.createdBy?.name ?? null,
-    versions: entry.versions.map((v) => {
-      const snap = versionFromSnapshot(v.snapshot);
-      return {
-        id: v.id,
-        createdAt: v.createdAt,
-        changedByName: v.changedBy?.name ?? null,
-        title: snap.title,
-        summary: snap.summary,
-      };
-    }),
+    versions: (() => {
+      const versionsDesc = entry.versions;
+      const currentState = currentEntryState({
+        type: entry.type,
+        title: entry.title,
+        summary: entry.summary,
+        yearStart: entry.yearStart,
+        yearEnd: entry.yearEnd,
+        confidence: entry.confidence,
+        topics: entry.topics.map((t) => t.topic.name),
+      });
+
+      return versionsDesc.map((v, index) => {
+        const snapshot = parseVersionSnapshot(v.snapshot);
+        const nachher =
+          index === 0
+            ? currentState
+            : parseVersionSnapshot(versionsDesc[index - 1].snapshot);
+        const isOldest = index === versionsDesc.length - 1;
+
+        return {
+          id: v.id,
+          createdAt: v.createdAt,
+          eventKind: isOldest ? ("created" as const) : ("edited" as const),
+          changedByName: v.changedBy?.name ?? null,
+          changedByEmail: v.changedBy?.email ?? null,
+          snapshot,
+          changes: diffVersionStates(snapshot, nachher),
+        };
+      });
+    })(),
     attachments: entry.attachments.map((a) => ({
       id: a.id,
       name: a.name,

@@ -80,6 +80,11 @@ export function EntryTabs({
   discussionComposerMode = "question",
   onDiscussionComposerModeChange,
 }: EntryTabsProps) {
+  const effectiveDiscussionCount =
+    discussionCount > 0
+      ? discussionCount
+      : questions.length + comments.length;
+
   return (
     <Tabs value={activeTab} onValueChange={onTabChange} className="mt-2">
       <TabsList>
@@ -89,12 +94,10 @@ export function EntryTabs({
           Behauptungen ({claimCount})
         </TabsTrigger>
         <TabsTrigger value="diskussion">
-          Diskussion {discussionCount === 0 ? "(+)" : `(${discussionCount})`}
+          Diskussion ({effectiveDiscussionCount})
         </TabsTrigger>
         <TabsTrigger value="verknuepfungen">Verknüpfungen</TabsTrigger>
-        <TabsTrigger value="historie">
-          Historie {versions.length > 0 ? `(${versions.length})` : ""}
-        </TabsTrigger>
+        <TabsTrigger value="historie">Historie ({versions.length})</TabsTrigger>
       </TabsList>
 
       <TabsContent value="inhalt">

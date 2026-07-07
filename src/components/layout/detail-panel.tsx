@@ -286,7 +286,11 @@ export function DetailPanel({
             body={entry.body}
             sourceCount={entry.sourceCount ?? 0}
             claimCount={entry.claimCount ?? 0}
-            discussionCount={entry.discussionCount ?? 0}
+            discussionCount={
+              entry.discussionCount ??
+              (entry.questionCount ?? entry.questions?.length ?? 0) +
+                (entry.commentCount ?? entry.comments?.length ?? 0)
+            }
             sources={entry.sources}
             claims={entry.claims}
             questions={entry.questions}
