@@ -25,7 +25,7 @@ import {
 } from "@/actions/discussions";
 import type { RelationType } from "@prisma/client";
 import type { Confidence } from "@prisma/client";
-import { canDiscuss, canEditProject, canSeeTeamNav, runServerAction } from "@/lib/action-feedback";
+import { canDeleteProject, canDiscuss, canEditProject, canSeeTeamNav, runServerAction } from "@/lib/action-feedback";
 import { CommandPalette, type CommandResult } from "@/components/command-palette";
 import { KiReviewModal } from "@/components/ki-review-modal";
 import {
@@ -674,6 +674,8 @@ export function AppShell({
         showTeamNav={canSeeTeamNav(ctx.userRole)}
         canCreateProject
         isAppAdmin={ctx.isAppAdmin}
+        canDeleteCurrentProject={canDeleteProject(ctx.userRole, ctx.isAppAdmin)}
+        currentProjectDbId={ctx.id}
         onViewChange={handleViewChange}
         onProjectChange={handleProjectChange}
         onCommandPaletteOpen={() => setPaletteOpen(true)}

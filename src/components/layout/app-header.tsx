@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { LogOut, Search, Users } from "lucide-react";
+import { LogOut, Search, Trash2, Users } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import {
@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { CreateProjectDialog } from "@/components/create-project-dialog";
+import { DeleteProjectDialog } from "@/components/delete-project-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { NotificationBell } from "@/components/notification-bell";
 import type { SerializedNotification } from "@/lib/queries";
@@ -31,9 +32,12 @@ export type AppView =
 
 export interface ProjectOption {
   id: string;
+  dbId?: string;
   name: string;
   icon: string;
 }
+
+export const SYSTEM_PROJECT_ID = "__chronikon_system__";
 
 export interface AppHeaderProps {
   projects?: ProjectOption[];
@@ -53,6 +57,8 @@ export interface AppHeaderProps {
   onViewChange?: (view: AppView) => void;
   onProjectChange?: (projectId: string) => void;
   onCommandPaletteOpen?: () => void;
+  canDeleteCurrentProject?: boolean;
+  currentProjectDbId?: string;
 }
 
 const BASE_NAV_ITEMS: { view: AppView; label: string }[] = [
@@ -94,15 +100,27 @@ export function AppHeader({
   onViewChange,
   onProjectChange,
   onCommandPaletteOpen,
+  canDeleteCurrentProject = false,
+  currentProjectDbId,
 }: AppHeaderProps) {
   const [createOpenInternal, setCreateOpenInternal] = React.useState(false);
+  const [deleteOpen, setDeleteOpen] = React.useState(false);
   const createOpen = createDialogOpenProp ?? createOpenInternal;
   const setCreateOpen = onCreateDialogOpenChange ?? setCreateOpenInternal;
-  const activeProject = currentProject ?? projects[0] ?? {
-    id: "",
-    name: "Kein Projekt",
+
+  const systemProject: ProjectOption = {
+    id: SYSTEM_PROJECT_ID,
+    name: "Chronikon",
     icon: "✦",
   };
+
+  const activeProject = isSystemView
+    ? systemProject
+    : (currentProject ?? projects[0] ?? {
+        id: "",
+        name: "Kein Projekt",
+        icon: "✦",
+      });
 
   React.useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -154,11 +172,30 @@ export function AppHeader({
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="min-w-[240px]">
+          {isAppAdmin && (
+            <>
+              <DropdownMenuItem
+                className={cn(
+                  isSystemView && "text-accent",
+                )}
+                onClick={() => {
+                  window.location.href = "/app";
+                }}
+              >
+                <span>✦</span>
+                Chronikon
+                <span className="ml-auto text-[0.65rem] text-muted-foreground">
+                  System
+                </span>
+              </DropdownMenuItem>
+              {projects.length > 0 && <DropdownMenuSeparator />}
+            </>
+          )}
           {projects.map((project) => (
             <DropdownMenuItem
               key={project.id}
               className={cn(
-                project.id === activeProject.id && "text-accent",
+                !isSystemView && project.id === activeProject.id && "text-accent",
               )}
               onClick={() => onProjectChange?.(project.id)}
             >
@@ -175,11 +212,32 @@ export function AppHeader({
               </DropdownMenuItem>
             </>
           )}
+          {canDeleteCurrentProject && currentProjectDbId && !isSystemView && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive"
+                onClick={() => setDeleteOpen(true)}
+              >
+                <Trash2 className="mr-2 h-3.5 w-3.5" />
+                Ober-Thema löschen…
+              </DropdownMenuItem>
+            </>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
 
       {canCreateProject && (
         <CreateProjectDialog open={createOpen} onOpenChange={setCreateOpen} />
+      )}
+
+      {canDeleteCurrentProject && currentProjectDbId && !isSystemView && (
+        <DeleteProjectDialog
+          open={deleteOpen}
+          onOpenChange={setDeleteOpen}
+          projectId={currentProjectDbId}
+          projectName={activeProject.name}
+        />
       )}
 
       <nav className="flex flex-1 gap-1 overflow-x-auto rounded-lg bg-surface-2/40 p-0.5">
@@ -233,7 +291,9 @@ export function AppHeader({
 
         <NotificationBell
           notifications={notifications}
-          projectSlug={activeProject.id}
+          projectSlug={
+            isSystemView ? projects[0]?.id : activeProject.id || undefined
+          }
         />
 
         <DropdownMenu>

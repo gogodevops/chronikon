@@ -38,3 +38,7 @@ export function canManageTeam(role: string) {
 export function canSeeTeamNav(role: string) {
   return canManageTeam(role);
 }
+
+export function canDeleteProject(role: string, isAppAdmin: boolean) {
+  return role === "owner" || isAppAdmin;
+}

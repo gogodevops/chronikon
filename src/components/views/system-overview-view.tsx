@@ -9,6 +9,7 @@ import {
   FolderOpen,
   Plus,
   Sparkles,
+  Trash2,
   UserPlus,
   Users,
 } from "lucide-react";
@@ -18,6 +19,7 @@ import {
   type ProjectOption,
 } from "@/components/layout/app-header";
 import { CreateProjectDialog } from "@/components/create-project-dialog";
+import { DeleteProjectDialog } from "@/components/delete-project-dialog";
 import { SystemActivityFeed } from "@/components/system-activity-feed";
 import { Button } from "@/components/ui/button";
 import { ViewFrame } from "@/components/ui/chronikon-shell";
@@ -179,35 +181,7 @@ export function SystemOverviewView({
                 >
                   <ul className="space-y-1.5">
                     {systemProjects.map((project) => (
-                      <li key={project.id}>
-                        <Link
-                          href={`/p/${project.slug}/dashboard`}
-                          className="flex items-center gap-2 rounded-lg border border-border/60 bg-surface-2/50 px-2.5 py-2 transition-colors hover:border-accent/30 hover:bg-surface-3/40"
-                        >
-                          <span className="text-base" aria-hidden>
-                            {project.icon}
-                          </span>
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-[0.78rem] font-medium">
-                              {project.name}
-                            </p>
-                            <p className="text-[0.68rem] text-muted-foreground">
-                              {project.memberCount} Mitglieder · {project.entryCount}{" "}
-                              Einträge
-                              {project.lastActivityAt && (
-                                <>
-                                  {" · "}
-                                  {formatDistanceToNow(
-                                    new Date(project.lastActivityAt),
-                                    { addSuffix: true, locale: de },
-                                  )}
-                                </>
-                              )}
-                            </p>
-                          </div>
-                          <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                        </Link>
-                      </li>
+                      <SystemProjectListItem key={project.id} project={project} />
                     ))}
                   </ul>
                 </SectionCard>
@@ -243,6 +217,57 @@ export function SystemOverviewView({
         </ViewFrame>
       </main>
     </div>
+  );
+}
+
+function SystemProjectListItem({ project }: { project: SystemProjectRow }) {
+  const [deleteOpen, setDeleteOpen] = React.useState(false);
+
+  return (
+    <li>
+      <div className="flex items-center gap-1 rounded-lg border border-border/60 bg-surface-2/50 pr-1 transition-colors hover:border-accent/30 hover:bg-surface-3/40">
+        <Link
+          href={`/p/${project.slug}/dashboard`}
+          className="flex min-w-0 flex-1 items-center gap-2 px-2.5 py-2"
+        >
+          <span className="text-base" aria-hidden>
+            {project.icon}
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[0.78rem] font-medium">{project.name}</p>
+            <p className="text-[0.68rem] text-muted-foreground">
+              {project.memberCount} Mitglieder · {project.entryCount} Einträge
+              {project.lastActivityAt && (
+                <>
+                  {" · "}
+                  {formatDistanceToNow(new Date(project.lastActivityAt), {
+                    addSuffix: true,
+                    locale: de,
+                  })}
+                </>
+              )}
+            </p>
+          </div>
+          <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        </Link>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-8 w-8 shrink-0 p-0 text-muted-foreground hover:text-destructive"
+          title="Ober-Thema löschen"
+          onClick={() => setDeleteOpen(true)}
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+      <DeleteProjectDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        projectId={project.id}
+        projectName={project.name}
+      />
+    </li>
   );
 }
 

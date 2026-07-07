@@ -9,6 +9,7 @@ import type { ActionResult } from "@/actions/auth";
 import {
   getSession,
   INVALID_SESSION_ERROR,
+  isAppAdmin,
   isForeignKeyViolation,
   requireAuth,
   requireProjectRole,
@@ -320,4 +321,49 @@ export async function listUserProjects() {
     },
     orderBy: { joinedAt: "asc" },
   });
+}
+
+export async function deleteProject(
+  projectId: string,
+): Promise<ActionResult<{ redirectTo: string }>> {
+  try {
+    const session = await getSession();
+    if (!session?.user?.id) {
+      return { success: false, error: INVALID_SESSION_ERROR };
+    }
+
+    const project = await db.project.findUnique({
+      where: { id: projectId },
+      select: { id: true, slug: true, name: true },
+    });
+
+    if (!project) {
+      return { success: false, error: "Ober-Thema nicht gefunden" };
+    }
+
+    const admin = await isAppAdmin(session.user.id);
+    if (!admin) {
+      await requireProjectRole(projectId, "owner");
+    }
+
+    const cookieStore = await cookies();
+    if (cookieStore.get(PROJECT_COOKIE)?.value === projectId) {
+      cookieStore.delete(PROJECT_COOKIE);
+    }
+
+    await db.project.delete({ where: { id: projectId } });
+
+    const redirectTo = "/app";
+
+    revalidatePath("/");
+    revalidatePath("/app");
+    revalidatePath(`/p/${project.slug}`, "layout");
+
+    return { success: true, data: { redirectTo } };
+  } catch (error) {
+    console.error("deleteProject failed:", error);
+    const message =
+      error instanceof Error ? error.message : "Ober-Thema konnte nicht gelöscht werden";
+    return { success: false, error: message };
+  }
 }
