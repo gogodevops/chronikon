@@ -14,6 +14,7 @@ import {
   getEntryKiTemplates,
   getEntryTypeKiTemplate,
   hasOcrContent,
+  KI_WORKFLOW_HINT,
   PROJECT_KI_TEMPLATES,
   renderEntryKiPrompt,
   renderProjectKiPrompt,
@@ -32,10 +33,14 @@ export function EntryKiTemplatePicker({
   language,
   pageStart,
   pageEnd,
+  author,
+  yearStart,
+  yearEnd,
   parentEntryType,
   attachments = [],
   parentAttachments = [],
   childEntries = [],
+  hasBody = false,
   className,
 }: {
   type: EntryType;
@@ -45,10 +50,14 @@ export function EntryKiTemplatePicker({
   language?: string | null;
   pageStart?: number | null;
   pageEnd?: number | null;
+  author?: string | null;
+  yearStart?: number | null;
+  yearEnd?: number | null;
   parentEntryType?: string | null;
   attachments?: KiAttachmentInput[];
   parentAttachments?: KiAttachmentInput[];
   childEntries?: KiChildEntryInput[];
+  hasBody?: boolean;
   className?: string;
 }) {
   const templateContext = { parentEntryType };
@@ -67,6 +76,9 @@ export function EntryKiTemplatePicker({
     entryTitle,
     entryMarkdown,
     language,
+    author,
+    yearStart,
+    yearEnd,
     pageStart,
     pageEnd,
     attachments,
@@ -77,9 +89,16 @@ export function EntryKiTemplatePicker({
     ? renderEntryKiPrompt(type, selected.id, vars, language, templateContext)
     : "";
   const ocrAvailable = hasOcrContent(attachments);
+  const parentOcrAvailable = hasOcrContent(parentAttachments);
+  const needsOcr = selected?.requiresOcr && !ocrAvailable && !parentOcrAvailable;
+  const needsBody = selected?.requiresBody && !hasBody;
 
   return (
     <div className={cn("space-y-3", className)}>
+      <p className="rounded-md border border-border/60 bg-surface-2/50 px-2.5 py-2 text-[0.72rem] leading-relaxed text-muted-foreground">
+        {KI_WORKFLOW_HINT}
+      </p>
+
       <div className="space-y-1.5">
         <label
           htmlFor="entry-ki-template"
@@ -106,13 +125,27 @@ export function EntryKiTemplatePicker({
           <p className="text-[0.75rem] text-muted-foreground">
             {selected.description}
           </p>
-          {ocrAvailable ? (
+          {needsOcr && (
+            <p className="rounded-md border border-amber-500/25 bg-amber-500/10 px-2.5 py-1.5 text-[0.72rem] text-amber-700 dark:text-amber-300">
+              Diese Vorlage benötigt extrahierten PDF-Text — zuerst unter{" "}
+              <strong>Material</strong> ein digitales PDF hochladen.
+            </p>
+          )}
+          {needsBody && (
+            <p className="rounded-md border border-amber-500/25 bg-amber-500/10 px-2.5 py-1.5 text-[0.72rem] text-amber-700 dark:text-amber-300">
+              Diese Vorlage benötigt ausgefüllten Kern (Zusammenfassung oder
+              Inhalt).
+            </p>
+          )}
+          {ocrAvailable && !needsOcr && (
             <p className="rounded-md border border-green/20 bg-green/10 px-2.5 py-1.5 text-[0.72rem] text-green">
               Extrahierter PDF-Text wird automatisch eingefügt.
             </p>
-          ) : (
+          )}
+          {!ocrAvailable && !needsOcr && (
             <p className="text-[0.72rem] text-muted-foreground">
-              Kein PDF-Text — digitales PDF am Buch oder Eintrag hochladen.
+              Noch kein PDF-Text — bei Bedarf digitales PDF unter Material
+              hochladen.
             </p>
           )}
           <details className="rounded-lg border border-border/60 bg-surface/50">

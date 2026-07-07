@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TYPE_META } from "@/lib/constants";
+import { cn } from "@/lib/utils";
 import { ViewFrame } from "@/components/ui/chronikon-shell";
 import { ENTRY_TYPE_HINTS } from "@/lib/ki-templates";
 import {
@@ -176,14 +177,66 @@ export function CaptureForm({
           </p>
         </Field>
 
-        <Field label="Titel">
+        <Field label={fields.type === "book" ? "Name / Titel" : "Titel"} emphasized={fields.type === "book"}>
           <Input
             value={fields.title}
             onChange={(e) =>
               setFields((f) => ({ ...f, title: e.target.value }))
             }
+            placeholder={fields.type === "book" ? "z. B. Geschichte des Osmanischen Reiches" : undefined}
           />
         </Field>
+
+        {fields.type === "book" && !isBookChild && (
+          <div className="rounded-xl border border-accent/25 bg-accent-dim/25 p-3 space-y-3">
+            <p className="text-[0.72rem] font-medium text-accent">
+              Wichtige Buch-Metadaten — PDF danach unter Material hochladen
+            </p>
+            <Field label="Autor" emphasized>
+              <Input
+                value={fields.author}
+                onChange={(e) =>
+                  setFields((f) => ({ ...f, author: e.target.value }))
+                }
+                placeholder="z. B. Halil İnalcık"
+              />
+            </Field>
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Erscheinungsjahr (von)" emphasized>
+                <Input
+                  value={fields.yearStart}
+                  onChange={(e) =>
+                    setFields((f) => ({ ...f, yearStart: e.target.value }))
+                  }
+                  placeholder="z. B. 1973"
+                />
+              </Field>
+              <Field label="Bis (optional)">
+                <Input
+                  value={fields.yearEnd}
+                  onChange={(e) =>
+                    setFields((f) => ({ ...f, yearEnd: e.target.value }))
+                  }
+                />
+              </Field>
+            </div>
+          </div>
+        )}
+
+        {(fields.type === "person" || fields.type === "place") && !isBookChild && (
+          <Field label={fields.type === "person" ? "Autor / Quelle" : "Ort / Region"}>
+            <Input
+              value={fields.type === "person" ? fields.author : fields.placeName}
+              onChange={(e) =>
+                setFields((f) =>
+                  fields.type === "person"
+                    ? { ...f, author: e.target.value }
+                    : { ...f, placeName: e.target.value },
+                )
+              }
+            />
+          </Field>
+        )}
 
         {isBookChild ? (
           <div className="grid grid-cols-2 gap-4">
@@ -208,7 +261,7 @@ export function CaptureForm({
               />
             </Field>
           </div>
-        ) : (
+        ) : fields.type !== "book" ? (
           <div className="grid grid-cols-2 gap-4">
             <Field label="Von (Jahr)">
               <Input
@@ -227,7 +280,7 @@ export function CaptureForm({
               />
             </Field>
           </div>
-        )}
+        ) : null}
 
         <Field label="Sprache">
           <Select
@@ -302,13 +355,20 @@ export function CaptureForm({
 function Field({
   label,
   children,
+  emphasized = false,
 }: {
   label: string;
   children: React.ReactNode;
+  emphasized?: boolean;
 }) {
   return (
     <div>
-      <label className="mb-1 block text-[0.72rem] uppercase tracking-wide text-muted-foreground">
+      <label
+        className={cn(
+          "mb-1 block text-[0.72rem] uppercase tracking-wide",
+          emphasized ? "font-semibold text-foreground" : "text-muted-foreground",
+        )}
+      >
         {label}
       </label>
       {children}

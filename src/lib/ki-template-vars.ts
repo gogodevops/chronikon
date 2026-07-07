@@ -19,7 +19,10 @@ export type KiChildEntryInput = {
 
 export type KiTemplateVars = {
   PROJECT: string;
+  TITLE: string;
   ENTRY_TITLE: string;
+  AUTHOR: string;
+  YEAR: string;
   ENTRY_BODY: string;
   ENTRY: string;
   LANGUAGE: string;
@@ -35,11 +38,24 @@ export type KiTemplateVars = {
 const OCR_TRUNCATE = 12000;
 const PAGE_EXCERPT_TRUNCATE = 8000;
 
+function formatYearRange(yearStart?: number | null, yearEnd?: number | null): string {
+  if (yearStart == null && yearEnd == null) {
+    return "(nicht angegeben)";
+  }
+  const formatYear = (year: number) =>
+    year < 0 ? `${Math.abs(year)} v.Chr.` : `${year} n.Chr.`;
+  if (yearStart != null && yearEnd != null && yearStart !== yearEnd) {
+    return `${formatYear(yearStart)} – ${formatYear(yearEnd)}`;
+  }
+  const year = yearStart ?? yearEnd!;
+  return formatYear(year);
+}
+
 export function buildAttachmentsList(
   attachments: KiAttachmentInput[],
 ): string {
   if (attachments.length === 0) {
-    return "(keine Anhänge)";
+    return "(keine Anhänge — PDF unter Material hochladen)";
   }
 
   return attachments
@@ -70,7 +86,7 @@ export function buildOcrText(attachments: KiAttachmentInput[]): string {
     });
 
   if (blocks.length === 0) {
-    return "(kein extrahierter PDF-Text — digitales PDF am Buch-Anhang hochladen)";
+    return "(kein extrahierter PDF-Text — digitales PDF unter Material hochladen)";
   }
 
   return blocks.join("\n\n---\n\n");
@@ -140,6 +156,9 @@ export function buildEntryKiVars(input: {
   entryTitle: string;
   entryMarkdown: string;
   language?: string | null;
+  author?: string | null;
+  yearStart?: number | null;
+  yearEnd?: number | null;
   pageStart?: number | null;
   pageEnd?: number | null;
   attachments?: KiAttachmentInput[];
@@ -153,7 +172,10 @@ export function buildEntryKiVars(input: {
 
   return {
     PROJECT: input.project,
+    TITLE: input.entryTitle,
     ENTRY_TITLE: input.entryTitle,
+    AUTHOR: input.author?.trim() || "(nicht angegeben)",
+    YEAR: formatYearRange(input.yearStart, input.yearEnd),
     ENTRY_BODY: entryBody,
     ENTRY: entryBody,
     LANGUAGE: entryLanguageLabel(input.language),
@@ -176,6 +198,13 @@ export function buildEntryKiVars(input: {
 
 export function hasOcrContent(attachments: KiAttachmentInput[]): boolean {
   return attachments.some((attachment) => attachment.extractedText?.trim());
+}
+
+export function hasEntryContent(input: {
+  body?: string | null;
+  summary?: string | null;
+}): boolean {
+  return !!(input.body?.trim() || input.summary?.trim());
 }
 
 export function isBookSubEntry(input: {
