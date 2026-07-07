@@ -33,3 +33,8 @@ export function canDiscuss(role: string) {
 export function canManageTeam(role: string) {
   return role === "owner";
 }
+
+/** Team-Tab und /team — nur Projekt-Admins (Owner-Rolle). */
+export function canSeeTeamNav(role: string) {
+  return canManageTeam(role);
+}

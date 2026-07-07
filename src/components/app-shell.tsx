@@ -25,7 +25,7 @@ import {
 } from "@/actions/discussions";
 import type { RelationType } from "@prisma/client";
 import type { Confidence } from "@prisma/client";
-import { canDiscuss, canEditProject, canManageTeam, runServerAction } from "@/lib/action-feedback";
+import { canDiscuss, canEditProject, canSeeTeamNav, runServerAction } from "@/lib/action-feedback";
 import { CommandPalette, type CommandResult } from "@/components/command-palette";
 import { KiReviewModal } from "@/components/ki-review-modal";
 import {
@@ -252,6 +252,7 @@ export function AppShell({
   );
 
   const handleViewChange = (view: AppView) => {
+    if (view === "team" && !canSeeTeamNav(ctx.userRole)) return;
     const suffix = VIEW_ROUTES[view];
     router.push(`${basePath}${suffix}`);
   };
@@ -668,7 +669,7 @@ export function AppShell({
         userImage={ctx.userImage ?? undefined}
         userInitials={ctx.userInitials}
         notifications={ctx.notifications}
-        showTeamNav={canManageTeam(ctx.userRole)}
+        showTeamNav={canSeeTeamNav(ctx.userRole)}
         canCreateProject
         isAppAdmin={ctx.isAppAdmin}
         onViewChange={handleViewChange}

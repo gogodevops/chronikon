@@ -106,6 +106,14 @@ export type LinkableEntryResult = {
   isCurrentProject: boolean;
 };
 
+export type SerializedEntryVersion = {
+  id: string;
+  createdAt: Date;
+  changedByName: string | null;
+  title: string;
+  summary: string | null;
+};
+
 export type SerializedEntryDetail = SerializedEntryListItem & {
   body: string | null;
   language: string | null;
@@ -114,6 +122,10 @@ export type SerializedEntryDetail = SerializedEntryListItem & {
   confidenceLabel: string;
   confidenceColor: string;
   claimCount: number;
+  createdAt: Date;
+  updatedAt: Date;
+  createdByName: string | null;
+  versions: SerializedEntryVersion[];
   attachments: Array<{
     id: string;
     name: string;
@@ -195,6 +207,17 @@ export type SearchResult = {
   subtitle?: string;
   entryId?: string;
 };
+
+function versionFromSnapshot(snapshot: unknown): { title: string; summary: string | null } {
+  if (snapshot && typeof snapshot === "object") {
+    const s = snapshot as { title?: unknown; summary?: unknown };
+    return {
+      title: typeof s.title === "string" ? s.title : "Unbenannt",
+      summary: typeof s.summary === "string" ? s.summary : null,
+    };
+  }
+  return { title: "Unbenannt", summary: null };
+}
 
 function mapEntryListItem(
   entry: Entry & {
@@ -341,6 +364,12 @@ export async function getEntryDetail(
           },
         },
       },
+      createdBy: { select: { name: true } },
+      versions: {
+        orderBy: { createdAt: "desc" },
+        take: 30,
+        include: { changedBy: { select: { name: true } } },
+      },
       _count: {
         select: { sources: true, questions: true, comments: true, claims: true },
       },
@@ -368,6 +397,19 @@ export async function getEntryDetail(
     confidenceLabel: conf.label,
     confidenceColor: conf.color,
     claimCount: entry._count.claims,
+    createdAt: entry.createdAt,
+    updatedAt: entry.updatedAt,
+    createdByName: entry.createdBy?.name ?? null,
+    versions: entry.versions.map((v) => {
+      const snap = versionFromSnapshot(v.snapshot);
+      return {
+        id: v.id,
+        createdAt: v.createdAt,
+        changedByName: v.changedBy?.name ?? null,
+        title: snap.title,
+        summary: snap.summary,
+      };
+    }),
     attachments: entry.attachments.map((a) => ({
       id: a.id,
       name: a.name,

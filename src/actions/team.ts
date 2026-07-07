@@ -6,7 +6,10 @@ import { z } from "zod";
 
 import type { ActionResult } from "@/actions/auth";
 import { requireAppAdmin, requireProjectRole } from "@/lib/auth-helpers";
+import { ROLE_META } from "@/lib/constants";
 import { db } from "@/lib/db";
+import { generatePassword } from "@/lib/generate-password";
+import { sendProjectInviteEmail, sendWelcomeEmail } from "@/lib/mail";
 import { revalidateProject } from "@/lib/revalidate-project";
 
 const roleSchema = z.enum(["owner", "editor", "commenter", "viewer"]);

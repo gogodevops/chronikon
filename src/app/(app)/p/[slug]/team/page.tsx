@@ -20,7 +20,7 @@ export default async function TeamPage({
   if (!project) notFound();
 
   const role = await getUserProjectRole(project.id, session.user.id);
-  if (role !== "owner") {
+  if (!role || role !== "owner") {
     redirect(`/p/${slug}/dashboard`);
   }
 
