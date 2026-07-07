@@ -1,8 +1,10 @@
 import { listUserInvitesForAdmin } from "@/actions/invites";
 import { listAppUsers } from "@/actions/users";
+import { auth } from "@/auth";
 import { AdminUsersView } from "@/components/views/admin-users-view";
 
 export default async function AdminUsersPage() {
+  const session = await auth();
   const [users, invites] = await Promise.all([
     listAppUsers(),
     listUserInvitesForAdmin(),
@@ -10,6 +12,7 @@ export default async function AdminUsersPage() {
 
   return (
     <AdminUsersView
+      currentUserId={session?.user?.id ?? ""}
       users={users.map((u) => ({
         id: u.id,
         name: u.name,

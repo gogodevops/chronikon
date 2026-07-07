@@ -9,6 +9,7 @@ import {
   ArrowLeft,
   Copy,
   Link2,
+  Trash2,
   UserPlus,
   Users,
   X,
@@ -18,6 +19,7 @@ import {
   createUserInvite,
   revokeUserInvite,
 } from "@/actions/invites";
+import { DeleteUserDialog } from "@/components/delete-user-dialog";
 import type { InviteStatus } from "@/lib/invite-status";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,14 +55,19 @@ const STATUS_STYLES: Record<InviteStatus, string> = {
 export function AdminUsersView({
   users,
   invites,
+  currentUserId,
 }: {
   users: AdminUserRow[];
   invites: AdminInviteRow[];
+  currentUserId: string;
 }) {
   const router = useRouter();
   const [email, setEmail] = React.useState("");
   const [pending, setPending] = React.useState(false);
   const [lastInviteLink, setLastInviteLink] = React.useState<string | null>(
+    null,
+  );
+  const [deleteTarget, setDeleteTarget] = React.useState<AdminUserRow | null>(
     null,
   );
 
@@ -275,19 +282,48 @@ export function AdminUsersView({
                     {user.email}
                   </p>
                 </div>
-                <div className="shrink-0 text-right text-[0.68rem] text-muted-foreground">
-                  <p>{user.projectCount} Projekt(e)</p>
-                  <p>
-                    {format(new Date(user.createdAt), "d. MMM yyyy", {
-                      locale: de,
-                    })}
-                  </p>
+                <div className="flex shrink-0 items-center gap-2">
+                  <div className="text-right text-[0.68rem] text-muted-foreground">
+                    <p>{user.projectCount} Projekt(e)</p>
+                    <p>
+                      {format(new Date(user.createdAt), "d. MMM yyyy", {
+                        locale: de,
+                      })}
+                    </p>
+                  </div>
+                  {user.id !== currentUserId && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                      onClick={() => setDeleteTarget(user)}
+                      title="Nutzer entfernen"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
                 </div>
               </li>
             ))}
           </ul>
         </section>
       </main>
+
+      {deleteTarget && (
+        <DeleteUserDialog
+          open={Boolean(deleteTarget)}
+          onOpenChange={(open) => {
+            if (!open) setDeleteTarget(null);
+          }}
+          userId={deleteTarget.id}
+          displayName={
+            deleteTarget.name
+              ? `${deleteTarget.name} (${deleteTarget.email})`
+              : deleteTarget.email
+          }
+          onDeleted={() => router.refresh()}
+        />
+      )}
     </div>
   );
 }
