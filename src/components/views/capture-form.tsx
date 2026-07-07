@@ -106,7 +106,9 @@ export function CaptureForm({
         pageStart: pageStart && pageStart > 0 ? pageStart : undefined,
         pageEnd: pageEnd && pageEnd > 0 ? pageEnd : undefined,
         confidence: fields.confidence as "likely",
-        language: fields.language || DEFAULT_ENTRY_LANGUAGE,
+        ...(config.showLanguage
+          ? { language: fields.language || DEFAULT_ENTRY_LANGUAGE }
+          : {}),
         author: config.showAuthor ? fields.author || undefined : undefined,
         placeName: config.showPlaceName
           ? fields.placeName || undefined

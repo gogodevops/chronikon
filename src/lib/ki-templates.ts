@@ -54,32 +54,66 @@ export type EntryKiTemplate = {
   requiresBody?: boolean;
 };
 
-const METADATA_BLOCK = [
-  "Bekannte Metadaten:",
-  "- Titel: {{TITLE}}",
-  "- Autor: {{AUTHOR}}",
-  "- Jahr/Zeitraum: {{YEAR}}",
-  "- Sprache: {{LANGUAGE}}",
-].join("\n");
+function metadataBlockDe(includeLanguage: boolean): string {
+  const lines = [
+    "Bekannte Metadaten:",
+    "- Titel: {{TITLE}}",
+    "- Autor: {{AUTHOR}}",
+    "- Jahr/Zeitraum: {{YEAR}}",
+  ];
+  if (includeLanguage) lines.push("- Sprache: {{LANGUAGE}}");
+  return lines.join("\n");
+}
 
-const OCR_KONTEXT_BLOCK = [
-  METADATA_BLOCK,
-  "",
-  "Eintrag (Markdown):",
-  "{{ENTRY_BODY}}",
-  "",
-  "Anhänge:",
-  "{{ATTACHMENTS_LIST}}",
-  "",
-  "Extrahierter PDF-Text (digitale PDFs):",
-  "{{OCR_TEXT}}",
-  "",
-  "Untereinträge:",
-  "{{CHILD_ENTRIES}}",
-].join("\n");
+function metadataBlockEn(includeLanguage: boolean): string {
+  const lines = [
+    "Known metadata:",
+    "- Title: {{TITLE}}",
+    "- Author: {{AUTHOR}}",
+    "- Year/period: {{YEAR}}",
+  ];
+  if (includeLanguage) lines.push("- Language: {{LANGUAGE}}");
+  return lines.join("\n");
+}
+
+function ocrKontextBlockDe(includeLanguage: boolean): string {
+  return [
+    metadataBlockDe(includeLanguage),
+    "",
+    "Eintrag (Markdown):",
+    "{{ENTRY_BODY}}",
+    "",
+    "Anhänge:",
+    "{{ATTACHMENTS_LIST}}",
+    "",
+    "Extrahierter PDF-Text (digitale PDFs):",
+    "{{OCR_TEXT}}",
+    "",
+    "Untereinträge:",
+    "{{CHILD_ENTRIES}}",
+  ].join("\n");
+}
+
+function ocrKontextBlockEn(includeLanguage: boolean): string {
+  return [
+    metadataBlockEn(includeLanguage),
+    "",
+    "Entry (Markdown):",
+    "{{ENTRY_BODY}}",
+    "",
+    "Attachments:",
+    "{{ATTACHMENTS_LIST}}",
+    "",
+    "Extracted PDF text (digital PDFs):",
+    "{{OCR_TEXT}}",
+    "",
+    "Sub-entries:",
+    "{{CHILD_ENTRIES}}",
+  ].join("\n");
+}
 
 const BOOK_SUB_KONTEXT_BLOCK = [
-  METADATA_BLOCK,
+  metadataBlockDe(true),
   "",
   "Eintrag (Markdown):",
   "{{ENTRY_BODY}}",
@@ -93,7 +127,11 @@ const BOOK_SUB_KONTEXT_BLOCK = [
   "{{ATTACHMENTS_LIST}}",
 ].join("\n");
 
-function entryKontext(typeLabel: string, schwerpunkte: string[]): string {
+function entryKontext(
+  typeLabel: string,
+  schwerpunkte: string[],
+  includeLanguage = true,
+): string {
   return [
     "Du bist Historiker/in mit Expertise in Quellenkritik und historischer Methodik.",
     "",
@@ -101,13 +139,17 @@ function entryKontext(typeLabel: string, schwerpunkte: string[]): string {
     `Eintrag: „{{TITLE}}"`,
     `Eintragstyp: ${typeLabel}`,
     "",
-    OCR_KONTEXT_BLOCK,
+    ocrKontextBlockDe(includeLanguage),
     "",
     `Schwerpunkte: ${schwerpunkte.join(", ")}`,
   ].join("\n");
 }
 
-function entryKontextEn(typeLabel: string, focus: string[]): string {
+function entryKontextEn(
+  typeLabel: string,
+  focus: string[],
+  includeLanguage = true,
+): string {
   return [
     "You are a historian with expertise in source criticism and historical methodology.",
     "",
@@ -115,25 +157,7 @@ function entryKontextEn(typeLabel: string, focus: string[]): string {
     'Entry: "{{TITLE}}"',
     `Entry type: ${typeLabel}`,
     "",
-    [
-      "Known metadata:",
-      "- Title: {{TITLE}}",
-      "- Author: {{AUTHOR}}",
-      "- Year/period: {{YEAR}}",
-      "- Language: {{LANGUAGE}}",
-      "",
-      "Entry (Markdown):",
-      "{{ENTRY_BODY}}",
-      "",
-      "Attachments:",
-      "{{ATTACHMENTS_LIST}}",
-      "",
-      "Extracted PDF text (digital PDFs):",
-      "{{OCR_TEXT}}",
-      "",
-      "Sub-entries:",
-      "{{CHILD_ENTRIES}}",
-    ].join("\n"),
+    ocrKontextBlockEn(includeLanguage),
     "",
     `Focus: ${focus.join(", ")}`,
   ].join("\n");
@@ -510,7 +534,7 @@ function personTemplatesDe(): EntryKiTemplate[] {
         "Gliederung für den Kern-Bereich vorschlagen — funktioniert auch bei leerem Eintrag.",
       template: {
         ziel: `Eine sinnvolle Biografie-Gliederung für „{{TITLE}}" als Ausgangspunkt für den Kern-Bereich entwerfen.`,
-        kontext: entryKontext("Person", ["Biographie", "Lebensdaten", "Rolle"]),
+        kontext: entryKontext("Person", ["Biographie", "Lebensdaten", "Rolle"], false),
         aufgabe: [
           "Lebensabschnitte und Kernthemen strukturieren",
           "Bekannte Daten ({{YEAR}}) und Lücken markieren",
@@ -532,7 +556,7 @@ function personTemplatesDe(): EntryKiTemplate[] {
       requiresOcr: true,
       template: {
         ziel: `Lebensdaten und Ereignisse für „{{TITLE}}" aus vorhandenem Material und Quellen extrahieren.`,
-        kontext: entryKontext("Person", ["Lebensdaten", "Primärquellen", "Biographie"]),
+        kontext: entryKontext("Person", ["Lebensdaten", "Primärquellen", "Biographie"], false),
         aufgabe: [
           "Geburt, Tod und wichtige Lebensereignisse aus {{OCR_TEXT}} und Kern-Inhalt erfassen",
           "Jede Angabe mit Beleg oder Unsicherheitsgrad versehen",
@@ -551,7 +575,7 @@ function personTemplatesDe(): EntryKiTemplate[] {
       description: "Primär- und Sekundärquellen für die Person strukturieren.",
       template: {
         ziel: `Quellen für die Person „{{TITLE}}" kategorisieren und Forschungslücken identifizieren.`,
-        kontext: entryKontext("Person", ["Quellen", "Primärquellen", "Sekundärliteratur"]),
+        kontext: entryKontext("Person", ["Quellen", "Primärquellen", "Sekundärliteratur"], false),
         aufgabe: [
           "Bekannte und vermutete Quellen nach Typ ordnen",
           "Lücken in der Quellenlage benennen",
@@ -575,7 +599,7 @@ function personTemplatesEn(): EntryKiTemplate[] {
       description: "Suggest outline for the body — works even with an empty entry.",
       template: {
         ziel: `Design a biography outline for "{{TITLE}}" as a starting point for the entry body.`,
-        kontext: entryKontextEn("Person", ["Biography", "Life dates", "Role"]),
+        kontext: entryKontextEn("Person", ["Biography", "Life dates", "Role"], false),
         aufgabe: [
           "Structure life periods and core themes",
           "Mark known dates ({{YEAR}}) and gaps",
@@ -596,7 +620,7 @@ function personTemplatesEn(): EntryKiTemplate[] {
       requiresOcr: true,
       template: {
         ziel: `Extract life dates and events for "{{TITLE}}" from available material.`,
-        kontext: entryKontextEn("Person", ["Life dates", "Primary sources", "Biography"]),
+        kontext: entryKontextEn("Person", ["Life dates", "Primary sources", "Biography"], false),
         aufgabe: [
           "Record birth, death, and key events from {{OCR_TEXT}} and body",
           "Attach evidence or confidence level to each claim",
@@ -615,7 +639,7 @@ function personTemplatesEn(): EntryKiTemplate[] {
       description: "Structure primary and secondary sources for the person.",
       template: {
         ziel: `Categorize sources for "{{TITLE}}" and identify research gaps.`,
-        kontext: entryKontextEn("Person", ["Sources", "Primary sources", "Secondary literature"]),
+        kontext: entryKontextEn("Person", ["Sources", "Primary sources", "Secondary literature"], false),
         aufgabe: [
           "Organize known and probable sources by type",
           "Identify gaps in source coverage",
@@ -640,7 +664,7 @@ function placeTemplatesDe(): EntryKiTemplate[] {
         "Geografische Angaben strukturieren — funktioniert auch bei leerem Kern.",
       template: {
         ziel: `Geografische und topografische Informationen für „{{TITLE}}" erfassen und strukturieren.`,
-        kontext: entryKontext("Ort", ["Geografie", "Koordinaten", "Lage"]),
+        kontext: entryKontext("Ort", ["Geografie", "Koordinaten", "Lage"], false),
         aufgabe: [
           "Lage, Region und historische Verwaltungszugehörigkeit skizzieren",
           "Namensvarianten in verschiedenen Sprachen und Epochen sammeln",
@@ -661,7 +685,7 @@ function placeTemplatesDe(): EntryKiTemplate[] {
       requiresOcr: true,
       template: {
         ziel: `Den historischen Kontext von „{{TITLE}}" ({{YEAR}}) aus Material und Quellen darstellen.`,
-        kontext: entryKontext("Ort", ["Geschichte", "Ereignisse", "Epochen"]),
+        kontext: entryKontext("Ort", ["Geschichte", "Ereignisse", "Epochen"], false),
         aufgabe: [
           "Wichtige Ereignisse und Epochen am Ort chronologisch ordnen",
           "Bezug zu Personen, Herrschern und Konflikten herstellen",
@@ -680,7 +704,7 @@ function placeTemplatesDe(): EntryKiTemplate[] {
       description: "Quellen für Ortsangaben sammeln und bewerten.",
       template: {
         ziel: `Quellen und Belege für „{{TITLE}}" systematisch erfassen.`,
-        kontext: entryKontext("Ort", ["Quellen", "Karten", "Archäologie"]),
+        kontext: entryKontext("Ort", ["Quellen", "Karten", "Archäologie"], false),
         aufgabe: [
           "Primärquellen, Karten und archäologische Befunde auflisten",
           "Verlässlichkeit der Ortsangaben bewerten",
@@ -703,7 +727,7 @@ function placeTemplatesEn(): EntryKiTemplate[] {
       description: "Structure geographic data — works with an empty body.",
       template: {
         ziel: `Capture and structure geographic information for "{{TITLE}}".`,
-        kontext: entryKontextEn("Place", ["Geography", "Coordinates", "Location"]),
+        kontext: entryKontextEn("Place", ["Geography", "Coordinates", "Location"], false),
         aufgabe: [
           "Sketch location, region, and historical administration",
           "Collect name variants across languages and periods",
@@ -723,7 +747,7 @@ function placeTemplatesEn(): EntryKiTemplate[] {
       requiresOcr: true,
       template: {
         ziel: `Present the historical context of "{{TITLE}}" ({{YEAR}}) from material and sources.`,
-        kontext: entryKontextEn("Place", ["History", "Events", "Periods"]),
+        kontext: entryKontextEn("Place", ["History", "Events", "Periods"], false),
         aufgabe: [
           "Order key events and periods chronologically",
           "Connect to persons, rulers, and conflicts",
@@ -742,7 +766,7 @@ function placeTemplatesEn(): EntryKiTemplate[] {
       description: "Collect and assess sources for place data.",
       template: {
         ziel: `Systematically record sources and evidence for "{{TITLE}}".`,
-        kontext: entryKontextEn("Place", ["Sources", "Maps", "Archaeology"]),
+        kontext: entryKontextEn("Place", ["Sources", "Maps", "Archaeology"], false),
         aufgabe: [
           "List primary sources, maps, and archaeological finds",
           "Assess reliability of location claims",
@@ -766,7 +790,7 @@ function discoveryTemplatesDe(): EntryKiTemplate[] {
         "Fundort, Datierung und Umstände erfassen — auch bei leerem Kern.",
       template: {
         ziel: `Funddaten für „{{TITLE}}" strukturiert erfassen und Lücken identifizieren.`,
-        kontext: entryKontext("Fund", ["Fundort", "Datierung", "Fundumstände"]),
+        kontext: entryKontext("Fund", ["Fundort", "Datierung", "Fundumstände"], false),
         aufgabe: [
           "Fundort, Fundjahr ({{YEAR}}) und Fundumstände dokumentieren",
           "Bisherige Angaben mit bekannten Metadaten abgleichen",
@@ -785,7 +809,7 @@ function discoveryTemplatesDe(): EntryKiTemplate[] {
       requiresOcr: true,
       template: {
         ziel: `Die Datierung von „{{TITLE}}" anhand von Material und Quellen prüfen.`,
-        kontext: entryKontext("Fund", ["Datierung", "Methodik", "Publikation"]),
+        kontext: entryKontext("Fund", ["Datierung", "Methodik", "Publikation"], false),
         aufgabe: [
           "Datierungsmethoden und Argumente aus {{OCR_TEXT}} zusammenfassen",
           "Gesicherte vs. umstrittene Datierungen unterscheiden",
@@ -804,7 +828,7 @@ function discoveryTemplatesDe(): EntryKiTemplate[] {
       description: "Forschungsgeschichte und Publikationen erfassen.",
       template: {
         ziel: `Publikationen und Forschungsstand zu „{{TITLE}}" zusammenstellen.`,
-        kontext: entryKontext("Fund", ["Publikation", "Forschungsgeschichte"]),
+        kontext: entryKontext("Fund", ["Publikation", "Forschungsgeschichte"], false),
         aufgabe: [
           "Erstpublikation und wichtige Sekundärliteratur auflisten",
           "Forschungskontroversen skizzieren",
