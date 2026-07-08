@@ -493,10 +493,18 @@ export function AppShell({
     if (ok) refreshAfterAction();
   };
 
-  const handleEditBody = () => {
+  const handleSaveBody = async (body: string) => {
     if (!selectedEntry || !canEdit) return;
-    router.push(`${basePath}/new?edit=${selectedEntry.id}`);
+    const ok = await runServerAction(() =>
+      updateEntry({
+        projectId: ctx.id,
+        id: selectedEntry.id,
+        body,
+      }),
+    );
+    if (ok) refreshAfterAction();
   };
+
 
   const handleOpenPointAdd = async (text: string) => {
     if (!selectedEntry || !canDiscussRole) return;
@@ -722,7 +730,7 @@ export function AppShell({
             onAttachmentUpload={handleAttachmentUpload}
             attachmentUploadStatus={attachmentUploadStatus}
             onAttachmentDelete={handleAttachmentDelete}
-            onEditBody={handleEditBody}
+            onSaveBody={handleSaveBody}
             onOpenPointAdd={handleOpenPointAdd}
             onOpenPointAnswer={handleOpenPointAnswer}
             onOpenPointDelete={handleOpenPointDelete}

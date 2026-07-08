@@ -87,7 +87,7 @@ export interface DetailPanelProps {
   onAttachmentUpload?: (file: File) => void;
   onAttachmentDelete?: (attachmentId: string) => void;
   attachmentUploadStatus?: AttachmentUploadStatus;
-  onEditBody?: () => void;
+  onSaveBody?: (body: string) => Promise<void> | void;
   onOpenPointAdd?: (text: string) => void;
   onOpenPointAnswer?: (questionId: string, text: string) => void;
   onOpenPointDelete?: (questionId: string) => void;
@@ -137,7 +137,7 @@ export function DetailPanel({
   onAttachmentUpload,
   onAttachmentDelete,
   attachmentUploadStatus,
-  onEditBody,
+  onSaveBody,
   onOpenPointAdd,
   onOpenPointAnswer,
   onOpenPointDelete,
@@ -353,7 +353,7 @@ export function DetailPanel({
               relationSearchError={relationSearchError}
               onRelationSearch={onRelationSearch}
               onNavigateEntry={onNavigateEntry}
-              onEditBody={onEditBody}
+              onSaveBody={onSaveBody}
               onAttachmentAdd={handleAttachmentAdd}
               onAttachmentDelete={onAttachmentDelete}
               onOpenPointAdd={onOpenPointAdd}

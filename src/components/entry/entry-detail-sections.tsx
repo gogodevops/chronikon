@@ -1,9 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { Pencil } from "lucide-react";
 
-import { EntryBody } from "@/components/entry/entry-body";
+import { KernSection } from "@/components/entry/kern-section";
 import {
   AttachmentsSection,
   type AttachmentItem,
@@ -62,7 +61,7 @@ export interface EntryDetailSectionsProps {
   relationSearchError?: string | null;
   onRelationSearch?: (query: string) => void;
   onNavigateEntry?: (entryId: string, projectSlug?: string) => void;
-  onEditBody?: () => void;
+  onSaveBody?: (body: string) => Promise<void> | void;
   onAttachmentAdd?: () => void;
   onAttachmentDelete?: (attachmentId: string) => void;
   onOpenPointAdd?: (text: string) => void;
@@ -107,7 +106,7 @@ export function EntryDetailSections({
   relationSearchError = null,
   onRelationSearch,
   onNavigateEntry,
-  onEditBody,
+  onSaveBody,
   onAttachmentAdd,
   onAttachmentDelete,
   onOpenPointAdd,
@@ -173,32 +172,17 @@ export function EntryDetailSections({
 
   return (
     <div className="space-y-4">
-      <CollapsibleSection
-        title="Kern"
+      <KernSection
+        body={body}
+        summary={summary}
         hint={hints.kern}
+        entryIndex={entryIndex}
+        projectSlug={projectSlug}
+        canEdit={canEdit}
         open={kernOpen}
         onOpenChange={setKernOpen}
-      >
-        {summary && (
-          <p className="mb-3 text-[0.82rem] leading-relaxed text-muted-foreground">
-            {summary}
-          </p>
-        )}
-        <EntryBody
-          body={body}
-          entryIndex={entryIndex}
-          projectSlug={projectSlug}
-        />
-        <button
-          type="button"
-          onClick={onEditBody}
-          disabled={!canEdit}
-          className="mt-2 inline-flex cursor-pointer items-center gap-1 text-[0.75rem] text-accent hover:underline disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          <Pencil className="h-3 w-3" />
-          Inhalt bearbeiten
-        </button>
-      </CollapsibleSection>
+        onSaveBody={onSaveBody}
+      />
 
       {afterKern}
 
