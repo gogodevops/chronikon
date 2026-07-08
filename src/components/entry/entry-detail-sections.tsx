@@ -35,8 +35,8 @@ import {
 import {
   OPEN_SECTION_MATERIAL,
   OPEN_SECTION_OFFEN,
-  OPEN_SECTION_WEITERE_CLAIM,
-  OPEN_SECTION_WEITERE_SOURCE,
+  OPEN_SECTION_BEHUAPTUNGEN,
+  OPEN_SECTION_QUELLEN,
 } from "@/lib/entry-section-events";
 import {
   getSectionHints,
@@ -134,16 +134,15 @@ export function EntryDetailSections({
     canEdit,
     parentEntryType,
   );
-  const showWeitere =
-    showSources ||
-    claims.length > 0 ||
-    versions.length > 0 ||
-    (canEdit && claims.length === 0);
+  const showClaims = claims.length > 0 || canEdit;
+  const showHistorie = versions.length > 0;
 
   const [kernOpen, setKernOpen] = React.useState(false);
   const [materialOpen, setMaterialOpen] = React.useState(false);
   const [offenOpen, setOffenOpen] = React.useState(false);
-  const [weitereOpen, setWeitereOpen] = React.useState(false);
+  const [quellenOpen, setQuellenOpen] = React.useState(false);
+  const [behauptungenOpen, setBehauptungenOpen] = React.useState(false);
+  const [historieOpen, setHistorieOpen] = React.useState(false);
   const [showClaimComposer, setShowClaimComposer] = React.useState(false);
   const [showSourceComposer, setShowSourceComposer] = React.useState(false);
 
@@ -151,24 +150,24 @@ export function EntryDetailSections({
     const openOffen = () => setOffenOpen(true);
     const openMaterial = () => setMaterialOpen(true);
     const openClaim = () => {
-      setWeitereOpen(true);
+      setBehauptungenOpen(true);
       setShowClaimComposer(true);
     };
     const openSource = () => {
-      setWeitereOpen(true);
+      setQuellenOpen(true);
       setShowSourceComposer(true);
     };
 
     window.addEventListener(OPEN_SECTION_OFFEN, openOffen);
     window.addEventListener(OPEN_SECTION_MATERIAL, openMaterial);
-    window.addEventListener(OPEN_SECTION_WEITERE_CLAIM, openClaim);
-    window.addEventListener(OPEN_SECTION_WEITERE_SOURCE, openSource);
+    window.addEventListener(OPEN_SECTION_BEHUAPTUNGEN, openClaim);
+    window.addEventListener(OPEN_SECTION_QUELLEN, openSource);
 
     return () => {
       window.removeEventListener(OPEN_SECTION_OFFEN, openOffen);
       window.removeEventListener(OPEN_SECTION_MATERIAL, openMaterial);
-      window.removeEventListener(OPEN_SECTION_WEITERE_CLAIM, openClaim);
-      window.removeEventListener(OPEN_SECTION_WEITERE_SOURCE, openSource);
+      window.removeEventListener(OPEN_SECTION_BEHUAPTUNGEN, openClaim);
+      window.removeEventListener(OPEN_SECTION_QUELLEN, openSource);
     };
   }, []);
 
@@ -271,111 +270,104 @@ export function EntryDetailSections({
         </div>
       )}
 
-      {showWeitere && (
+      {showSources && (
         <CollapsibleSection
-          title="Weitere Bereiche"
-          count={
-            (showSources ? sources.length : 0) +
-            claims.length +
-            versions.length
+          title={sourceConfig.sectionTitle}
+          count={sources.length}
+          hint={
+            hints.sourcesExtra
+              ? `${hints.quellen ?? ""} ${hints.sourcesExtra}`.trim()
+              : hints.quellen
           }
-          open={weitereOpen}
-          onOpenChange={setWeitereOpen}
+          open={quellenOpen}
+          onOpenChange={setQuellenOpen}
         >
-          <div id="entry-section-weitere" className="space-y-4 pt-1">
-            {showSources && (
-              <div>
-                <h4 className="mb-1 text-[0.68rem] font-semibold uppercase tracking-wide text-muted-foreground">
-                  {sourceConfig.sectionTitle} ({sources.length})
-                </h4>
-                <p className="mb-2 text-[0.72rem] leading-relaxed text-muted-foreground">
-                  {sourceConfig.meaning}
-                </p>
-                {hints.sourcesExtra && (
-                  <p className="mb-2 text-[0.72rem] leading-relaxed text-muted-foreground/90">
-                    {hints.sourcesExtra}
-                  </p>
-                )}
-                {entryType === "book" && (
-                  <p className="mb-2 rounded-md border border-border/50 bg-surface/50 px-2.5 py-2 text-[0.72rem] leading-relaxed text-muted-foreground">
-                    {SOURCES_WORKFLOW_HINT}
-                  </p>
-                )}
-                <SourcesList
-                  sources={sources}
-                  emptyHint={sourceConfig.emptyHint}
-                  onNavigate={onNavigateEntry}
-                  onDelete={onSourceDelete}
-                  canEdit={canEdit}
-                />
-                {canEdit && onSourceSubmit && showSourceComposer && (
-                  <SourceComposer
-                    entryId={entryId}
-                    titlePlaceholder={sourceConfig.titlePlaceholder}
-                    onSubmit={(data) => {
-                      onSourceSubmit(data);
-                      setShowSourceComposer(false);
-                    }}
-                  />
-                )}
-                {canEdit && onSourceSubmit && !showSourceComposer && (
-                  <button
-                    type="button"
-                    onClick={() => setShowSourceComposer(true)}
-                    className="mt-2 inline-flex cursor-pointer items-center gap-1.5 text-[0.78rem] text-accent hover:underline"
-                  >
-                    Quelle hinzufügen
-                  </button>
-                )}
-              </div>
+          <div id="entry-section-quellen">
+            {entryType === "book" && (
+              <p className="mb-3 rounded-md border border-border/50 bg-surface/50 px-2.5 py-2 text-[0.72rem] leading-relaxed text-muted-foreground">
+                {SOURCES_WORKFLOW_HINT}
+              </p>
             )}
-
-            {(claims.length > 0 || canEdit) && (
-              <div>
-                <h4 className="mb-2 text-[0.68rem] font-semibold uppercase tracking-wide text-muted-foreground">
-                  Behauptungen ({claims.length})
-                </h4>
-                <ClaimsList
-                  claims={claims}
-                  currentUserId={currentUserId}
-                  onDelete={onClaimDelete}
-                  onUpdate={
-                    onClaimUpdate
-                      ? (claimId, data) => onClaimUpdate(claimId, data)
-                      : undefined
-                  }
-                  canEdit={canEdit}
-                />
-                {canEdit && onClaimSubmit && showClaimComposer && (
-                  <ClaimComposer
-                    entryId={entryId}
-                    onSubmit={(data) => {
-                      onClaimSubmit(data);
-                      setShowClaimComposer(false);
-                    }}
-                  />
-                )}
-                {canEdit && onClaimSubmit && !showClaimComposer && (
-                  <button
-                    type="button"
-                    onClick={() => setShowClaimComposer(true)}
-                    className="mt-2 inline-flex cursor-pointer items-center gap-1.5 text-[0.78rem] text-accent hover:underline"
-                  >
-                    Behauptung hinzufügen
-                  </button>
-                )}
-              </div>
+            <SourcesList
+              sources={sources}
+              emptyHint={sourceConfig.emptyHint}
+              onNavigate={onNavigateEntry}
+              onDelete={onSourceDelete}
+              canEdit={canEdit}
+            />
+            {canEdit && onSourceSubmit && showSourceComposer && (
+              <SourceComposer
+                entryId={entryId}
+                titlePlaceholder={sourceConfig.titlePlaceholder}
+                onSubmit={(data) => {
+                  onSourceSubmit(data);
+                  setShowSourceComposer(false);
+                }}
+              />
             )}
-
-            {versions.length > 0 && (
-              <div>
-                <h4 className="mb-2 text-[0.68rem] font-semibold uppercase tracking-wide text-muted-foreground">
-                  Historie ({versions.length})
-                </h4>
-                <VersionsList versions={versions} />
-              </div>
+            {canEdit && onSourceSubmit && !showSourceComposer && (
+              <button
+                type="button"
+                onClick={() => setShowSourceComposer(true)}
+                className="mt-2 inline-flex cursor-pointer items-center gap-1.5 text-[0.78rem] text-accent hover:underline"
+              >
+                Quelle hinzufügen
+              </button>
             )}
           </div>
+        </CollapsibleSection>
+      )}
+
+      {showClaims && (
+        <CollapsibleSection
+          title="Behauptungen"
+          count={claims.length}
+          hint={hints.behauptungen}
+          open={behauptungenOpen}
+          onOpenChange={setBehauptungenOpen}
+        >
+          <div id="entry-section-behauptungen">
+            <ClaimsList
+              claims={claims}
+              currentUserId={currentUserId}
+              onDelete={onClaimDelete}
+              onUpdate={
+                onClaimUpdate
+                  ? (claimId, data) => onClaimUpdate(claimId, data)
+                  : undefined
+              }
+              canEdit={canEdit}
+            />
+            {canEdit && onClaimSubmit && showClaimComposer && (
+              <ClaimComposer
+                entryId={entryId}
+                onSubmit={(data) => {
+                  onClaimSubmit(data);
+                  setShowClaimComposer(false);
+                }}
+              />
+            )}
+            {canEdit && onClaimSubmit && !showClaimComposer && (
+              <button
+                type="button"
+                onClick={() => setShowClaimComposer(true)}
+                className="mt-2 inline-flex cursor-pointer items-center gap-1.5 text-[0.78rem] text-accent hover:underline"
+              >
+                Behauptung hinzufügen
+              </button>
+            )}
+          </div>
+        </CollapsibleSection>
+      )}
+
+      {showHistorie && (
+        <CollapsibleSection
+          title="Historie"
+          count={versions.length}
+          open={historieOpen}
+          onOpenChange={setHistorieOpen}
+        >
+          <VersionsList versions={versions} />
         </CollapsibleSection>
       )}
     </div>

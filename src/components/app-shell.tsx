@@ -11,8 +11,8 @@ import {
   dispatchOpenSection,
   OPEN_SECTION_MATERIAL,
   OPEN_SECTION_OFFEN,
-  OPEN_SECTION_WEITERE_CLAIM,
-  OPEN_SECTION_WEITERE_SOURCE,
+  OPEN_SECTION_BEHUAPTUNGEN,
+  OPEN_SECTION_QUELLEN,
 } from "@/lib/entry-section-events";
 import {
   addAttachmentMetadata,
@@ -394,12 +394,12 @@ export function AppShell({
         scrollToSection("entry-section-offen");
         break;
       case "claim":
-        dispatchOpenSection(OPEN_SECTION_WEITERE_CLAIM);
-        scrollToSection("entry-section-weitere");
+        dispatchOpenSection(OPEN_SECTION_BEHUAPTUNGEN);
+        scrollToSection("entry-section-behauptungen");
         break;
       case "source":
-        dispatchOpenSection(OPEN_SECTION_WEITERE_SOURCE);
-        scrollToSection("entry-section-weitere");
+        dispatchOpenSection(OPEN_SECTION_QUELLEN);
+        scrollToSection("entry-section-quellen");
         break;
       case "relation":
         window.dispatchEvent(new Event(OPEN_RELATIONS_EVENT));

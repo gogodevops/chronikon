@@ -5,6 +5,8 @@ export type SectionHints = {
   material: string;
   offen: string;
   relations: string;
+  quellen?: string;
+  behauptungen?: string;
   sourcesExtra?: string;
 };
 
@@ -14,6 +16,10 @@ const DEFAULT_HINTS: SectionHints = {
   offen: "To-do für später: offene Fragen, die du noch klären willst.",
   relations:
     "Beziehungen zu anderen Einträgen — z. B. Person ↔ Buch oder Quellenbuch ↔ Synthesebuch.",
+  quellen:
+    "Weiterführende Werke, Editionen oder Belege — nicht die Hauptdatei (die liegt unter Material).",
+  behauptungen:
+    "Überprüfbare Aussagen mit Confidence — z. B. was ein Autor behauptet oder was du ableitest.",
 };
 
 const HINTS_BY_TYPE: Partial<Record<EntryType, Partial<SectionHints>>> = {
