@@ -104,20 +104,11 @@ function entryMarkdown(
 const README = `Chronikon — Wissensexport
 ========================
 
-Dieses ZIP enthält alle Einträge und extrahierten OCR-Texte eines Ober-Themas.
+Dieses ZIP enthält alle Einträge eines Ober-Themas.
 
 Struktur:
   manifest.json   — Übersicht aller Dateien
   entries/        — Ein Eintrag pro Markdown-Datei
-  ocr/            — Extrahierter Text aus PDF-Anhängen (falls vorhanden)
-
-So nutzen Sie es mit externer KI (ChatGPT, Claude, …):
-  1. ZIP entpacken
-  2. Relevante Dateien aus entries/ und ocr/ öffnen
-  3. In Chronikon unter Export → KI-Vorlage kopieren
-  4. Vorlage + Dateiinhalte in die Online-KI einfügen
-
-Chronikon speichert kein KI-Gespräch — alles bleibt bei Ihnen.
 `;
 
 export async function buildProjectKnowledgeZip(projectId: string): Promise<{
@@ -130,7 +121,6 @@ export async function buildProjectKnowledgeZip(projectId: string): Promise<{
       entries: {
         include: {
           topics: { include: { topic: true } },
-          attachments: true,
           sources: true,
           parentEntry: { select: { title: true } },
         },
@@ -150,28 +140,11 @@ export async function buildProjectKnowledgeZip(projectId: string): Promise<{
     yearStart: number;
     yearEnd: number;
     parentEntryId: string | null;
-    ocrFiles: string[];
   }[] = [];
-
-  const ocrFiles: { path: string; entryId: string; attachmentName: string }[] =
-    [];
 
   for (const entry of project.entries) {
     const mdFile = `entries/${entry.id}-${safeFilename(entry.title)}.md`;
     zip.file(mdFile, entryMarkdown(entry, project.name));
-
-    const entryOcr: string[] = [];
-    for (const att of entry.attachments) {
-      if (!att.extractedText?.trim()) continue;
-      const ocrPath = `ocr/${entry.id}-${safeFilename(att.name)}.txt`;
-      zip.file(ocrPath, att.extractedText);
-      entryOcr.push(ocrPath);
-      ocrFiles.push({
-        path: ocrPath,
-        entryId: entry.id,
-        attachmentName: att.name,
-      });
-    }
 
     entryList.push({
       id: entry.id,
@@ -181,7 +154,6 @@ export async function buildProjectKnowledgeZip(projectId: string): Promise<{
       yearStart: entry.yearStart,
       yearEnd: entry.yearEnd,
       parentEntryId: entry.parentEntryId,
-      ocrFiles: entryOcr,
     });
   }
 
@@ -193,9 +165,7 @@ export async function buildProjectKnowledgeZip(projectId: string): Promise<{
         slug: project.slug,
         exportedAt: new Date().toISOString(),
         entryCount: entryList.length,
-        ocrFileCount: ocrFiles.length,
         entries: entryList,
-        ocrFiles,
       },
       null,
       2,

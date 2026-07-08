@@ -65,6 +65,7 @@ export function KernSection({
     <div id="entry-section-kern">
     <CollapsibleSection
       title="Kern"
+      count={body?.trim() ? 1 : 0}
       hint={hint}
       open={open}
       onOpenChange={onOpenChange}

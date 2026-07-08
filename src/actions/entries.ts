@@ -20,7 +20,6 @@ import { getMissingRequiredLabels } from "@/lib/entry-form-config";
 import { notifyProjectMembers, projectEntryLink } from "@/lib/notifications";
 import { revalidateProject } from "@/lib/revalidate-project";
 import { deleteStoredFile } from "@/lib/storage";
-import { resolveAttachmentTextStatus } from "@/lib/attachment-text-status";
 import {
   searchLinkableEntries as searchLinkableEntriesQuery,
   type LinkableEntryResult,
@@ -68,7 +67,6 @@ const createEntrySchema = z.object({
       storageKey: z.string().min(1),
       publicUrl: z.string().optional(),
       label: z.string().optional(),
-      extractedText: z.string().optional(),
     })
     .optional(),
 });
@@ -129,7 +127,6 @@ const attachmentSchema = z.object({
   storageKey: z.string().min(1),
   publicUrl: z.string().optional(),
   label: z.string().optional(),
-  extractedText: z.string().optional(),
 });
 
 async function syncTopics(
@@ -283,12 +280,6 @@ export async function createEntry(
         storageKey: att.storageKey,
         publicUrl: att.publicUrl,
         label: att.label ?? "Bei Anlage hochgeladen",
-        extractedText: att.extractedText,
-        ocrStatus: resolveAttachmentTextStatus(
-          att.mimeType,
-          att.extractedText,
-          att.name,
-        ),
         uploadedById: session.user.id,
       },
     });
@@ -606,12 +597,6 @@ export async function addAttachmentMetadata(
       storageKey: parsed.data.storageKey,
       publicUrl: parsed.data.publicUrl,
       label: parsed.data.label,
-      extractedText: parsed.data.extractedText,
-      ocrStatus: resolveAttachmentTextStatus(
-        parsed.data.mimeType,
-        parsed.data.extractedText,
-        parsed.data.name,
-      ),
       uploadedById: session.user.id,
     },
   });

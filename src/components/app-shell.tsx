@@ -130,8 +130,6 @@ function toDetail(e: SerializedEntryDetail): EntryDetail {
       mimeType: a.mimeType,
       url: a.publicUrl ?? undefined,
       label: a.label,
-      ocrStatus: a.ocrStatus,
-      extractedText: a.extractedText,
     })),
     sourceCount: e.sourceCount,
     claimCount: e.claimCount,
@@ -141,13 +139,6 @@ function toDetail(e: SerializedEntryDetail): EntryDetail {
     parentEntryId: e.parentEntryId,
     parentEntryTitle: e.parentEntryTitle,
     parentEntryType: e.parentEntryType,
-    parentAttachments: e.parentAttachments.map((a) => ({
-      name: a.name,
-      label: a.label,
-      mimeType: a.mimeType,
-      ocrStatus: a.ocrStatus,
-      extractedText: a.extractedText,
-    })),
     childEntries: e.childEntries,
     sources: e.sources,
     claims: e.claims,
@@ -458,7 +449,6 @@ export function AppShell({
         storageKey: data.storageKey,
         publicUrl: data.url,
         label: "Später hinzugefügt",
-        extractedText: data.text,
       });
 
       if (!result.success) {
@@ -756,7 +746,6 @@ export function AppShell({
                     )
                 : undefined
             }
-            projectName={ctx.name}
             className="max-[900px]:hidden"
           />
         )}

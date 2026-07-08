@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ChildEntriesSection } from "@/components/entry/child-entries-section";
 import { EntryDetailSections } from "@/components/entry/entry-detail-sections";
-import { OnlineKiSection } from "@/components/entry/online-ki-section";
 import { EntryActionBar, type EntryAction } from "@/components/entry/entry-action-bar";
 import type { AttachmentItem, AttachmentUploadStatus } from "@/components/entry/attachments-section";
 import { ChMetaPill } from "@/components/ui/chronikon-shell";
@@ -57,13 +56,6 @@ export interface EntryDetail {
   commentCount?: number;
   parentEntryId?: string | null;
   parentEntryTitle?: string | null;
-  parentAttachments?: Array<{
-    name: string;
-    label?: string | null;
-    mimeType?: string;
-    ocrStatus?: string;
-    extractedText?: string | null;
-  }>;
   childEntries?: SerializedChildEntry[];
   sources?: SerializedSource[];
   claims?: SerializedClaim[];
@@ -110,7 +102,6 @@ export interface DetailPanelProps {
   canCreateEntry?: boolean;
   onNewEntry?: () => void;
   onCreateChildEntry?: () => void;
-  projectName?: string;
 }
 
 function pageLabel(page?: number | null) {
@@ -154,7 +145,6 @@ export function DetailPanel({
   canCreateEntry = false,
   onNewEntry,
   onCreateChildEntry,
-  projectName = "",
 }: DetailPanelProps) {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -381,12 +371,6 @@ export function DetailPanel({
                 ) : undefined
               }
             />
-
-            {projectName && (
-              <div className="mt-4">
-                <OnlineKiSection entry={entry} projectName={projectName} />
-              </div>
-            )}
           </div>
 
           <input

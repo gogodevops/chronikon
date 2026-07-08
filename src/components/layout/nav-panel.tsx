@@ -11,6 +11,7 @@ import {
   type NavBookGroup,
   type NavFlatEntry,
 } from "@/lib/nav-entry-groups";
+import { formatEntryPageRange } from "@/lib/entry-hierarchy";
 
 export interface FilterChip {
   id: string;
@@ -287,6 +288,8 @@ function EntryNavButton({
   onEntrySelect?: (id: string) => void;
   nested?: boolean;
 }) {
+  const pageLabel = formatEntryPageRange(entry.pageStart, entry.pageEnd);
+
   return (
     <button
       type="button"
@@ -311,6 +314,14 @@ function EntryNavButton({
               title={entry.parentEntryTitle ?? "Untereintrag"}
             >
               ↳
+            </span>
+          )}
+          {pageLabel && (
+            <span
+              className="shrink-0 font-semibold tabular-nums text-accent"
+              title="Seitenbereich"
+            >
+              {pageLabel}
             </span>
           )}
           <span className="truncate">{entry.title}</span>

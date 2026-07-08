@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 
 import { auth } from "@/auth";
-import { extractPdfText } from "@/lib/pdf-text";
 import { storeFile } from "@/lib/storage";
 
 export const runtime = "nodejs";
@@ -29,15 +28,9 @@ export async function POST(request: Request) {
       mimeType,
     );
 
-    let text = "";
-    if (mimeType === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
-      text = await extractPdfText(buffer);
-    }
-
     return NextResponse.json({
       storageKey,
       url: publicUrl,
-      text,
       mimeType,
       name: file.name,
     });

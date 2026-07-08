@@ -14,10 +14,6 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ChSectionLabel } from "@/components/ui/chronikon-shell";
-import {
-  attachmentTextStatusLabel,
-  isPdfMime,
-} from "@/lib/attachment-text-status";
 
 export type AttachmentUploadStatus =
   | { state: "idle" }
@@ -31,8 +27,13 @@ export interface AttachmentItem {
   mimeType?: string;
   url?: string;
   label?: string | null;
-  ocrStatus?: string;
-  extractedText?: string | null;
+}
+
+function isPdfMime(mimeType?: string, filename?: string): boolean {
+  return (
+    mimeType === "application/pdf" ||
+    !!filename?.toLowerCase().endsWith(".pdf")
+  );
 }
 
 export interface AttachmentsSectionProps {
@@ -84,27 +85,6 @@ function UploadStatusBanner({ status }: { status: AttachmentUploadStatus }) {
   );
 }
 
-function TextStatusBadge({ status }: { status?: string }) {
-  const label = attachmentTextStatusLabel(status);
-  const className =
-    status === "done"
-      ? "bg-green/15 text-green"
-      : status === "failed"
-        ? "bg-destructive/15 text-destructive"
-        : "bg-surface-3 text-muted-foreground";
-
-  return (
-    <span
-      className={cn(
-        "inline-flex rounded px-1.5 py-0.5 text-[0.62rem] font-medium",
-        className,
-      )}
-    >
-      {label}
-    </span>
-  );
-}
-
 function AttachmentPreview({ attachment }: { attachment: AttachmentItem }) {
   const isImage = attachment.mimeType?.startsWith("image/");
   const isPdf = isPdfMime(attachment.mimeType, attachment.filename);
@@ -133,7 +113,7 @@ function AttachmentPreview({ attachment }: { attachment: AttachmentItem }) {
           <FileText className="mx-auto mb-2 h-8 w-8 opacity-60 text-muted-foreground" />
         )}
         <p className="text-[0.68rem] text-muted-foreground">
-          PDF-Vorschau — vollständiger Seitenleser folgt in Phase 2
+          PDF — zum Öffnen oder Herunterladen klicken
         </p>
       </div>
     );
@@ -167,58 +147,29 @@ function AttachmentCard({
   onDelete?: (attachmentId: string) => void;
   canEdit?: boolean;
 }) {
-  const [textOpen, setTextOpen] = React.useState(false);
-  const hasText = !!attachment.extractedText?.trim();
-  const isPdf = isPdfMime(attachment.mimeType, attachment.filename);
-
   return (
-    <div className="space-y-2">
-      <div className="relative">
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => onOpen?.(attachment)}
+        className="w-full cursor-pointer overflow-hidden rounded-xl border border-border/60 p-2 text-left transition-all hover:border-accent/30 hover:shadow-sm"
+      >
+        <div className="mb-1.5 px-0.5">
+          <span className="truncate text-[0.72rem] font-medium">
+            {attachment.filename}
+          </span>
+        </div>
+        <AttachmentPreview attachment={attachment} />
+      </button>
+      {canEdit && onDelete && (
         <button
           type="button"
-          onClick={() => onOpen?.(attachment)}
-          className="w-full cursor-pointer overflow-hidden rounded-xl border border-border/60 p-2 text-left transition-all hover:border-accent/30 hover:shadow-sm"
+          onClick={() => onDelete(attachment.id)}
+          className="absolute right-2 top-2 cursor-pointer rounded-lg bg-surface/90 p-1 text-muted-foreground backdrop-blur-sm hover:text-destructive"
+          title="Anhang löschen"
         >
-          <div className="mb-1.5 flex items-center justify-between gap-2 px-0.5">
-            <span className="truncate text-[0.72rem] font-medium">
-              {attachment.filename}
-            </span>
-            <TextStatusBadge status={attachment.ocrStatus} />
-          </div>
-          <AttachmentPreview attachment={attachment} />
+          <Trash2 className="h-3.5 w-3.5" />
         </button>
-        {canEdit && onDelete && (
-          <button
-            type="button"
-            onClick={() => onDelete(attachment.id)}
-            className="absolute right-2 top-2 cursor-pointer rounded-lg bg-surface/90 p-1 text-muted-foreground backdrop-blur-sm hover:text-destructive"
-            title="Anhang löschen"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
-        )}
-      </div>
-      {isPdf && !hasText && attachment.ocrStatus === "failed" && (
-        <p className="text-[0.68rem] text-destructive/90">
-          Kein Text extrahiert — Scan-OCR ist in Phase 1 noch nicht verfügbar.
-        </p>
-      )}
-      {hasText && (
-        <details
-          open={textOpen}
-          onToggle={(e) => setTextOpen((e.target as HTMLDetailsElement).open)}
-          className="rounded-lg border border-border/50 bg-surface-3/40"
-        >
-          <summary className="cursor-pointer px-2.5 py-1.5 text-[0.72rem] font-medium text-muted-foreground select-none">
-            Extrahierter PDF-Text (
-            {attachment.extractedText!.length.toLocaleString("de-DE")} Zeichen)
-          </summary>
-          <pre className="max-h-48 overflow-auto whitespace-pre-wrap border-t border-border/40 p-2.5 font-mono text-[0.68rem] leading-relaxed text-muted-foreground">
-            {attachment.extractedText!.length > 2000
-              ? `${attachment.extractedText!.slice(0, 2000)}…`
-              : attachment.extractedText}
-          </pre>
-        </details>
       )}
     </div>
   );
@@ -263,8 +214,7 @@ export function AttachmentsSection({
       {embedded && (
         <div className="mb-2 flex items-center justify-between">
           <p className="text-[0.78rem] text-muted-foreground">
-            PDF-Textextraktion funktioniert am besten bei digitalen PDFs mit Text
-            in Deutsch oder Englisch.
+            PDFs und Bilder zu diesem Eintrag hochladen.
           </p>
           <Button
             variant="ghost"
@@ -282,7 +232,7 @@ export function AttachmentsSection({
       {attachments.length === 0 ? (
         <p className="text-[0.78rem] leading-relaxed text-muted-foreground">
           {embedded
-            ? "Noch keine Anhänge — digitales PDF hochladen; Text wird automatisch extrahiert (Deutsch oder Englisch)."
+            ? "Noch keine Anhänge — PDF oder Bild hochladen."
             : "PDF oder Bild hochladen."}
         </p>
       ) : (

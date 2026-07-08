@@ -23,6 +23,19 @@ export function canHaveChildEntries(type: EntryType): boolean {
 }
 
 /** Kapitel/Unterthemen nach Seite von (dann Seite bis, dann Titel). */
+export function formatEntryPageRange(
+  pageStart?: number | null,
+  pageEnd?: number | null,
+): string | null {
+  if (pageStart == null && pageEnd == null) return null;
+  if (pageStart != null && pageEnd != null) {
+    if (pageStart === pageEnd) return `S. ${pageStart}`;
+    return `S. ${pageStart}–${pageEnd}`;
+  }
+  if (pageStart != null) return `S. ${pageStart}`;
+  return `bis S. ${pageEnd}`;
+}
+
 export function compareByPageStart(
   a: {
     pageStart?: number | null;

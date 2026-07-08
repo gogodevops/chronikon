@@ -4,6 +4,7 @@ import { Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
+import { formatEntryPageRange } from "@/lib/entry-hierarchy";
 import type { SerializedChildEntry } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
@@ -55,30 +56,42 @@ export function ChildEntriesSection({
     >
       <ul className="space-y-1 pt-1">
         {childEntries.map((child) => {
+          const pageLabel = formatEntryPageRange(child.pageStart, child.pageEnd);
+          const openCount = child.questionCount + child.commentCount;
+
           return (
             <li key={child.id}>
               <button
                 type="button"
                 onClick={() => onNavigate?.(child.id)}
                 className={cn(
-                  "flex w-full cursor-pointer items-center gap-2 rounded-lg border border-border/60 bg-surface/50 px-2.5 py-2 text-left text-[0.8rem] transition-colors hover:border-accent/30 hover:bg-surface-3/50",
+                  "flex w-full cursor-pointer items-start gap-2 rounded-lg border border-border/60 bg-surface/50 px-2.5 py-2 text-left text-[0.8rem] transition-colors hover:border-accent/30 hover:bg-surface-3/50",
                 )}
               >
                 <span
-                  className="h-1.5 w-1.5 shrink-0 rounded-full"
+                  className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full"
                   style={{ background: child.typeColor }}
                 />
-                <span className="min-w-0 flex-1 truncate font-medium">
-                  ↳ {child.title}
-                </span>
-                <span className="shrink-0 text-[0.68rem] text-muted-foreground">
-                  {child.pageStart != null && child.pageEnd != null
-                    ? `S. ${child.pageStart}–${child.pageEnd}`
-                    : child.typeLabel}
-                  {child.questionCount + child.commentCount > 0
-                    ? ` · ${child.questionCount + child.commentCount} offen`
-                    : ""}
-                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="flex items-center gap-1.5 font-medium leading-snug">
+                    <span className="shrink-0 text-[0.68rem] text-muted-foreground">
+                      ↳
+                    </span>
+                    {pageLabel && (
+                      <span
+                        className="shrink-0 font-semibold tabular-nums text-accent"
+                        title="Seitenbereich"
+                      >
+                        {pageLabel}
+                      </span>
+                    )}
+                    <span className="truncate">{child.title}</span>
+                  </p>
+                  <p className="mt-0.5 text-[0.68rem] text-muted-foreground">
+                    {child.typeLabel}
+                    {openCount > 0 ? ` · ${openCount} offen` : ""}
+                  </p>
+                </div>
               </button>
             </li>
           );

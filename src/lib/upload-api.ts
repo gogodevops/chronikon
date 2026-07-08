@@ -5,7 +5,6 @@ export type UploadApiResult = {
   url?: string;
   mimeType: string;
   name: string;
-  text?: string;
 };
 
 export async function parseUploadError(

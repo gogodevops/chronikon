@@ -163,13 +163,6 @@ export type SerializedEntryDetail = SerializedEntryListItem & {
   updatedAt: Date;
   createdByName: string | null;
   parentEntryType: EntryType | null;
-  parentAttachments: Array<{
-    name: string;
-    label: string | null;
-    mimeType: string;
-    ocrStatus: string;
-    extractedText: string | null;
-  }>;
   childEntries: SerializedChildEntry[];
   versions: SerializedEntryVersion[];
   attachments: Array<{
@@ -178,8 +171,6 @@ export type SerializedEntryDetail = SerializedEntryListItem & {
     mimeType: string;
     publicUrl: string | null;
     label: string | null;
-    ocrStatus: string;
-    extractedText: string | null;
   }>;
   sources: SerializedSource[];
   claims: SerializedClaim[];
@@ -390,15 +381,6 @@ export async function getEntryDetail(
           id: true,
           title: true,
           type: true,
-          attachments: {
-            select: {
-              name: true,
-              label: true,
-              mimeType: true,
-              ocrStatus: true,
-              extractedText: true,
-            },
-          },
         },
       },
       childEntries: {
@@ -488,16 +470,6 @@ export async function getEntryDetail(
     updatedAt: entry.updatedAt,
     createdByName: entry.createdBy?.name ?? null,
     parentEntryType: entry.parentEntry?.type ?? null,
-    parentAttachments:
-      entry.parentEntry?.type === "book"
-        ? entry.parentEntry.attachments.map((a) => ({
-            name: a.name,
-            label: a.label,
-            mimeType: a.mimeType,
-            ocrStatus: a.ocrStatus,
-            extractedText: a.extractedText,
-          }))
-        : [],
     childEntries: sortBookChildren(
       entry.childEntries.map((child) => {
         const childMeta = TYPE_META[child.type];
@@ -553,8 +525,6 @@ export async function getEntryDetail(
       mimeType: a.mimeType,
       publicUrl: a.publicUrl,
       label: a.label,
-      ocrStatus: a.ocrStatus,
-      extractedText: a.extractedText,
     })),
     sources: entry.sources.map((s) => ({
       id: s.id,

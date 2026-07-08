@@ -25,7 +25,7 @@ const DEFAULT_HINTS: SectionHints = {
 const HINTS_BY_TYPE: Partial<Record<EntryType, Partial<SectionHints>>> = {
   book: {
     kern: "Deine Buch-Zusammenfassung und Notizen — nach dem Lesen ausfüllen.",
-    material: "Das Buch-PDF und weitere Dateien hier hochladen (Textextraktion für Suche & KI).",
+    material: "Das Buch-PDF und weitere Dateien hier hochladen.",
     sourcesExtra:
       "Weiterführende Literatur: andere Werke, die der Autor nutzte — nicht dieses Buch selbst (PDF liegt unter Material). Tipp: Quellenwerk als eigenen Buch-Eintrag anlegen und per Verknüpfung „basiert auf“ verbinden.",
   },

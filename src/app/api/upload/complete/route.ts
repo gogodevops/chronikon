@@ -2,8 +2,6 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { auth } from "@/auth";
-import { extractPdfText } from "@/lib/pdf-text";
-import { readStoredFile } from "@/lib/storage";
 import { filePublicUrl } from "@/lib/storage-config";
 
 export const runtime = "nodejs";
@@ -35,27 +33,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Ungültiger Speicherpfad" }, { status: 400 });
   }
 
-  try {
-    let text = "";
-    if (
-      mimeType === "application/pdf" ||
-      filename.toLowerCase().endsWith(".pdf")
-    ) {
-      const { body } = await readStoredFile(storageKey);
-      text = await extractPdfText(body);
-    }
-
-    return NextResponse.json({
-      storageKey,
-      url: filePublicUrl(storageKey),
-      text,
-      mimeType,
-      name: filename,
-    });
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Upload-Abschluss fehlgeschlagen";
-    console.error("[upload/complete]", message, error);
-    return NextResponse.json({ error: message }, { status: 500 });
-  }
+  return NextResponse.json({
+    storageKey,
+    url: filePublicUrl(storageKey),
+    mimeType,
+    name: filename,
+  });
 }

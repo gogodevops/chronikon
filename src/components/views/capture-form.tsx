@@ -40,7 +40,7 @@ import { HistoricalYearRangeFields } from "@/components/ui/historical-year-input
 import { PersonLifeDateFields } from "@/components/ui/person-life-date-fields";
 import { cn } from "@/lib/utils";
 import { ViewFrame } from "@/components/ui/chronikon-shell";
-import { ENTRY_TYPE_HINTS } from "@/lib/ki-templates";
+import { ENTRY_TYPE_HINTS } from "@/lib/entry-type-hints";
 
 export function CaptureForm({
   projectId,

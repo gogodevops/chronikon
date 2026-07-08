@@ -75,9 +75,9 @@ export function DashboardView({
             <Archive className="h-4 w-4" />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-[0.82rem] font-medium">Export & Online-KI</p>
+            <p className="text-[0.82rem] font-medium">Export</p>
             <p className="text-[0.68rem] text-muted-foreground">
-              Projekt als ZIP — Vorlagen für ChatGPT & Co.
+              Projekt als ZIP oder Markdown herunterladen
             </p>
           </div>
         </Link>
