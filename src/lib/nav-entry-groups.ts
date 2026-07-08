@@ -1,4 +1,5 @@
 import type { EntryListItem } from "@/components/layout/nav-panel";
+import { sortBookChildren } from "@/lib/entry-hierarchy";
 
 export type NavTypeSectionId =
   | "book"
@@ -58,7 +59,7 @@ function buildBookGroups(books: EntryListItem[], allEntries: EntryListItem[]) {
   return books.map((book) => ({
     kind: "book" as const,
     book,
-    children: childrenByBook.get(book.id) ?? [],
+    children: sortBookChildren(childrenByBook.get(book.id) ?? []),
   }));
 }
 

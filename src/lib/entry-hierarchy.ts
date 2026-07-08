@@ -22,6 +22,40 @@ export function canHaveChildEntries(type: EntryType): boolean {
   return ALLOWED_CHILD_TYPES[type] != null;
 }
 
+/** Kapitel/Unterthemen nach Seite von (dann Seite bis, dann Titel). */
+export function compareByPageStart(
+  a: {
+    pageStart?: number | null;
+    pageEnd?: number | null;
+    title: string;
+  },
+  b: {
+    pageStart?: number | null;
+    pageEnd?: number | null;
+    title: string;
+  },
+): number {
+  const aStart = a.pageStart ?? Number.MAX_SAFE_INTEGER;
+  const bStart = b.pageStart ?? Number.MAX_SAFE_INTEGER;
+  if (aStart !== bStart) return aStart - bStart;
+
+  const aEnd = a.pageEnd ?? aStart;
+  const bEnd = b.pageEnd ?? bStart;
+  if (aEnd !== bEnd) return aEnd - bEnd;
+
+  return a.title.localeCompare(b.title, "de");
+}
+
+export function sortBookChildren<
+  T extends {
+    pageStart?: number | null;
+    pageEnd?: number | null;
+    title: string;
+  },
+>(children: T[]): T[] {
+  return [...children].sort(compareByPageStart);
+}
+
 export type SourceSectionConfig = {
   /** Überschrift in der Detailansicht */
   sectionTitle: string;

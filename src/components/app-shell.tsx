@@ -93,6 +93,8 @@ function toListItem(e: SerializedEntryListItem): EntryListItem {
     topic: e.topic,
     parentEntryId: e.parentEntryId,
     parentEntryTitle: e.parentEntryTitle,
+    pageStart: e.pageStart,
+    pageEnd: e.pageEnd,
   };
 }
 

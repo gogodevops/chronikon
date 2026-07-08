@@ -215,7 +215,7 @@ export function CaptureForm({
           ? fields.placeName || undefined
           : undefined,
         topicNames: showTopic && fields.topic ? [fields.topic] : [],
-        parentEntryId: parentEntryId || undefined,
+        parentEntryId: !isEdit && parentEntryId ? parentEntryId : undefined,
       };
 
       const result = isEdit
@@ -297,25 +297,29 @@ export function CaptureForm({
   return (
     <ViewFrame
       title={
-        isEdit
-          ? "Eintrag bearbeiten"
-          : parentEntryTitle
-            ? "Untereintrag anlegen"
-            : "Neuer Eintrag"
+        isEdit && parentEntryTitle
+          ? "Untereintrag bearbeiten"
+          : isEdit
+            ? "Eintrag bearbeiten"
+            : parentEntryTitle
+              ? "Untereintrag anlegen"
+              : "Neuer Eintrag"
       }
       description={
-        isEdit
-          ? "Felder anpassen und speichern"
-          : parentEntryTitle
-            ? `Kapitel, Seite oder Abschnitt für „${parentEntryTitle}"`
-            : fields.type === "book"
-              ? "Buch anlegen — PDF kann danach in der Detailansicht unter Material hinzugefügt werden"
-              : "Felder ausfüllen und speichern"
+        isEdit && parentEntryTitle
+          ? `Kapitel oder Abschnitt von „${parentEntryTitle}" — Felder anpassen und speichern`
+          : isEdit
+            ? "Felder anpassen und speichern"
+            : parentEntryTitle
+              ? `Kapitel, Seite oder Abschnitt für „${parentEntryTitle}"`
+              : fields.type === "book"
+                ? "Buch anlegen — PDF kann danach in der Detailansicht unter Material hinzugefügt werden"
+                : "Felder ausfüllen und speichern"
       }
       maxWidth="md"
     >
       <div className="space-y-4">
-        {parentEntryTitle && !isEdit && (
+        {parentEntryTitle && (
           <p className="rounded-lg border border-accent/25 bg-accent-dim/40 px-3 py-2 text-[0.78rem] text-accent">
             Untereintrag von <strong>{parentEntryTitle}</strong>
           </p>

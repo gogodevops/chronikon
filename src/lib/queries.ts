@@ -8,6 +8,7 @@ import type {
 
 import { isAppAdmin, requireProjectRole } from "@/lib/auth-helpers";
 import { CONF_META, RELATION_LABELS, TYPE_META } from "@/lib/constants";
+import { sortBookChildren } from "@/lib/entry-hierarchy";
 import {
   currentEntryState,
   diffVersionStates,
@@ -401,7 +402,7 @@ export async function getEntryDetail(
         },
       },
       childEntries: {
-        orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
+        orderBy: [{ pageStart: "asc" }, { title: "asc" }],
         include: {
           _count: { select: { questions: true, comments: true } },
         },
@@ -497,22 +498,24 @@ export async function getEntryDetail(
             extractedText: a.extractedText,
           }))
         : [],
-    childEntries: entry.childEntries.map((child) => {
-      const childMeta = TYPE_META[child.type];
-      return {
-        id: child.id,
-        title: child.title,
-        typeLabel: childMeta.label,
-        typeColor: childMeta.color,
-        yearStart: child.yearStart,
-        yearEnd: child.yearEnd,
-        pageStart: child.pageStart,
-        pageEnd: child.pageEnd,
-        sortOrder: child.sortOrder,
-        questionCount: child._count.questions,
-        commentCount: child._count.comments,
-      };
-    }),
+    childEntries: sortBookChildren(
+      entry.childEntries.map((child) => {
+        const childMeta = TYPE_META[child.type];
+        return {
+          id: child.id,
+          title: child.title,
+          typeLabel: childMeta.label,
+          typeColor: childMeta.color,
+          yearStart: child.yearStart,
+          yearEnd: child.yearEnd,
+          pageStart: child.pageStart,
+          pageEnd: child.pageEnd,
+          sortOrder: child.sortOrder,
+          questionCount: child._count.questions,
+          commentCount: child._count.comments,
+        };
+      }),
+    ),
     versions: (() => {
       const versionsDesc = entry.versions;
       const currentState = currentEntryState({

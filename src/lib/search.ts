@@ -1,6 +1,8 @@
 import type { Confidence, EntryType, Prisma } from "@prisma/client";
 import { z } from "zod";
 
+import { sortBookChildren } from "@/lib/entry-hierarchy";
+
 const entryTypeSchema = z.enum([
   "book",
   "text",
@@ -92,7 +94,13 @@ function buildTypeFilter(types: EntryType[]): Prisma.EntryWhereInput | undefined
 }
 
 export function sortEntriesHierarchically(
-  entries: Array<{ id: string; parentEntryId: string | null; title: string }>,
+  entries: Array<{
+    id: string;
+    parentEntryId: string | null;
+    title: string;
+    pageStart?: number | null;
+    pageEnd?: number | null;
+  }>,
 ): string[] {
   const byId = new Set(entries.map((entry) => entry.id));
   const childrenByParent = new Map<string, typeof entries>();
@@ -112,9 +120,7 @@ export function sortEntriesHierarchically(
   const ordered: string[] = [];
   const visit = (entry: (typeof entries)[number]) => {
     ordered.push(entry.id);
-    const children = [...(childrenByParent.get(entry.id) ?? [])].sort((a, b) =>
-      a.title.localeCompare(b.title, "de"),
-    );
+    const children = sortBookChildren(childrenByParent.get(entry.id) ?? []);
     for (const child of children) visit(child);
   };
 

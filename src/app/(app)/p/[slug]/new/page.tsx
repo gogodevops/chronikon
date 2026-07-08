@@ -74,9 +74,22 @@ export default async function NewEntryPage({
         }
       : undefined;
 
-  const editBookFields = editEntry
-    ? bookFormInitialFromEntry(editEntry)
-    : null;
+  const editBookFields =
+    editEntry?.type === "book" ? bookFormInitialFromEntry(editEntry) : null;
+
+  const bookParentId =
+    parentEntry?.type === "book"
+      ? parentEntry.id
+      : editEntry?.parentEntryType === "book"
+        ? (editEntry.parentEntryId ?? undefined)
+        : undefined;
+
+  const bookParentTitle =
+    parentEntry?.type === "book"
+      ? parentEntry.title
+      : editEntry?.parentEntryType === "book"
+        ? (editEntry.parentEntryTitle ?? undefined)
+        : undefined;
 
   return (
     <AppShell
@@ -90,12 +103,8 @@ export default async function NewEntryPage({
         projectSlug={slug}
         topics={project.topics.map((t) => t.name)}
         editEntryId={editEntry?.id}
-        parentEntryId={
-          parentEntry?.type === "book" ? parentEntry.id : undefined
-        }
-        parentEntryTitle={
-          parentEntry?.type === "book" ? parentEntry.title : undefined
-        }
+        parentEntryId={bookParentId}
+        parentEntryTitle={bookParentTitle}
         initialFields={
           editEntry
             ? {

@@ -33,6 +33,8 @@ export interface EntryListItem {
   topic?: string;
   parentEntryId?: string | null;
   parentEntryTitle?: string | null;
+  pageStart?: number | null;
+  pageEnd?: number | null;
 }
 
 export interface NavPanelProps {
