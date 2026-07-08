@@ -306,12 +306,9 @@ export function DetailPanel({
           </div>
 
           <div key={entry.id} className="contents">
-            {projectName && (
-              <OnlineKiSection entry={entry} projectName={projectName} />
-            )}
-
             <EntryDetailSections
               entryId={entry.id}
+              entryTitle={entry.title}
               entryType={entry.type}
               parentEntryType={entry.parentEntryType}
               projectSlug={projectSlug}
@@ -354,6 +351,12 @@ export function DetailPanel({
                 ) : undefined
               }
             />
+
+            {projectName && (
+              <div className="mt-4">
+                <OnlineKiSection entry={entry} projectName={projectName} />
+              </div>
+            )}
           </div>
 
           <input

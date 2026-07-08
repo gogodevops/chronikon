@@ -84,6 +84,69 @@ export const ENTRY_FORM_CONFIG: Record<EntryType, EntryFormFieldConfig> = {
   },
 };
 
+export type RequiredField = "title" | "author" | "placeName" | "pageStart";
+
+export function getRequiredFields(
+  type: string,
+  isBookChild: boolean,
+): RequiredField[] {
+  if (isBookChild) return ["title", "pageStart"];
+  switch (type) {
+    case "book":
+      return ["title", "author"];
+    case "discovery":
+      return ["title", "placeName"];
+    case "person":
+    case "place":
+    case "text":
+    case "note":
+    default:
+      return ["title"];
+  }
+}
+
+export function getMissingRequiredLabels(
+  type: string,
+  isBookChild: boolean,
+  fields: {
+    title: string;
+    author: string;
+    placeName: string;
+    pageStart: string;
+  },
+): string[] {
+  const config = getEntryFormConfig(type);
+  const missing: string[] = [];
+  for (const key of getRequiredFields(type, isBookChild)) {
+    if (key === "title" && !fields.title.trim()) {
+      missing.push(config.titleLabel);
+    }
+    if (key === "author" && !fields.author.trim()) {
+      missing.push(config.authorLabel ?? "Autor");
+    }
+    if (key === "placeName" && !fields.placeName.trim()) {
+      missing.push(config.placeNameLabel ?? "Fundort");
+    }
+    if (key === "pageStart" && !fields.pageStart.trim()) {
+      missing.push("Seite von");
+    }
+  }
+  return missing;
+}
+
+export function isEntryFormComplete(
+  type: string,
+  isBookChild: boolean,
+  fields: {
+    title: string;
+    author: string;
+    placeName: string;
+    pageStart: string;
+  },
+): boolean {
+  return getMissingRequiredLabels(type, isBookChild, fields).length === 0;
+}
+
 export function getEntryFormConfig(type: string): EntryFormFieldConfig {
   return ENTRY_FORM_CONFIG[type as EntryType] ?? ENTRY_FORM_CONFIG.text;
 }

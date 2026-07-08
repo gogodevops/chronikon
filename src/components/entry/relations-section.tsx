@@ -23,6 +23,7 @@ export function RelationsSection({
   onRelationSubmit,
   onRelationDelete,
   canEdit = true,
+  hint,
 }: {
   entryId: string;
   relations?: SerializedRelation[];
@@ -39,6 +40,7 @@ export function RelationsSection({
     typeLabel?: string,
   ) => void;
   canEdit?: boolean;
+  hint?: string;
 }) {
   const [open, setOpen] = React.useState(relations.length > 0);
   const [showComposer, setShowComposer] = React.useState(false);
@@ -81,6 +83,7 @@ export function RelationsSection({
       <CollapsibleSection
         title="Verknüpfungen"
         count={relations.length}
+        hint={hint}
         open={open}
         onOpenChange={setOpen}
         actions={sectionActions}

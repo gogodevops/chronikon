@@ -32,6 +32,23 @@ export function GraphView({
     return { nodes, links: relations };
   }, [entries, relations]);
 
+  if (relations.length === 0) {
+    return (
+      <div className="flex h-full flex-col p-4">
+        <h2 className="mb-4 text-lg font-semibold">Beziehungsgraph</h2>
+        <div className="flex flex-1 flex-col items-center justify-center rounded-lg border border-dashed border-border bg-surface p-8 text-center">
+          <p className="text-[0.9rem] font-medium text-foreground">
+            Noch keine Verknüpfungen
+          </p>
+          <p className="mt-2 max-w-md text-[0.82rem] text-muted-foreground">
+            Öffne einen Eintrag und lege unter „Verknüpfungen“ Beziehungen zu
+            anderen Einträgen an — dann erscheinen Knoten und Linien hier.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-full flex-col p-4">
       <h2 className="mb-4 text-lg font-semibold">Beziehungsgraph</h2>
@@ -40,7 +57,11 @@ export function GraphView({
           graphData={graphData}
           nodeLabel="name"
           nodeColor={(n) => (n as GraphNode).color}
-          linkDirectionalParticles={1}
+          linkColor={() => "rgba(255, 255, 255, 0.5)"}
+          linkWidth={1.5}
+          linkDirectionalArrowLength={5}
+          linkDirectionalArrowRelPos={1}
+          linkDirectionalParticles={2}
           linkDirectionalParticleWidth={2}
           onNodeClick={(node) => onSelect?.((node as GraphNode).id)}
           width={undefined}

@@ -16,6 +16,7 @@ import {
 } from "@/lib/cleanup";
 import { db } from "@/lib/db";
 import { isChildTypeAllowed } from "@/lib/entry-hierarchy";
+import { getMissingRequiredLabels } from "@/lib/entry-form-config";
 import { notifyProjectMembers, projectEntryLink } from "@/lib/notifications";
 import { revalidateProject } from "@/lib/revalidate-project";
 import { deleteStoredFile } from "@/lib/storage";
@@ -172,6 +173,23 @@ export async function createEntry(
 
   const data = parsed.data;
   const { session } = await requireProjectRole(data.projectId, "editor");
+
+  const missing = getMissingRequiredLabels(
+    data.type,
+    !!data.parentEntryId,
+    {
+      title: data.title,
+      author: data.author ?? "",
+      placeName: data.placeName ?? "",
+      pageStart: data.pageStart != null ? String(data.pageStart) : "",
+    },
+  );
+  if (missing.length > 0) {
+    return {
+      success: false,
+      error: `Pflichtfelder fehlen: ${missing.join(", ")}`,
+    };
+  }
 
   if (data.parentEntryId) {
     const parent = await db.entry.findFirst({

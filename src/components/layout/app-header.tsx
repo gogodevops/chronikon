@@ -114,6 +114,14 @@ export function AppHeader({
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const createOpen = createDialogOpenProp ?? createOpenInternal;
   const setCreateOpen = onCreateDialogOpenChange ?? setCreateOpenInternal;
+  const [searchShortcut, setSearchShortcut] = React.useState("Strg+K");
+
+  React.useEffect(() => {
+    const isApple =
+      /Mac|iPhone|iPad|iPod/.test(navigator.platform) ||
+      /Mac/.test(navigator.userAgent);
+    setSearchShortcut(isApple ? "⌘K" : "Strg+K");
+  }, []);
 
   const systemProject: ProjectOption = {
     id: SYSTEM_PROJECT_ID,
@@ -307,7 +315,7 @@ export function AppHeader({
           <Search className="h-3.5 w-3.5" />
           <span>Suchen</span>
           <kbd className="rounded border border-border bg-surface-3 px-1.5 py-0.5 text-[0.7rem]">
-            ⌘K
+            {searchShortcut}
           </kbd>
         </button>
 

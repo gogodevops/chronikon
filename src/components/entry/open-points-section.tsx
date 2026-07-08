@@ -8,6 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import type { SerializedQuestion } from "@/lib/queries";
+import {
+  OPEN_SECTION_OFFEN,
+} from "@/lib/entry-section-events";
 import { cn } from "@/lib/utils";
 
 export function OpenPointsList({
@@ -113,9 +116,11 @@ export function OpenPointsList({
 export function OpenPointComposer({
   onSubmit,
   canDiscuss = true,
+  inputRef,
 }: {
   onSubmit?: (text: string) => void;
   canDiscuss?: boolean;
+  inputRef?: React.RefObject<HTMLTextAreaElement | null>;
 }) {
   const [text, setText] = React.useState("");
 
@@ -136,6 +141,7 @@ export function OpenPointComposer({
       )}
     >
       <Textarea
+        ref={inputRef}
         placeholder="Offenen Punkt formulieren…"
         value={text}
         onChange={(e) => setText(e.target.value)}
@@ -156,24 +162,52 @@ export function OpenPointsSection({
   onAnswer,
   onDelete,
   canDiscuss = true,
+  hint,
+  open: controlledOpen,
+  onOpenChange,
 }: {
   questions: SerializedQuestion[];
   onAdd?: (text: string) => void;
   onAnswer?: (questionId: string, text: string) => void;
   onDelete?: (questionId: string) => void;
   canDiscuss?: boolean;
+  hint?: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
   const openCount = questions.filter((q) => q.status === "open").length;
+  const focusRef = React.useRef<HTMLTextAreaElement>(null);
+
+  React.useEffect(() => {
+    const handleOpen = () => {
+      onOpenChange?.(true);
+      setTimeout(() => focusRef.current?.focus(), 150);
+    };
+    window.addEventListener(OPEN_SECTION_OFFEN, handleOpen);
+    return () => window.removeEventListener(OPEN_SECTION_OFFEN, handleOpen);
+  }, [onOpenChange]);
 
   return (
-    <CollapsibleSection title="Offen" count={openCount}>
+    <CollapsibleSection
+      title="Offen"
+      count={openCount}
+      hint={hint}
+      open={controlledOpen}
+      onOpenChange={onOpenChange}
+    >
       <OpenPointsList
         questions={questions}
         onAnswer={onAnswer}
         onDelete={onDelete}
         canDiscuss={canDiscuss}
       />
-      {canDiscuss && <OpenPointComposer onSubmit={onAdd} canDiscuss={canDiscuss} />}
+      {canDiscuss && (
+        <OpenPointComposer
+          onSubmit={onAdd}
+          canDiscuss={canDiscuss}
+          inputRef={focusRef}
+        />
+      )}
     </CollapsibleSection>
   );
 }

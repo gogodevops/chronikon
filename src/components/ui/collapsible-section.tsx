@@ -99,6 +99,7 @@ export function CollapsibleListControls({
 export function CollapsibleSection({
   title,
   count,
+  hint,
   defaultOpen,
   open: controlledOpen,
   onOpenChange,
@@ -108,6 +109,7 @@ export function CollapsibleSection({
 }: {
   title: React.ReactNode;
   count?: number;
+  hint?: string;
   defaultOpen?: boolean;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -162,8 +164,13 @@ export function CollapsibleSection({
           open ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
         )}
       >
-        <div className="overflow-hidden">
-          <div className="border-t border-border/50 px-3 pb-3">{children}</div>
+        <div className="overflow-hidden border-t border-border/50">
+          {hint && open && (
+            <p className="px-3 pt-2.5 text-[0.72rem] leading-relaxed text-muted-foreground">
+              {hint}
+            </p>
+          )}
+          <div className="px-3 pb-3 pt-2">{children}</div>
         </div>
       </div>
     </section>

@@ -4,9 +4,14 @@ import * as React from "react";
 import { Pencil } from "lucide-react";
 
 import { EntryBody } from "@/components/entry/entry-body";
-import { AttachmentsSection, type AttachmentItem, type AttachmentUploadStatus } from "@/components/entry/attachments-section";
+import {
+  AttachmentsSection,
+  type AttachmentItem,
+  type AttachmentUploadStatus,
+} from "@/components/entry/attachments-section";
 import { OpenPointsSection } from "@/components/entry/open-points-section";
 import { RelationsSection } from "@/components/entry/relations-section";
+import { EntryRelationsMiniGraph } from "@/components/entry/entry-relations-mini-graph";
 import {
   ClaimsList,
   SourcesList,
@@ -27,9 +32,20 @@ import {
   getSourceSectionConfig,
   shouldShowSourcesSection,
 } from "@/lib/entry-hierarchy";
+import {
+  OPEN_SECTION_MATERIAL,
+  OPEN_SECTION_OFFEN,
+  OPEN_SECTION_WEITERE_CLAIM,
+  OPEN_SECTION_WEITERE_SOURCE,
+} from "@/lib/entry-section-events";
+import {
+  getSectionHints,
+  SOURCES_WORKFLOW_HINT,
+} from "@/lib/entry-section-hints";
 
 export interface EntryDetailSectionsProps {
   entryId: string;
+  entryTitle: string;
   entryType: string;
   parentEntryType?: string | null;
   projectSlug: string;
@@ -66,13 +82,13 @@ export interface EntryDetailSectionsProps {
   ) => void;
   canEdit?: boolean;
   canDiscuss?: boolean;
-  /** Rendered after Kern (e.g. child entries / Unterthemen). */
   afterKern?: React.ReactNode;
   uploadStatus?: AttachmentUploadStatus;
 }
 
 export function EntryDetailSections({
   entryId,
+  entryTitle,
   entryType,
   parentEntryType,
   projectSlug,
@@ -106,6 +122,7 @@ export function EntryDetailSections({
   afterKern,
   uploadStatus,
 }: EntryDetailSectionsProps) {
+  const hints = getSectionHints(entryType, parentEntryType);
   const sourceConfig = getSourceSectionConfig(entryType, parentEntryType);
   const showSources = shouldShowSourcesSection(
     entryType,
@@ -119,9 +136,46 @@ export function EntryDetailSections({
     versions.length > 0 ||
     (canEdit && claims.length === 0);
 
+  const [kernOpen, setKernOpen] = React.useState(false);
+  const [materialOpen, setMaterialOpen] = React.useState(false);
+  const [offenOpen, setOffenOpen] = React.useState(false);
+  const [weitereOpen, setWeitereOpen] = React.useState(false);
+  const [showClaimComposer, setShowClaimComposer] = React.useState(false);
+  const [showSourceComposer, setShowSourceComposer] = React.useState(false);
+
+  React.useEffect(() => {
+    const openOffen = () => setOffenOpen(true);
+    const openMaterial = () => setMaterialOpen(true);
+    const openClaim = () => {
+      setWeitereOpen(true);
+      setShowClaimComposer(true);
+    };
+    const openSource = () => {
+      setWeitereOpen(true);
+      setShowSourceComposer(true);
+    };
+
+    window.addEventListener(OPEN_SECTION_OFFEN, openOffen);
+    window.addEventListener(OPEN_SECTION_MATERIAL, openMaterial);
+    window.addEventListener(OPEN_SECTION_WEITERE_CLAIM, openClaim);
+    window.addEventListener(OPEN_SECTION_WEITERE_SOURCE, openSource);
+
+    return () => {
+      window.removeEventListener(OPEN_SECTION_OFFEN, openOffen);
+      window.removeEventListener(OPEN_SECTION_MATERIAL, openMaterial);
+      window.removeEventListener(OPEN_SECTION_WEITERE_CLAIM, openClaim);
+      window.removeEventListener(OPEN_SECTION_WEITERE_SOURCE, openSource);
+    };
+  }, []);
+
   return (
     <div className="space-y-4">
-      <CollapsibleSection title="Kern">
+      <CollapsibleSection
+        title="Kern"
+        hint={hints.kern}
+        open={kernOpen}
+        onOpenChange={setKernOpen}
+      >
         {summary && (
           <p className="mb-3 text-[0.82rem] leading-relaxed text-muted-foreground">
             {summary}
@@ -145,7 +199,14 @@ export function EntryDetailSections({
 
       {afterKern}
 
-      <CollapsibleSection title="Material" count={attachments.length}>
+      <CollapsibleSection
+        title="Material"
+        count={attachments.length}
+        hint={hints.material}
+        open={materialOpen}
+        onOpenChange={setMaterialOpen}
+      >
+        <div id="entry-section-material">
         <AttachmentsSection
           attachments={attachments}
           entryId={entryId}
@@ -160,6 +221,7 @@ export function EntryDetailSections({
           embedded
           uploadStatus={uploadStatus}
         />
+        </div>
       </CollapsibleSection>
 
       <div id="entry-section-offen">
@@ -169,6 +231,9 @@ export function EntryDetailSections({
           onAnswer={onOpenPointAnswer}
           onDelete={onOpenPointDelete}
           canDiscuss={canDiscuss}
+          hint={hints.offen}
+          open={offenOpen}
+          onOpenChange={setOffenOpen}
         />
       </div>
 
@@ -183,7 +248,23 @@ export function EntryDetailSections({
           onRelationSubmit={onRelationSubmit}
           onRelationDelete={onRelationDelete}
           canEdit={canEdit}
+          hint={hints.relations}
         />
+      )}
+
+      {(relations.length > 0 || canEdit) && (
+        <div className="space-y-2">
+          <h4 className="text-[0.68rem] font-semibold uppercase tracking-wide text-muted-foreground">
+            Verknüpfungs-Überblick
+          </h4>
+          <EntryRelationsMiniGraph
+            entryId={entryId}
+            entryTitle={entryTitle}
+            entryType={entryType}
+            relations={relations}
+            onSelect={(id) => onNavigateEntry?.(id)}
+          />
+        </div>
       )}
 
       {showWeitere && (
@@ -194,6 +275,8 @@ export function EntryDetailSections({
             claims.length +
             versions.length
           }
+          open={weitereOpen}
+          onOpenChange={setWeitereOpen}
         >
           <div id="entry-section-weitere" className="space-y-4 pt-1">
             {showSources && (
@@ -204,6 +287,16 @@ export function EntryDetailSections({
                 <p className="mb-2 text-[0.72rem] leading-relaxed text-muted-foreground">
                   {sourceConfig.meaning}
                 </p>
+                {hints.sourcesExtra && (
+                  <p className="mb-2 text-[0.72rem] leading-relaxed text-muted-foreground/90">
+                    {hints.sourcesExtra}
+                  </p>
+                )}
+                {entryType === "book" && (
+                  <p className="mb-2 rounded-md border border-border/50 bg-surface/50 px-2.5 py-2 text-[0.72rem] leading-relaxed text-muted-foreground">
+                    {SOURCES_WORKFLOW_HINT}
+                  </p>
+                )}
                 <SourcesList
                   sources={sources}
                   emptyHint={sourceConfig.emptyHint}
@@ -211,12 +304,24 @@ export function EntryDetailSections({
                   onDelete={onSourceDelete}
                   canEdit={canEdit}
                 />
-                {canEdit && onSourceSubmit && (
+                {canEdit && onSourceSubmit && showSourceComposer && (
                   <SourceComposer
                     entryId={entryId}
                     titlePlaceholder={sourceConfig.titlePlaceholder}
-                    onSubmit={onSourceSubmit}
+                    onSubmit={(data) => {
+                      onSourceSubmit(data);
+                      setShowSourceComposer(false);
+                    }}
                   />
+                )}
+                {canEdit && onSourceSubmit && !showSourceComposer && (
+                  <button
+                    type="button"
+                    onClick={() => setShowSourceComposer(true)}
+                    className="mt-2 inline-flex cursor-pointer items-center gap-1.5 text-[0.78rem] text-accent hover:underline"
+                  >
+                    Quelle hinzufügen
+                  </button>
                 )}
               </div>
             )}
@@ -231,11 +336,23 @@ export function EntryDetailSections({
                   onDelete={onClaimDelete}
                   canEdit={canEdit}
                 />
-                {canEdit && onClaimSubmit && (
+                {canEdit && onClaimSubmit && showClaimComposer && (
                   <ClaimComposer
                     entryId={entryId}
-                    onSubmit={onClaimSubmit}
+                    onSubmit={(data) => {
+                      onClaimSubmit(data);
+                      setShowClaimComposer(false);
+                    }}
                   />
+                )}
+                {canEdit && onClaimSubmit && !showClaimComposer && (
+                  <button
+                    type="button"
+                    onClick={() => setShowClaimComposer(true)}
+                    className="mt-2 inline-flex cursor-pointer items-center gap-1.5 text-[0.78rem] text-accent hover:underline"
+                  >
+                    Behauptung hinzufügen
+                  </button>
                 )}
               </div>
             )}

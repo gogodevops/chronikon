@@ -8,6 +8,13 @@ import {
   RELATIONS_SECTION_ID,
 } from "@/components/entry/relations-section";
 import {
+  dispatchOpenSection,
+  OPEN_SECTION_MATERIAL,
+  OPEN_SECTION_OFFEN,
+  OPEN_SECTION_WEITERE_CLAIM,
+  OPEN_SECTION_WEITERE_SOURCE,
+} from "@/lib/entry-section-events";
+import {
   addAttachmentMetadata,
   addClaim,
   addRelation,
@@ -376,10 +383,15 @@ export function AppShell({
 
     switch (action) {
       case "discussion":
+        dispatchOpenSection(OPEN_SECTION_OFFEN);
         scrollToSection("entry-section-offen");
         break;
       case "claim":
+        dispatchOpenSection(OPEN_SECTION_WEITERE_CLAIM);
+        scrollToSection("entry-section-weitere");
+        break;
       case "source":
+        dispatchOpenSection(OPEN_SECTION_WEITERE_SOURCE);
         scrollToSection("entry-section-weitere");
         break;
       case "relation":
@@ -387,7 +399,11 @@ export function AppShell({
         scrollToSection(RELATIONS_SECTION_ID);
         break;
       case "attachment":
-        document.getElementById("entry-attachment-input")?.click();
+        dispatchOpenSection(OPEN_SECTION_MATERIAL);
+        scrollToSection("entry-section-material");
+        setTimeout(() => {
+          document.getElementById("entry-attachment-input")?.click();
+        }, 150);
         break;
       case "edit":
         router.push(`${basePath}/new?edit=${selectedEntry.id}`);

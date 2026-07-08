@@ -80,13 +80,12 @@ export function buildNavTypeSections(
       const books = topLevel.filter((e) => e.type === "book");
       if (books.length === 0) continue;
       const items = buildBookGroups(books, entries);
-      const childCount = items.reduce((n, g) => n + g.children.length, 0);
       sections.push({
         typeId,
         label: NAV_TYPE_SECTION_LABELS.book,
         color: typeColors.book,
         items,
-        count: books.length + childCount,
+        count: books.length,
       });
       continue;
     }

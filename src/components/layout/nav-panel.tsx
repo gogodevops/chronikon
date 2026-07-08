@@ -238,7 +238,7 @@ function renderNavItem(
       <CollapsibleSection
         key={group.book.id}
         title={group.book.title}
-        count={group.children.length + 1}
+        count={group.children.length > 0 ? group.children.length : undefined}
         defaultOpen={false}
         className="mb-2 border-border/50 bg-transparent"
       >
@@ -403,16 +403,8 @@ export function NavPanel({
                 placeholder="Titel oder Stichwort…"
                 value={searchQuery}
                 onChange={(e) => onSearchChange?.(e.target.value)}
-                className="h-9 border-border/70 bg-surface pl-8 pr-12 text-[0.82rem]"
+                className="h-9 border-border/70 bg-surface pl-8 text-[0.82rem]"
               />
-              <button
-                type="button"
-                title="Globale Suche (⌘K)"
-                onClick={onCommandPaletteOpen}
-                className="absolute right-1.5 top-1/2 -translate-y-1/2 cursor-pointer rounded border border-border/60 bg-surface-3 px-1.5 py-0.5 text-[0.62rem] text-muted-foreground transition-colors hover:border-accent/40 hover:text-accent"
-              >
-                ⌘K
-              </button>
             </div>
           </div>
 

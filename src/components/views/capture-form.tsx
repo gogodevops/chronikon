@@ -20,6 +20,8 @@ import {
 } from "@/lib/entry-hierarchy";
 import {
   getEntryFormConfig,
+  getMissingRequiredLabels,
+  isEntryFormComplete,
   parseEntryYears,
 } from "@/lib/entry-form-config";
 import { cn } from "@/lib/utils";
@@ -77,6 +79,19 @@ export function CaptureForm({
   const selectableTypes = isBookChild
     ? (ALLOWED_CHILD_TYPES.book ?? [])
     : (Object.keys(TYPE_META) as (keyof typeof TYPE_META)[]);
+
+  const formComplete = isEntryFormComplete(fields.type, isBookChild, {
+    title: fields.title,
+    author: fields.author,
+    placeName: fields.placeName,
+    pageStart: fields.pageStart,
+  });
+  const missingLabels = getMissingRequiredLabels(fields.type, isBookChild, {
+    title: fields.title,
+    author: fields.author,
+    placeName: fields.placeName,
+    pageStart: fields.pageStart,
+  });
 
   const handleSave = async () => {
     setSaving(true);
@@ -307,9 +322,14 @@ export function CaptureForm({
           </Field>
         )}
 
-        <Button onClick={handleSave} disabled={saving || !fields.title}>
+        <Button onClick={handleSave} disabled={saving || !formComplete}>
           {saving ? "Speichern…" : isEdit ? "Änderungen speichern" : "Eintrag speichern"}
         </Button>
+        {!formComplete && missingLabels.length > 0 && (
+          <p className="text-[0.75rem] text-muted-foreground">
+            Noch ausfüllen: {missingLabels.join(", ")}
+          </p>
+        )}
       </div>
     </ViewFrame>
   );
