@@ -1,7 +1,39 @@
 import { AppShell } from "@/components/app-shell";
 import { CaptureForm } from "@/components/views/capture-form";
 import { db } from "@/lib/db";
+import {
+  bookFormInitialFromEntry,
+  inputFromSignedYear,
+} from "@/lib/historical-year-fields";
 import { getEntryDetail } from "@/lib/queries";
+
+function yearFormFields(
+  yearStart: number,
+  yearEnd: number,
+  bookFields?: ReturnType<typeof bookFormInitialFromEntry>,
+) {
+  if (bookFields) {
+    return {
+      yearStart: bookFields.yearStart,
+      yearEnd: bookFields.yearEnd,
+      eraStart: bookFields.eraStart,
+      eraEnd: bookFields.eraEnd,
+      publishedYearStart: bookFields.publishedYearStart,
+      publishedYearEnd: bookFields.publishedYearEnd,
+    };
+  }
+
+  const from = inputFromSignedYear(yearStart);
+  const to = inputFromSignedYear(yearEnd);
+  return {
+    yearStart: from.year,
+    yearEnd: to.year,
+    eraStart: from.era,
+    eraEnd: to.era,
+    publishedYearStart: "",
+    publishedYearEnd: "",
+  };
+}
 
 export default async function NewEntryPage({
   params,
@@ -31,8 +63,7 @@ export default async function NewEntryPage({
       ? {
           type: "text",
           title: "",
-          yearStart: String(parentEntry.yearStart ?? ""),
-          yearEnd: String(parentEntry.yearEnd ?? ""),
+          ...yearFormFields(parentEntry.yearStart, parentEntry.yearEnd),
           pageStart: "",
           pageEnd: "",
           confidence: parentEntry.confidence,
@@ -41,6 +72,10 @@ export default async function NewEntryPage({
           placeName: parentEntry.placeName ?? "",
         }
       : undefined;
+
+  const editBookFields = editEntry
+    ? bookFormInitialFromEntry(editEntry)
+    : null;
 
   return (
     <AppShell
@@ -65,8 +100,11 @@ export default async function NewEntryPage({
             ? {
                 type: editEntry.type,
                 title: editEntry.title,
-                yearStart: String(editEntry.yearStart ?? ""),
-                yearEnd: String(editEntry.yearEnd ?? ""),
+                ...yearFormFields(
+                  editEntry.yearStart,
+                  editEntry.yearEnd,
+                  editBookFields,
+                ),
                 pageStart: String(editEntry.pageStart ?? ""),
                 pageEnd: String(editEntry.pageEnd ?? ""),
                 confidence: editEntry.confidence,

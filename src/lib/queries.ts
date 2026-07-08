@@ -36,6 +36,8 @@ export type SerializedEntryListItem = {
   topic?: string;
   yearStart: number;
   yearEnd: number;
+  publishedYearStart: number | null;
+  publishedYearEnd: number | null;
   pageStart: number | null;
   pageEnd: number | null;
   sortOrder: number | null;
@@ -269,6 +271,8 @@ function mapEntryListItem(
     topic: entry.topics[0]?.topic.name,
     yearStart: entry.yearStart,
     yearEnd: entry.yearEnd,
+    publishedYearStart: entry.publishedYearStart,
+    publishedYearEnd: entry.publishedYearEnd,
     pageStart: entry.pageStart,
     pageEnd: entry.pageEnd,
     sortOrder: entry.sortOrder,

@@ -1,4 +1,9 @@
 import { ENTRY_LANGUAGE_HINT } from "@/lib/languages";
+import {
+  formatPeriodYearRange,
+  formatPublicationYear,
+  resolveBookStoredYears,
+} from "@/lib/historical-year-fields";
 
 export type KiAttachmentInput = {
   name: string;
@@ -23,6 +28,7 @@ export type KiTemplateVars = {
   ENTRY_TITLE: string;
   AUTHOR: string;
   YEAR: string;
+  PUBLISHED_YEAR: string;
   ENTRY_BODY: string;
   ENTRY: string;
   LANGUAGE: string;
@@ -159,6 +165,8 @@ export function buildEntryKiVars(input: {
   author?: string | null;
   yearStart?: number | null;
   yearEnd?: number | null;
+  publishedYearStart?: number | null;
+  publishedYearEnd?: number | null;
   pageStart?: number | null;
   pageEnd?: number | null;
   attachments?: KiAttachmentInput[];
@@ -169,13 +177,28 @@ export function buildEntryKiVars(input: {
   const attachments = input.attachments ?? [];
   const parentAttachments = input.parentAttachments ?? [];
   const entryBody = input.entryMarkdown;
+  const resolvedBookYears = resolveBookStoredYears({
+    yearStart: input.yearStart ?? 0,
+    yearEnd: input.yearEnd ?? 0,
+    publishedYearStart: input.publishedYearStart,
+    publishedYearEnd: input.publishedYearEnd,
+  });
 
   return {
     PROJECT: input.project,
     TITLE: input.entryTitle,
     ENTRY_TITLE: input.entryTitle,
     AUTHOR: input.author?.trim() || "(nicht angegeben)",
-    YEAR: formatYearRange(input.yearStart, input.yearEnd),
+    YEAR:
+      formatPeriodYearRange(
+        resolvedBookYears.periodStart,
+        resolvedBookYears.periodEnd,
+      ) || formatYearRange(input.yearStart, input.yearEnd),
+    PUBLISHED_YEAR:
+      formatPublicationYear(
+        resolvedBookYears.publishedStart,
+        resolvedBookYears.publishedEnd,
+      ) || "(nicht angegeben)",
     ENTRY_BODY: entryBody,
     ENTRY: entryBody,
     LANGUAGE: ENTRY_LANGUAGE_HINT,

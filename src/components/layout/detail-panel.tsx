@@ -21,7 +21,7 @@ import type {
   SerializedRelation,
   SerializedSource,
 } from "@/lib/queries";
-import { getEntryYearMeta } from "@/lib/entry-form-config";
+import { getEntryYearMetas } from "@/lib/entry-form-config";
 
 export interface EntryDetail {
   id: string;
@@ -33,6 +33,8 @@ export interface EntryDetail {
   topics?: string[];
   yearStart?: number | null;
   yearEnd?: number | null;
+  publishedYearStart?: number | null;
+  publishedYearEnd?: number | null;
   pageStart?: number | null;
   pageEnd?: number | null;
   parentEntryType?: string | null;
@@ -197,7 +199,13 @@ export function DetailPanel({
 
   const openQuestionCount = entry.questions?.filter((q) => q.status === "open").length ?? 0;
   const isBookChild = entry.parentEntryType === "book";
-  const yearMeta = getEntryYearMeta(entry.type, entry.yearStart, entry.yearEnd);
+  const yearMetas = getEntryYearMetas(
+    entry.type,
+    entry.yearStart,
+    entry.yearEnd,
+    entry.publishedYearStart,
+    entry.publishedYearEnd,
+  );
   const placePillLabel = discoveryPlaceLabel(entry.type, entry.place);
 
   const handleAttachmentAdd = () => {
@@ -294,8 +302,14 @@ export function DetailPanel({
                 label="Seiten"
                 value={`${pageLabel(entry.pageStart)} – ${pageLabel(entry.pageEnd)}`}
               />
-            ) : yearMeta.show ? (
-              <ChMetaPill label={yearMeta.pillLabel} value={yearMeta.value} />
+            ) : yearMetas.length > 0 ? (
+              yearMetas.map((meta) => (
+                <ChMetaPill
+                  key={meta.pillLabel}
+                  label={meta.pillLabel}
+                  value={meta.value}
+                />
+              ))
             ) : null}
             {entry.author && entry.type === "book" && (
               <ChMetaPill label="Autor" value={entry.author} />

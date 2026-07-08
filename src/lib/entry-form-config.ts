@@ -1,5 +1,10 @@
 import type { EntryType } from "@prisma/client";
 
+import {
+  formatPeriodYearRange,
+  formatPublicationYear,
+  resolveBookStoredYears,
+} from "@/lib/historical-year-fields";
 import { formatHistoricalYear } from "@/lib/timeline-years";
 
 export type EntryFormFieldConfig = {
@@ -14,6 +19,9 @@ export type EntryFormFieldConfig = {
   yearStartLabel: string;
   yearEndLabel: string;
   yearEndOptional: boolean;
+  showPublishedYears?: boolean;
+  publishedYearStartLabel?: string;
+  publishedYearEndLabel?: string;
   bookMetadataBox?: boolean;
 };
 
@@ -36,8 +44,11 @@ export const ENTRY_FORM_CONFIG: Record<EntryType, EntryFormFieldConfig> = {
     authorLabel: "Autor",
     showPlaceName: false,
     showYears: true,
-    yearStartLabel: "Erscheinungsjahr",
-    yearEndLabel: "Bis (optional)",
+    showPublishedYears: true,
+    publishedYearStartLabel: "Erscheinungsjahr",
+    publishedYearEndLabel: "Bis (Auflage, optional)",
+    yearStartLabel: "Zeitraum von",
+    yearEndLabel: "Zeitraum bis",
     yearEndOptional: true,
     bookMetadataBox: true,
   },
@@ -167,6 +178,74 @@ export function getEntryYearMeta(
   type: string,
   yearStart?: number | null,
   yearEnd?: number | null,
+  publishedYearStart?: number | null,
+  publishedYearEnd?: number | null,
+): EntryYearMeta {
+  const metas = getEntryYearMetas(
+    type,
+    yearStart,
+    yearEnd,
+    publishedYearStart,
+    publishedYearEnd,
+  );
+  return metas[0] ?? { show: false, pillLabel: "", value: "" };
+}
+
+export function getEntryYearMetas(
+  type: string,
+  yearStart?: number | null,
+  yearEnd?: number | null,
+  publishedYearStart?: number | null,
+  publishedYearEnd?: number | null,
+): EntryYearMeta[] {
+  const start = yearStart ?? 0;
+  const end = yearEnd ?? 0;
+
+  switch (type) {
+    case "book": {
+      const resolved = resolveBookStoredYears({
+        yearStart: start,
+        yearEnd: end,
+        publishedYearStart,
+        publishedYearEnd,
+      });
+      const metas: EntryYearMeta[] = [];
+      const pubValue = formatPublicationYear(
+        resolved.publishedStart,
+        resolved.publishedEnd,
+      );
+      if (pubValue) {
+        metas.push({
+          show: true,
+          pillLabel: "Erscheinungsjahr",
+          value: pubValue,
+        });
+      }
+      const periodValue = formatPeriodYearRange(
+        resolved.periodStart,
+        resolved.periodEnd,
+      );
+      if (periodValue) {
+        metas.push({
+          show: true,
+          pillLabel: "Zeitraum",
+          value: periodValue,
+        });
+      }
+      return metas;
+    }
+    default:
+      break;
+  }
+
+  const single = getEntryYearMetaLegacy(type, yearStart, yearEnd);
+  return single.show ? [single] : [];
+}
+
+function getEntryYearMetaLegacy(
+  type: string,
+  yearStart?: number | null,
+  yearEnd?: number | null,
 ): EntryYearMeta {
   const start = yearStart ?? 0;
   const end = yearEnd ?? 0;
@@ -193,20 +272,6 @@ export function getEntryYearMeta(
         return { show: true, pillLabel: "Gestorben", value: yearLabel(end) };
       }
       return { show: false, pillLabel: "", value: "" };
-    }
-    case "book": {
-      if (start !== 0 && (end === 0 || end === start)) {
-        return {
-          show: true,
-          pillLabel: "Erscheinungsjahr",
-          value: yearLabel(start),
-        };
-      }
-      return {
-        show: true,
-        pillLabel: "Erscheinungsjahr",
-        value: `${yearLabel(start)} – ${yearLabel(end)}`,
-      };
     }
     case "discovery":
       return {

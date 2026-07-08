@@ -188,6 +188,8 @@ model Entry {
   body          String?    @db.Text
   yearStart     Int
   yearEnd       Int
+  publishedYearStart Int?
+  publishedYearEnd   Int?
   pageStart     Int?
   pageEnd       Int?
   sortOrder     Int?

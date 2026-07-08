@@ -106,6 +106,8 @@ function toDetail(e: SerializedEntryDetail): EntryDetail {
     topics: e.topics,
     yearStart: e.yearStart,
     yearEnd: e.yearEnd,
+    publishedYearStart: e.publishedYearStart,
+    publishedYearEnd: e.publishedYearEnd,
     pageStart: e.pageStart,
     pageEnd: e.pageEnd,
     confidence: e.confidence,

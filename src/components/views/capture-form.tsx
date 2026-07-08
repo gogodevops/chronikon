@@ -22,8 +22,15 @@ import {
   getEntryFormConfig,
   getMissingRequiredLabels,
   isEntryFormComplete,
-  parseEntryYears,
 } from "@/lib/entry-form-config";
+import {
+  bookFormInitialFromEntry,
+  inputFromSignedYear,
+  parseHistoricalYearRange,
+  parsePublicationYear,
+  type YearEra,
+} from "@/lib/historical-year-fields";
+import { HistoricalYearRangeFields } from "@/components/ui/historical-year-input";
 import { cn } from "@/lib/utils";
 import { ViewFrame } from "@/components/ui/chronikon-shell";
 import { ENTRY_TYPE_HINTS } from "@/lib/ki-templates";
@@ -48,6 +55,10 @@ export function CaptureForm({
     title: string;
     yearStart: string;
     yearEnd: string;
+    eraStart: YearEra;
+    eraEnd: YearEra;
+    publishedYearStart: string;
+    publishedYearEnd: string;
     pageStart: string;
     pageEnd: string;
     confidence: string;
@@ -61,11 +72,18 @@ export function CaptureForm({
   const isBookChild = !!parentEntryId;
   const [saving, setSaving] = React.useState(false);
 
+  const defaultEraStart = initialFields?.eraStart ?? "ad";
+  const defaultEraEnd = initialFields?.eraEnd ?? "ad";
+
   const [fields, setFields] = React.useState({
     type: initialFields?.type ?? (isBookChild ? "text" : "text"),
     title: initialFields?.title ?? "",
     yearStart: initialFields?.yearStart ?? "",
     yearEnd: initialFields?.yearEnd ?? "",
+    eraStart: defaultEraStart,
+    eraEnd: defaultEraEnd,
+    publishedYearStart: initialFields?.publishedYearStart ?? "",
+    publishedYearEnd: initialFields?.publishedYearEnd ?? "",
     pageStart: initialFields?.pageStart ?? "",
     pageEnd: initialFields?.pageEnd ?? "",
     confidence: initialFields?.confidence ?? "likely",
@@ -103,11 +121,22 @@ export function CaptureForm({
         ? parseInt(fields.pageEnd, 10)
         : undefined;
 
-      const { yearStart, yearEnd } = parseEntryYears(
+      const { yearStart, yearEnd } = parseHistoricalYearRange(
         fields.yearStart,
         fields.yearEnd,
+        fields.eraStart,
+        fields.eraEnd,
         config.yearEndOptional,
       );
+
+      const publishedYearStart =
+        fields.type === "book" && config.showPublishedYears
+          ? parsePublicationYear(fields.publishedYearStart)
+          : undefined;
+      const publishedYearEnd =
+        fields.type === "book" && config.showPublishedYears
+          ? parsePublicationYear(fields.publishedYearEnd)
+          : undefined;
 
       const payload = {
         projectId,
@@ -115,6 +144,18 @@ export function CaptureForm({
         title: fields.title,
         yearStart,
         yearEnd,
+        publishedYearStart:
+          fields.type === "book" && config.showPublishedYears
+            ? publishedYearStart && publishedYearStart > 0
+              ? publishedYearStart
+              : null
+            : undefined,
+        publishedYearEnd:
+          fields.type === "book" && config.showPublishedYears
+            ? publishedYearEnd && publishedYearEnd > 0
+              ? publishedYearEnd
+              : null
+            : undefined,
         pageStart: pageStart && pageStart > 0 ? pageStart : undefined,
         pageEnd: pageEnd && pageEnd > 0 ? pageEnd : undefined,
         confidence: fields.confidence as "likely",
@@ -147,32 +188,60 @@ export function CaptureForm({
     }
   };
 
-  const yearFields = config.showYears ? (
-    <div className="grid grid-cols-2 gap-4">
-      <Field label={config.yearStartLabel}>
-        <Input
-          value={fields.yearStart}
-          onChange={(e) =>
-            setFields((f) => ({ ...f, yearStart: e.target.value }))
-          }
-          placeholder={
-            fields.type === "book" ? "z. B. 1973" : "z. B. 1453"
-          }
-        />
-      </Field>
-      <Field
-        label={config.yearEndLabel}
-        emphasized={fields.type === "book" && !config.yearEndOptional}
-      >
-        <Input
-          value={fields.yearEnd}
-          onChange={(e) =>
-            setFields((f) => ({ ...f, yearEnd: e.target.value }))
-          }
-        />
-      </Field>
-    </div>
+  const historicalYearFields = config.showYears ? (
+    <HistoricalYearRangeFields
+      startLabel={config.yearStartLabel}
+      endLabel={config.yearEndLabel}
+      startYear={fields.yearStart}
+      endYear={fields.yearEnd}
+      startEra={fields.eraStart}
+      endEra={fields.eraEnd}
+      onStartYearChange={(value) =>
+        setFields((f) => ({ ...f, yearStart: value }))
+      }
+      onEndYearChange={(value) =>
+        setFields((f) => ({ ...f, yearEnd: value }))
+      }
+      onStartEraChange={(value) =>
+        setFields((f) => ({ ...f, eraStart: value }))
+      }
+      onEndEraChange={(value) =>
+        setFields((f) => ({ ...f, eraEnd: value }))
+      }
+      startPlaceholder={
+        fields.type === "book" ? "z. B. 330" : "z. B. 1453"
+      }
+      endPlaceholder={
+        fields.type === "book" ? "z. B. 1453" : "z. B. 1500"
+      }
+    />
   ) : null;
+
+  const publicationYearFields =
+    config.showPublishedYears && !isBookChild ? (
+      <div className="grid grid-cols-2 gap-4">
+        <Field label={config.publishedYearStartLabel ?? "Erscheinungsjahr"}>
+          <Input
+            value={fields.publishedYearStart}
+            onChange={(e) =>
+              setFields((f) => ({ ...f, publishedYearStart: e.target.value }))
+            }
+            placeholder="z. B. 1973"
+            inputMode="numeric"
+          />
+        </Field>
+        <Field label={config.publishedYearEndLabel ?? "Bis (optional)"}>
+          <Input
+            value={fields.publishedYearEnd}
+            onChange={(e) =>
+              setFields((f) => ({ ...f, publishedYearEnd: e.target.value }))
+            }
+            placeholder="z. B. 1993"
+            inputMode="numeric"
+          />
+        </Field>
+      </div>
+    ) : null;
 
   return (
     <ViewFrame
@@ -259,7 +328,24 @@ export function CaptureForm({
                 />
               </Field>
             )}
-            {yearFields}
+            {publicationYearFields}
+            <p className="text-[0.7rem] leading-relaxed text-muted-foreground">
+              Wann das Buch gedruckt wurde — immer n. Chr. (z. B. 1988). Nicht
+              verwechseln mit dem historischen Zeitraum unten.
+            </p>
+          </div>
+        )}
+
+        {config.bookMetadataBox && !isBookChild && config.showYears && (
+          <div className="space-y-2 rounded-xl border border-border/60 bg-surface-2/30 p-3">
+            <p className="text-[0.72rem] font-medium text-muted-foreground">
+              Behandelter Zeitraum — welche historische Epoche das Buch abdeckt
+            </p>
+            <p className="text-[0.7rem] leading-relaxed text-muted-foreground">
+              Von/bis mit v. Chr. oder n. Chr. — z. B. 330 n. Chr. bis 1453 n.
+              Chr. für Byzanz.
+            </p>
+            {historicalYearFields}
           </div>
         )}
 
@@ -299,7 +385,7 @@ export function CaptureForm({
             </Field>
           </div>
         ) : (
-          !config.bookMetadataBox && yearFields
+          !config.bookMetadataBox && historicalYearFields
         )}
 
         {showTopic && (

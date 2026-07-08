@@ -17,7 +17,7 @@ import {
 
 /** Kurzer Hinweis pro Eintragstyp — was dokumentieren? */
 export const ENTRY_TYPE_HINTS: Record<EntryType, string> = {
-  book: "Zuerst Buch anlegen (Name, Autor, Jahr), dann PDF unter Material hochladen — danach KI-Vorlagen nutzen.",
+  book: "Buch anlegen: Titel, Autor, Erscheinungsjahr (Druckjahr) und optional den behandelten Zeitraum (v. Chr./n. Chr.). PDF danach unter Material hochladen.",
   text: "Text oder Ereignis anlegen (Bezeichnung, Zeitraum), Quelle/PDF unter Material hochladen — dann transkribieren oder übersetzen.",
   person: "Person anlegen, Lebensdaten erfassen — Quellen und PDFs unter Material ergänzen.",
   place: "Ort anlegen (Name, Koordinaten), historischen Kontext und Quellen nach und nach ergänzen.",
