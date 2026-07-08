@@ -106,7 +106,7 @@ export function CollapsibleSection({
   children,
   className,
 }: {
-  title: string;
+  title: React.ReactNode;
   count?: number;
   defaultOpen?: boolean;
   open?: boolean;

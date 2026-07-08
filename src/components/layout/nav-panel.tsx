@@ -7,6 +7,11 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
+import {
+  buildNavTypeSections,
+  type NavBookGroup,
+  type NavFlatEntry,
+} from "@/lib/nav-entry-groups";
 
 export interface FilterChip {
   id: string;
@@ -67,11 +72,12 @@ const DEFAULT_TOPICS: FilterChip[] = [
 ];
 
 const DEFAULT_TYPES: FilterChip[] = [
-  { id: "text", label: "Text", color: "#4caf82" },
   { id: "book", label: "Buch", color: "#5b8def" },
   { id: "person", label: "Person", color: "#e8945a" },
   { id: "place", label: "Ort", color: "#e05a5a" },
+  { id: "text", label: "Text", color: "#4caf82" },
   { id: "discovery", label: "Fund", color: "#a78bfa" },
+  { id: "note", label: "Notiz", color: "#7a756a" },
 ];
 
 const DEFAULT_CONFIDENCE: FilterChip[] = [
@@ -189,35 +195,82 @@ function FilterChipButton({
   );
 }
 
-function buildNavGroups(entries: EntryListItem[]) {
-  const childrenByBook = new Map<string, EntryListItem[]>();
-  for (const entry of entries) {
-    if (entry.parentEntryId) {
-      const siblings = childrenByBook.get(entry.parentEntryId) ?? [];
-      siblings.push(entry);
-      childrenByBook.set(entry.parentEntryId, siblings);
+function TypeSectionHeader({
+  label,
+  color,
+}: {
+  label: string;
+  color?: string;
+}) {
+  return (
+    <span className="flex items-center gap-2">
+      {color && (
+        <span
+          className="h-2 w-2 shrink-0 rounded-full"
+          style={{ background: color }}
+        />
+      )}
+      {label}
+    </span>
+  );
+}
+
+function renderNavItem(
+  group: NavBookGroup | NavFlatEntry,
+  selectedEntryId: string | null | undefined,
+  recentActivityEntryIds: Set<string> | undefined,
+  onEntrySelect: ((id: string) => void) | undefined,
+) {
+  if (group.kind === "book") {
+    if (group.children.length === 0) {
+      return (
+        <EntryNavButton
+          key={group.book.id}
+          entry={group.book}
+          selectedEntryId={selectedEntryId}
+          recentActivityEntryIds={recentActivityEntryIds}
+          onEntrySelect={onEntrySelect}
+        />
+      );
     }
+
+    return (
+      <CollapsibleSection
+        key={group.book.id}
+        title={group.book.title}
+        count={group.children.length + 1}
+        defaultOpen={false}
+        className="mb-2 border-border/50 bg-transparent"
+      >
+        <EntryNavButton
+          entry={group.book}
+          selectedEntryId={selectedEntryId}
+          recentActivityEntryIds={recentActivityEntryIds}
+          onEntrySelect={onEntrySelect}
+        />
+        {group.children.map((child) => (
+          <EntryNavButton
+            key={child.id}
+            entry={child}
+            selectedEntryId={selectedEntryId}
+            recentActivityEntryIds={recentActivityEntryIds}
+            onEntrySelect={onEntrySelect}
+            nested
+          />
+        ))}
+      </CollapsibleSection>
+    );
   }
 
-  const renderedChildIds = new Set<string>();
-  const groups: Array<
-    | { kind: "book"; book: EntryListItem; children: EntryListItem[] }
-    | { kind: "entry"; entry: EntryListItem }
-  > = [];
-
-  for (const entry of entries) {
-    if (renderedChildIds.has(entry.id)) continue;
-    const children =
-      entry.type === "book" ? (childrenByBook.get(entry.id) ?? []) : [];
-    if (children.length > 0) {
-      groups.push({ kind: "book", book: entry, children });
-      for (const child of children) renderedChildIds.add(child.id);
-    } else {
-      groups.push({ kind: "entry", entry });
-    }
-  }
-
-  return groups;
+  return (
+    <EntryNavButton
+      key={group.entry.id}
+      entry={group.entry}
+      selectedEntryId={selectedEntryId}
+      recentActivityEntryIds={recentActivityEntryIds}
+      onEntrySelect={onEntrySelect}
+    />
+  );
 }
 
 function EntryNavButton({
@@ -318,7 +371,14 @@ export function NavPanel({
     (activeSavedView ? 1 : 0) +
     (searchQuery.trim() ? 1 : 0);
 
-  const navGroups = buildNavGroups(entries);
+  const typeColors = Object.fromEntries(
+    types.map((t) => [t.id, t.color]),
+  ) as Record<string, string | undefined>;
+  const typeSections = buildNavTypeSections(
+    entries,
+    typeColors,
+    activeTypes.size > 0 ? activeTypes : undefined,
+  );
 
   return (
     <aside
@@ -450,7 +510,7 @@ export function NavPanel({
         step="2"
         icon={List}
         title="Einträge"
-        hint="Eintrag anklicken → Details rechts."
+        hint="Nach Typ gruppiert — Bereich aufklappen und Eintrag wählen."
         className="min-h-0 flex-1"
       >
         <div className="flex min-h-0 flex-1 flex-col">
@@ -517,42 +577,31 @@ export function NavPanel({
                   )}
                 </div>
               ) : (
-                navGroups.map((group) =>
-                  group.kind === "book" ? (
+                <div className="space-y-2">
+                  {typeSections.map((section) => (
                     <CollapsibleSection
-                      key={group.book.id}
-                      title={group.book.title}
-                      count={group.children.length + 1}
-                      defaultOpen={group.children.length <= 3}
-                      className="mb-2 border-border/50 bg-transparent"
-                    >
-                      <EntryNavButton
-                        entry={group.book}
-                        selectedEntryId={selectedEntryId}
-                        recentActivityEntryIds={recentActivityEntryIds}
-                        onEntrySelect={onEntrySelect}
-                      />
-                      {group.children.map((child) => (
-                        <EntryNavButton
-                          key={child.id}
-                          entry={child}
-                          selectedEntryId={selectedEntryId}
-                          recentActivityEntryIds={recentActivityEntryIds}
-                          onEntrySelect={onEntrySelect}
-                          nested
+                      key={section.typeId}
+                      title={
+                        <TypeSectionHeader
+                          label={section.label}
+                          color={section.color}
                         />
-                      ))}
+                      }
+                      count={section.count}
+                      defaultOpen={false}
+                      className="border-border/50 bg-transparent"
+                    >
+                      {section.items.map((item) =>
+                        renderNavItem(
+                          item,
+                          selectedEntryId,
+                          recentActivityEntryIds,
+                          onEntrySelect,
+                        ),
+                      )}
                     </CollapsibleSection>
-                  ) : (
-                    <EntryNavButton
-                      key={group.entry.id}
-                      entry={group.entry}
-                      selectedEntryId={selectedEntryId}
-                      recentActivityEntryIds={recentActivityEntryIds}
-                      onEntrySelect={onEntrySelect}
-                    />
-                  ),
-                )
+                  ))}
+                </div>
               )}
             </div>
           </ScrollArea>
