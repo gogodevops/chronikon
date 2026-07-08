@@ -4,7 +4,6 @@ import * as React from "react";
 import { BookOpen, ChevronRight, Filter, List, Plus, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import {
@@ -131,7 +130,7 @@ function PanelSection({
           </div>
         </div>
       </header>
-      <div className="min-h-0 flex-1">{children}</div>
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</div>
     </section>
   );
 }
@@ -385,7 +384,7 @@ export function NavPanel({
   return (
     <aside
       className={cn(
-        "flex w-[var(--nav-panel-w)] shrink-0 flex-col gap-2.5 border-r border-border/80 bg-surface p-2.5 min-h-0",
+        "flex h-full w-[var(--nav-panel-w)] shrink-0 flex-col gap-2.5 overflow-hidden border-r border-border/80 bg-surface p-2.5 min-h-0",
         className,
       )}
     >
@@ -534,7 +533,7 @@ export function NavPanel({
             </div>
           </div>
 
-          <ScrollArea className="min-h-0 flex-1">
+          <div className="min-h-0 flex-1 overflow-y-auto">
             <div className="p-2">
               {pinnedNote && (
                 <p className="mb-2 rounded-md border border-dashed border-border/60 bg-surface/50 px-2 py-1.5 text-[0.65rem] text-muted-foreground">
@@ -598,7 +597,7 @@ export function NavPanel({
                 </div>
               )}
             </div>
-          </ScrollArea>
+          </div>
 
           {hiddenCount > 0 && (
             <div className="shrink-0 border-t border-border/50 p-2">
