@@ -14,7 +14,7 @@ export function GraphPageClient({
 }: {
   project: { slug: string; name: string; icon: string };
   entries: SerializedEntryListItem[];
-  relations: { source: string; target: string }[];
+  relations: { source: string; target: string; type?: string }[];
   projectSlug: string;
 }) {
   const router = useRouter();

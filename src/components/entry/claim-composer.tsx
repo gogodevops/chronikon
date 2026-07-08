@@ -27,6 +27,7 @@ export interface ClaimComposerProps {
   submitLabel?: string;
   onSubmit?: (data: ClaimFormData) => void;
   onCancel?: () => void;
+  autoFocus?: boolean;
 }
 
 export function ClaimComposer({
@@ -37,8 +38,10 @@ export function ClaimComposer({
   submitLabel = "Behauptung speichern",
   onSubmit,
   onCancel,
+  autoFocus = false,
 }: ClaimComposerProps) {
   const [text, setText] = React.useState(initialText);
+  const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const [confidence, setConfidence] =
     React.useState<ClaimFormData["confidence"]>(initialConfidence);
 
@@ -46,6 +49,12 @@ export function ClaimComposer({
     setText(initialText);
     setConfidence(initialConfidence);
   }, [initialText, initialConfidence, claimId]);
+
+  React.useEffect(() => {
+    if (autoFocus) {
+      setTimeout(() => textareaRef.current?.focus(), 150);
+    }
+  }, [autoFocus]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,6 +69,7 @@ export function ClaimComposer({
   return (
     <ChComposer title={title} icon={Scale} onSubmit={handleSubmit}>
       <Textarea
+        ref={textareaRef}
         placeholder='z.B. „Norwich stützt sich für Justinian vor allem auf Prokop."'
         value={text}
         onChange={(e) => setText(e.target.value)}

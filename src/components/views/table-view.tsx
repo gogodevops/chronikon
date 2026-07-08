@@ -10,6 +10,7 @@ import {
 import { useVirtualizer } from "@tanstack/react-virtual";
 
 import { CONF_META, TYPE_META } from "@/lib/constants";
+import { formatEntryYearSummary } from "@/lib/entry-form-config";
 import type { SerializedEntryListItem } from "@/lib/queries";
 
 const columns: ColumnDef<SerializedEntryListItem>[] = [
@@ -22,10 +23,9 @@ const columns: ColumnDef<SerializedEntryListItem>[] = [
   },
   {
     id: "year",
-    header: "Zeitraum",
-    cell: ({ row }) =>
-      `${row.original.yearStart} – ${row.original.yearEnd}`,
-    size: 120,
+    header: "Jahre",
+    cell: ({ row }) => formatEntryYearSummary(row.original),
+    size: 180,
   },
   {
     accessorKey: "confidence",

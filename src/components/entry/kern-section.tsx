@@ -7,6 +7,7 @@ import { EntryBody } from "@/components/entry/entry-body";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
+import { OPEN_SECTION_KERN } from "@/lib/entry-section-events";
 import type { EntryTitleIndex } from "@/lib/queries";
 
 export function KernSection({
@@ -33,10 +34,20 @@ export function KernSection({
   const [draft, setDraft] = React.useState(body ?? "");
   const [saving, setSaving] = React.useState(false);
   const [showPreview, setShowPreview] = React.useState(true);
+  const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
   React.useEffect(() => {
     setDraft(body ?? "");
   }, [body]);
+
+  React.useEffect(() => {
+    const focusKern = () => {
+      onOpenChange?.(true);
+      setTimeout(() => textareaRef.current?.focus(), 150);
+    };
+    window.addEventListener(OPEN_SECTION_KERN, focusKern);
+    return () => window.removeEventListener(OPEN_SECTION_KERN, focusKern);
+  }, [onOpenChange]);
 
   const dirty = draft !== (body ?? "");
 
@@ -51,6 +62,7 @@ export function KernSection({
   };
 
   return (
+    <div id="entry-section-kern">
     <CollapsibleSection
       title="Kern"
       hint={hint}
@@ -66,6 +78,7 @@ export function KernSection({
       {canEdit && onSaveBody ? (
         <div className="space-y-2">
           <Textarea
+            ref={textareaRef}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             placeholder="Notizen, Zusammenfassung, Markdown … Verknüpfungen mit [[Titel des Eintrags]]"
@@ -116,5 +129,6 @@ export function KernSection({
         />
       )}
     </CollapsibleSection>
+    </div>
   );
 }

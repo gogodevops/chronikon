@@ -32,7 +32,7 @@ export type SourceSectionConfig = {
   /** Composer-Platzhalter für den Quellentitel */
   titlePlaceholder: string;
   /**
-   * Quellen-Block in „Weitere Bereiche" anzeigen?
+   * Quellen-Sektion in der Detailansicht anzeigen?
    * `optional` = nur bei Bearbeitungsrecht wenn leer; sonst nur wenn Einträge vorhanden.
    */
   visibility: "always" | "optional";

@@ -334,3 +334,32 @@ export function parseEntryYears(
 
   return { yearStart, yearEnd: 0 };
 }
+
+/** Kurzformat für Tabellen und Listen. */
+export function formatEntryYearSummary(entry: {
+  type: string;
+  yearStart: number;
+  yearEnd: number;
+  publishedYearStart?: number | null;
+  publishedYearEnd?: number | null;
+  dateStartMonth?: number | null;
+  dateStartDay?: number | null;
+  dateEndMonth?: number | null;
+  dateEndDay?: number | null;
+}): string {
+  const metas = getEntryYearMetas(
+    entry.type,
+    entry.yearStart,
+    entry.yearEnd,
+    entry.publishedYearStart,
+    entry.publishedYearEnd,
+    {
+      dateStartMonth: entry.dateStartMonth,
+      dateStartDay: entry.dateStartDay,
+      dateEndMonth: entry.dateEndMonth,
+      dateEndDay: entry.dateEndDay,
+    },
+  );
+  if (metas.length === 0) return "—";
+  return metas.map((m) => m.value).join(" · ");
+}

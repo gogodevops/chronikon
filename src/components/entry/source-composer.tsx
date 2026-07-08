@@ -26,17 +26,26 @@ export interface SourceComposerProps {
   entryId: string;
   titlePlaceholder?: string;
   onSubmit?: (data: SourceFormData) => void;
+  autoFocus?: boolean;
 }
 
 export function SourceComposer({
   titlePlaceholder = "Titel der Publikation oder Quelle",
   onSubmit,
+  autoFocus = false,
 }: SourceComposerProps) {
   const [title, setTitle] = React.useState("");
+  const titleRef = React.useRef<HTMLInputElement>(null);
   const [author, setAuthor] = React.useState("");
   const [year, setYear] = React.useState("");
   const [type, setType] = React.useState<SourceFormData["type"]>("secondary");
   const [note, setNote] = React.useState("");
+
+  React.useEffect(() => {
+    if (autoFocus) {
+      setTimeout(() => titleRef.current?.focus(), 150);
+    }
+  }, [autoFocus]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,6 +60,7 @@ export function SourceComposer({
   return (
     <ChComposer title="Quelle hinzufügen" icon={BookOpen} onSubmit={handleSubmit}>
       <Input
+        ref={titleRef}
         placeholder={titlePlaceholder}
         value={title}
         onChange={(e) => setTitle(e.target.value)}

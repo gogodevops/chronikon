@@ -32,6 +32,7 @@ import {
   shouldShowSourcesSection,
 } from "@/lib/entry-hierarchy";
 import {
+  OPEN_SECTION_KERN,
   OPEN_SECTION_MATERIAL,
   OPEN_SECTION_OFFEN,
   OPEN_SECTION_BEHUAPTUNGEN,
@@ -146,6 +147,7 @@ export function EntryDetailSections({
   const [showSourceComposer, setShowSourceComposer] = React.useState(false);
 
   React.useEffect(() => {
+    const openKern = () => setKernOpen(true);
     const openOffen = () => setOffenOpen(true);
     const openMaterial = () => setMaterialOpen(true);
     const openClaim = () => {
@@ -157,12 +159,14 @@ export function EntryDetailSections({
       setShowSourceComposer(true);
     };
 
+    window.addEventListener(OPEN_SECTION_KERN, openKern);
     window.addEventListener(OPEN_SECTION_OFFEN, openOffen);
     window.addEventListener(OPEN_SECTION_MATERIAL, openMaterial);
     window.addEventListener(OPEN_SECTION_BEHUAPTUNGEN, openClaim);
     window.addEventListener(OPEN_SECTION_QUELLEN, openSource);
 
     return () => {
+      window.removeEventListener(OPEN_SECTION_KERN, openKern);
       window.removeEventListener(OPEN_SECTION_OFFEN, openOffen);
       window.removeEventListener(OPEN_SECTION_MATERIAL, openMaterial);
       window.removeEventListener(OPEN_SECTION_BEHUAPTUNGEN, openClaim);
@@ -280,10 +284,11 @@ export function EntryDetailSections({
               canEdit={canEdit}
             />
             {canEdit && onSourceSubmit && showSourceComposer && (
-              <SourceComposer
-                entryId={entryId}
-                titlePlaceholder={sourceConfig.titlePlaceholder}
-                onSubmit={(data) => {
+                <SourceComposer
+                  entryId={entryId}
+                  titlePlaceholder={sourceConfig.titlePlaceholder}
+                  autoFocus
+                  onSubmit={(data) => {
                   onSourceSubmit(data);
                   setShowSourceComposer(false);
                 }}
@@ -323,9 +328,10 @@ export function EntryDetailSections({
               canEdit={canEdit}
             />
             {canEdit && onClaimSubmit && showClaimComposer && (
-              <ClaimComposer
-                entryId={entryId}
-                onSubmit={(data) => {
+                <ClaimComposer
+                  entryId={entryId}
+                  autoFocus
+                  onSubmit={(data) => {
                   onClaimSubmit(data);
                   setShowClaimComposer(false);
                 }}

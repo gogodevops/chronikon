@@ -3,7 +3,8 @@
 import * as React from "react";
 import dynamic from "next/dynamic";
 
-import { TYPE_META } from "@/lib/constants";
+import { TYPE_META, RELATION_LABELS } from "@/lib/constants";
+import type { RelationType } from "@prisma/client";
 import type { SerializedEntryListItem } from "@/lib/queries";
 
 const ForceGraph2D = dynamic(
@@ -12,7 +13,7 @@ const ForceGraph2D = dynamic(
 );
 
 type GraphNode = { id: string; name: string; color: string };
-type GraphLink = { source: string; target: string };
+type GraphLink = { source: string; target: string; type?: string; label?: string };
 
 export function GraphView({
   entries,
@@ -29,7 +30,14 @@ export function GraphView({
       name: e.title,
       color: TYPE_META[e.type].color,
     }));
-    return { nodes, links: relations };
+    const links = relations.map((r) => ({
+      ...r,
+      label:
+        r.type && r.type in RELATION_LABELS
+          ? RELATION_LABELS[r.type as RelationType]
+          : undefined,
+    }));
+    return { nodes, links };
   }, [entries, relations]);
 
   if (relations.length === 0) {
@@ -59,6 +67,7 @@ export function GraphView({
           nodeColor={(n) => (n as GraphNode).color}
           linkColor={() => "rgba(255, 255, 255, 0.5)"}
           linkWidth={1.5}
+          linkLabel={(link) => (link as GraphLink).label ?? ""}
           linkDirectionalArrowLength={5}
           linkDirectionalArrowRelPos={1}
           linkDirectionalParticles={2}

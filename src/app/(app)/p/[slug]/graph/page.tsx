@@ -18,7 +18,7 @@ export default async function GraphPage({
       where: {
         fromEntry: { projectId: project.id },
       },
-      select: { fromEntryId: true, toEntryId: true },
+      select: { fromEntryId: true, toEntryId: true, type: true },
     }),
   ]);
 
@@ -29,6 +29,7 @@ export default async function GraphPage({
       relations={relations.map((r) => ({
         source: r.fromEntryId,
         target: r.toEntryId,
+        type: r.type,
       }))}
       projectSlug={slug}
     />

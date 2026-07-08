@@ -2,14 +2,42 @@ import JSZip from "jszip";
 
 import { CONF_META, TYPE_META } from "@/lib/constants";
 import { db } from "@/lib/db";
+import { getEntryYearMetas } from "@/lib/entry-form-config";
 
 function safeFilename(name: string): string {
   return name.replace(/[^a-zA-Z0-9äöüÄÖÜß._-]/g, "_").slice(0, 80);
 }
 
-function formatYear(year: number): string {
-  if (year < 0) return `${Math.abs(year)} v.Chr.`;
-  return `${year} n.Chr.`;
+function appendYearLines(
+  lines: string[],
+  entry: {
+    type: keyof typeof TYPE_META;
+    yearStart: number;
+    yearEnd: number;
+    publishedYearStart: number | null;
+    publishedYearEnd: number | null;
+    dateStartMonth: number | null;
+    dateStartDay: number | null;
+    dateEndMonth: number | null;
+    dateEndDay: number | null;
+  },
+) {
+  const metas = getEntryYearMetas(
+    entry.type,
+    entry.yearStart,
+    entry.yearEnd,
+    entry.publishedYearStart,
+    entry.publishedYearEnd,
+    {
+      dateStartMonth: entry.dateStartMonth,
+      dateStartDay: entry.dateStartDay,
+      dateEndMonth: entry.dateEndMonth,
+      dateEndDay: entry.dateEndDay,
+    },
+  );
+  for (const meta of metas) {
+    lines.push(`- **${meta.pillLabel}:** ${meta.value}`);
+  }
 }
 
 function entryMarkdown(
@@ -20,6 +48,12 @@ function entryMarkdown(
     body: string | null;
     yearStart: number;
     yearEnd: number;
+    publishedYearStart: number | null;
+    publishedYearEnd: number | null;
+    dateStartMonth: number | null;
+    dateStartDay: number | null;
+    dateEndMonth: number | null;
+    dateEndDay: number | null;
     confidence: keyof typeof CONF_META;
     author: string | null;
     language: string | null;
@@ -36,9 +70,9 @@ function entryMarkdown(
     `*Projekt: ${projectName}*`,
     "",
     `- **Typ:** ${TYPE_META[entry.type].label}`,
-    `- **Zeitraum:** ${formatYear(entry.yearStart)} – ${formatYear(entry.yearEnd)}`,
-    `- **Einordnung:** ${CONF_META[entry.confidence].label}`,
   ];
+  appendYearLines(lines, entry);
+  lines.push(`- **Einordnung:** ${CONF_META[entry.confidence].label}`);
 
   if (entry.parentEntry) {
     lines.push(`- **Übergeordnet:** ${entry.parentEntry.title}`);

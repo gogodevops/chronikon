@@ -1,4 +1,5 @@
 import { CONF_META, TYPE_META } from "@/lib/constants";
+import { getEntryYearMetas } from "@/lib/entry-form-config";
 import type { EntryType } from "@prisma/client";
 
 export type EntryMarkdownInput = {
@@ -8,6 +9,12 @@ export type EntryMarkdownInput = {
   body?: string | null;
   yearStart?: number | null;
   yearEnd?: number | null;
+  publishedYearStart?: number | null;
+  publishedYearEnd?: number | null;
+  dateStartMonth?: number | null;
+  dateStartDay?: number | null;
+  dateEndMonth?: number | null;
+  dateEndDay?: number | null;
   pageStart?: number | null;
   pageEnd?: number | null;
   confidence?: string;
@@ -19,9 +26,23 @@ export type EntryMarkdownInput = {
   sources?: { title: string; ref?: string | null }[];
 };
 
-function formatYear(year: number): string {
-  if (year < 0) return `${Math.abs(year)} v.Chr.`;
-  return `${year} n.Chr.`;
+function appendYearLines(lines: string[], entry: EntryMarkdownInput) {
+  const metas = getEntryYearMetas(
+    entry.type,
+    entry.yearStart,
+    entry.yearEnd,
+    entry.publishedYearStart,
+    entry.publishedYearEnd,
+    {
+      dateStartMonth: entry.dateStartMonth,
+      dateStartDay: entry.dateStartDay,
+      dateEndMonth: entry.dateEndMonth,
+      dateEndDay: entry.dateEndDay,
+    },
+  );
+  for (const meta of metas) {
+    lines.push(`- **${meta.pillLabel}:** ${meta.value}`);
+  }
 }
 
 /** Einzeleintrag als Markdown — zum Einfügen in ChatGPT & Co. */
@@ -47,11 +68,7 @@ export function entryToMarkdown(
 
   lines.push("");
   lines.push(`- **Typ:** ${typeLabel}`);
-  if (entry.yearStart != null && entry.yearEnd != null) {
-    lines.push(
-      `- **Zeitraum:** ${formatYear(entry.yearStart)} – ${formatYear(entry.yearEnd)}`,
-    );
-  }
+  appendYearLines(lines, entry);
   if (entry.pageStart != null && entry.pageEnd != null) {
     lines.push(`- **Seiten:** ${entry.pageStart}–${entry.pageEnd}`);
   }

@@ -1,5 +1,6 @@
 /** Custom events to open detail sections from the action bar. */
 
+export const OPEN_SECTION_KERN = "chronikon:open-section-kern";
 export const OPEN_SECTION_OFFEN = "chronikon:open-section-offen";
 export const OPEN_SECTION_MATERIAL = "chronikon:open-section-material";
 export const OPEN_SECTION_QUELLEN = "chronikon:open-section-quellen";
