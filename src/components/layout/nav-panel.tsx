@@ -505,9 +505,9 @@ export function NavPanel({
         icon={List}
         title="Einträge"
         hint="Nach Typ gruppiert — Bereich aufklappen und Eintrag wählen."
-        className="min-h-0 flex-1"
+        className="min-h-0 flex-1 overflow-hidden"
       >
-        <div className="flex min-h-0 flex-1 flex-col">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border/50 px-3 py-2">
             <span className="text-[0.68rem] text-muted-foreground">
               {total === 0
@@ -534,7 +534,7 @@ export function NavPanel({
             </div>
           </div>
 
-          <ScrollArea className="flex-1">
+          <ScrollArea className="min-h-0 flex-1">
             <div className="p-2">
               {pinnedNote && (
                 <p className="mb-2 rounded-md border border-dashed border-border/60 bg-surface/50 px-2 py-1.5 text-[0.65rem] text-muted-foreground">
