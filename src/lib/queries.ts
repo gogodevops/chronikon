@@ -38,6 +38,10 @@ export type SerializedEntryListItem = {
   yearEnd: number;
   publishedYearStart: number | null;
   publishedYearEnd: number | null;
+  dateStartMonth: number | null;
+  dateStartDay: number | null;
+  dateEndMonth: number | null;
+  dateEndDay: number | null;
   pageStart: number | null;
   pageEnd: number | null;
   sortOrder: number | null;
@@ -83,6 +87,7 @@ export type SerializedClaim = {
   confidence: Confidence;
   confidenceLabel: string;
   confidenceColor: string;
+  authorId?: string | null;
   authorName?: string | null;
   createdAt: Date;
 };
@@ -273,6 +278,10 @@ function mapEntryListItem(
     yearEnd: entry.yearEnd,
     publishedYearStart: entry.publishedYearStart,
     publishedYearEnd: entry.publishedYearEnd,
+    dateStartMonth: entry.dateStartMonth,
+    dateStartDay: entry.dateStartDay,
+    dateEndMonth: entry.dateEndMonth,
+    dateEndDay: entry.dateEndDay,
     pageStart: entry.pageStart,
     pageEnd: entry.pageEnd,
     sortOrder: entry.sortOrder,
@@ -561,6 +570,7 @@ export async function getEntryDetail(
         confidence: c.confidence,
         confidenceLabel: cMeta.label,
         confidenceColor: cMeta.color,
+        authorId: c.authorId,
         authorName: c.author?.name ?? null,
         createdAt: c.createdAt,
       };

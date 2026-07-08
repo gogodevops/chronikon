@@ -3,7 +3,8 @@
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ChevronDown, ChevronRight, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Pencil, Trash2 } from "lucide-react";
+import { ClaimComposer } from "@/components/entry/claim-composer";
 import { RelationTypeIcon } from "@/components/entry/relation-icons";
 import { SOURCE_TYPE_LABELS } from "@/lib/constants";
 import type {
@@ -132,18 +133,26 @@ export function SourcesList({
 
 export function ClaimsList({
   claims,
+  currentUserId,
   onDelete,
+  onUpdate,
   canEdit = true,
 }: {
   claims: SerializedClaim[];
+  currentUserId?: string;
   onDelete?: (claimId: string) => void;
+  onUpdate?: (claimId: string, data: { text: string; confidence: string }) => void;
   canEdit?: boolean;
 }) {
+  const [editingClaimId, setEditingClaimId] = React.useState<string | null>(null);
   const collapsible = claims.length > COLLAPSE_LIST_THRESHOLD;
   const list = useCollapsibleList(
     claims.map((claim) => claim.id),
     collapsible,
   );
+
+  const isOwnClaim = (claim: SerializedClaim) =>
+    !!currentUserId && claim.authorId === currentUserId;
 
   if (claims.length === 0) {
     return (
@@ -153,15 +162,47 @@ export function ClaimsList({
     );
   }
 
-  const renderClaim = (c: SerializedClaim, nested = false) => (
+  const renderClaim = (c: SerializedClaim, nested = false) => {
+    if (editingClaimId === c.id && onUpdate) {
+      return (
+        <ClaimComposer
+          key={c.id}
+          entryId=""
+          claimId={c.id}
+          initialText={c.text}
+          initialConfidence={c.confidence}
+          title="Behauptung bearbeiten"
+          submitLabel="Änderungen speichern"
+          onSubmit={(data) => {
+            onUpdate(c.id, data);
+            setEditingClaimId(null);
+          }}
+          onCancel={() => setEditingClaimId(null)}
+        />
+      );
+    }
+
+    const own = isOwnClaim(c);
+
+    return (
     <div
       key={c.id}
       className={cn(
-        "relative flex gap-2 rounded-xl border border-border/70 bg-surface-2/60 p-3 pr-9",
-        nested && "border-none bg-transparent p-0 pr-9",
+        "relative flex gap-2 rounded-xl border border-border/70 bg-surface-2/60 p-3 pr-16",
+        nested && "border-none bg-transparent p-0 pr-16",
       )}
     >
-      {canEdit && onDelete && (
+      {canEdit && own && onUpdate && (
+        <button
+          type="button"
+          onClick={() => setEditingClaimId(c.id)}
+          className="absolute right-8 top-2 cursor-pointer rounded p-1 text-muted-foreground hover:bg-accent/10 hover:text-accent"
+          title="Behauptung bearbeiten"
+        >
+          <Pencil className="h-3.5 w-3.5" />
+        </button>
+      )}
+      {canEdit && own && onDelete && (
         <button
           type="button"
           onClick={() => onDelete(c.id)}
@@ -189,7 +230,8 @@ export function ClaimsList({
         )}
       </div>
     </div>
-  );
+    );
+  };
 
   return (
     <div className="mb-3 space-y-2">

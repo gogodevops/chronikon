@@ -12,6 +12,7 @@ export type ProjectContextValue = {
   topics: { id: string; name: string }[];
   savedViews: { id: string; label: string }[];
   userRole: string;
+  userId: string;
   userName: string;
   userInitials: string;
   userImage?: string | null;

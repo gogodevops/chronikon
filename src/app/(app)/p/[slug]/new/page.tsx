@@ -5,6 +5,7 @@ import {
   bookFormInitialFromEntry,
   inputFromSignedYear,
 } from "@/lib/historical-year-fields";
+import { dayToInput, monthToInput } from "@/lib/person-date-fields";
 import { getEntryDetail } from "@/lib/queries";
 
 function yearFormFields(
@@ -111,6 +112,10 @@ export default async function NewEntryPage({
                 topic: editEntry.topics?.[0] ?? "",
                 author: editEntry.author ?? "",
                 placeName: editEntry.placeName ?? "",
+                birthMonth: monthToInput(editEntry.dateStartMonth),
+                birthDay: dayToInput(editEntry.dateStartDay),
+                deathMonth: monthToInput(editEntry.dateEndMonth),
+                deathDay: dayToInput(editEntry.dateEndDay),
               }
             : childInitialFields
         }

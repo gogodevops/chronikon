@@ -47,6 +47,10 @@ const createEntrySchema = z.object({
   yearEnd: z.number().int(),
   publishedYearStart: z.number().int().positive().nullish(),
   publishedYearEnd: z.number().int().positive().nullish(),
+  dateStartMonth: z.number().int().min(1).max(12).nullish(),
+  dateStartDay: z.number().int().min(1).max(31).nullish(),
+  dateEndMonth: z.number().int().min(1).max(12).nullish(),
+  dateEndDay: z.number().int().min(1).max(31).nullish(),
   pageStart: z.number().int().positive().optional(),
   pageEnd: z.number().int().positive().optional(),
   confidence: confidenceSchema.default("likely"),
@@ -88,6 +92,12 @@ const claimSchema = z.object({
   text: z.string().min(1),
   confidence: confidenceSchema.default("likely"),
   basedOnIds: z.array(z.string()).optional(),
+});
+
+const updateClaimSchema = z.object({
+  id: z.string().cuid(),
+  text: z.string().min(1),
+  confidence: confidenceSchema,
 });
 
 const relationSchema = z.object({
@@ -242,6 +252,10 @@ export async function createEntry(
       yearEnd: data.yearEnd,
       publishedYearStart: data.publishedYearStart,
       publishedYearEnd: data.publishedYearEnd,
+      dateStartMonth: data.dateStartMonth,
+      dateStartDay: data.dateStartDay,
+      dateEndMonth: data.dateEndMonth,
+      dateEndDay: data.dateEndDay,
       pageStart: data.pageStart,
       pageEnd: data.pageEnd,
       sortOrder,
@@ -322,6 +336,10 @@ export async function updateEntry(
       yearEnd: fields.yearEnd,
       publishedYearStart: fields.publishedYearStart,
       publishedYearEnd: fields.publishedYearEnd,
+      dateStartMonth: fields.dateStartMonth,
+      dateStartDay: fields.dateStartDay,
+      dateEndMonth: fields.dateEndMonth,
+      dateEndDay: fields.dateEndDay,
       pageStart: fields.pageStart,
       pageEnd: fields.pageEnd,
       confidence: fields.confidence as Confidence | undefined,
@@ -435,6 +453,42 @@ export async function addClaim(
 
   await revalidateProject(input.projectId);
   return { success: true, data: { id: claim.id } };
+}
+
+export async function updateClaim(
+  input: z.infer<typeof updateClaimSchema> & { projectId: string },
+): Promise<ActionResult> {
+  const parsed = updateClaimSchema.safeParse(input);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message ?? "Ungültige Eingabe" };
+  }
+
+  const { session } = await requireProjectRole(input.projectId, "editor");
+
+  const claim = await db.claim.findFirst({
+    where: { id: parsed.data.id },
+    include: { entry: { select: { projectId: true, title: true, id: true } } },
+  });
+  if (!claim || claim.entry.projectId !== input.projectId) {
+    return { success: false, error: "Behauptung nicht gefunden" };
+  }
+  if (!claim.authorId || claim.authorId !== session.user.id) {
+    return {
+      success: false,
+      error: "Nur der Ersteller kann diese Behauptung bearbeiten",
+    };
+  }
+
+  await db.claim.update({
+    where: { id: parsed.data.id },
+    data: {
+      text: parsed.data.text,
+      confidence: parsed.data.confidence as Confidence,
+    },
+  });
+
+  await revalidateProject(input.projectId);
+  return { success: true, data: undefined };
 }
 
 export async function addRelation(
@@ -583,13 +637,19 @@ export async function deleteClaim(
   projectId: string,
   claimId: string,
 ): Promise<ActionResult> {
-  await requireProjectRole(projectId, "editor");
+  const { session } = await requireProjectRole(projectId, "editor");
   const claim = await db.claim.findFirst({
     where: { id: claimId },
     include: { entry: { select: { projectId: true } } },
   });
   if (!claim || claim.entry.projectId !== projectId) {
     return { success: false, error: "Behauptung nicht gefunden" };
+  }
+  if (!claim.authorId || claim.authorId !== session.user.id) {
+    return {
+      success: false,
+      error: "Nur der Ersteller kann diese Behauptung löschen",
+    };
   }
   await db.claim.delete({ where: { id: claimId } });
   await revalidateProject(projectId);

@@ -35,6 +35,10 @@ export interface EntryDetail {
   yearEnd?: number | null;
   publishedYearStart?: number | null;
   publishedYearEnd?: number | null;
+  dateStartMonth?: number | null;
+  dateStartDay?: number | null;
+  dateEndMonth?: number | null;
+  dateEndDay?: number | null;
   pageStart?: number | null;
   pageEnd?: number | null;
   parentEntryType?: string | null;
@@ -90,6 +94,7 @@ export interface DetailPanelProps {
   onSourceSubmit?: (data: unknown) => void;
   onSourceDelete?: (sourceId: string) => void;
   onClaimSubmit?: (data: unknown) => void;
+  onClaimUpdate?: (claimId: string, data: unknown) => void;
   onClaimDelete?: (claimId: string) => void;
   onRelationSubmit?: (
     data: unknown,
@@ -101,6 +106,7 @@ export interface DetailPanelProps {
   ) => void;
   canEdit?: boolean;
   canDiscuss?: boolean;
+  currentUserId?: string;
   canCreateEntry?: boolean;
   onNewEntry?: () => void;
   onCreateChildEntry?: () => void;
@@ -138,11 +144,13 @@ export function DetailPanel({
   onSourceSubmit,
   onSourceDelete,
   onClaimSubmit,
+  onClaimUpdate,
   onClaimDelete,
   onRelationSubmit,
   onRelationDelete,
   canEdit = true,
   canDiscuss = true,
+  currentUserId,
   canCreateEntry = false,
   onNewEntry,
   onCreateChildEntry,
@@ -205,6 +213,12 @@ export function DetailPanel({
     entry.yearEnd,
     entry.publishedYearStart,
     entry.publishedYearEnd,
+    {
+      dateStartMonth: entry.dateStartMonth,
+      dateStartDay: entry.dateStartDay,
+      dateEndMonth: entry.dateEndMonth,
+      dateEndDay: entry.dateEndDay,
+    },
   );
   const placePillLabel = discoveryPlaceLabel(entry.type, entry.place);
 
@@ -348,11 +362,13 @@ export function DetailPanel({
               onSourceSubmit={onSourceSubmit}
               onSourceDelete={onSourceDelete}
               onClaimSubmit={onClaimSubmit}
+              onClaimUpdate={onClaimUpdate}
               onClaimDelete={onClaimDelete}
               onRelationSubmit={onRelationSubmit}
               onRelationDelete={onRelationDelete}
               canEdit={canEdit}
               canDiscuss={canDiscuss}
+              currentUserId={currentUserId}
               uploadStatus={attachmentUploadStatus}
               afterKern={
                 entry.type === "book" || (entry.childEntries?.length ?? 0) > 0 ? (

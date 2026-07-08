@@ -30,7 +30,14 @@ import {
   parsePublicationYear,
   type YearEra,
 } from "@/lib/historical-year-fields";
+import {
+  dayToInput,
+  monthToInput,
+  parseOptionalDay,
+  parseOptionalMonth,
+} from "@/lib/person-date-fields";
 import { HistoricalYearRangeFields } from "@/components/ui/historical-year-input";
+import { PersonLifeDateFields } from "@/components/ui/person-life-date-fields";
 import { cn } from "@/lib/utils";
 import { ViewFrame } from "@/components/ui/chronikon-shell";
 import { ENTRY_TYPE_HINTS } from "@/lib/ki-templates";
@@ -59,6 +66,10 @@ export function CaptureForm({
     eraEnd: YearEra;
     publishedYearStart: string;
     publishedYearEnd: string;
+    birthMonth: string;
+    birthDay: string;
+    deathMonth: string;
+    deathDay: string;
     pageStart: string;
     pageEnd: string;
     confidence: string;
@@ -84,6 +95,10 @@ export function CaptureForm({
     eraEnd: defaultEraEnd,
     publishedYearStart: initialFields?.publishedYearStart ?? "",
     publishedYearEnd: initialFields?.publishedYearEnd ?? "",
+    birthMonth: initialFields?.birthMonth ?? "",
+    birthDay: initialFields?.birthDay ?? "",
+    deathMonth: initialFields?.deathMonth ?? "",
+    deathDay: initialFields?.deathDay ?? "",
     pageStart: initialFields?.pageStart ?? "",
     pageEnd: initialFields?.pageEnd ?? "",
     confidence: initialFields?.confidence ?? "likely",
@@ -138,6 +153,26 @@ export function CaptureForm({
           ? parsePublicationYear(fields.publishedYearEnd)
           : undefined;
 
+      const dateStartMonth =
+        fields.type === "person" && config.showDateParts
+          ? parseOptionalMonth(fields.birthMonth)
+          : undefined;
+      let dateStartDay =
+        fields.type === "person" && config.showDateParts
+          ? parseOptionalDay(fields.birthDay)
+          : undefined;
+      if (dateStartDay != null && dateStartMonth == null) dateStartDay = null;
+
+      const dateEndMonth =
+        fields.type === "person" && config.showDateParts
+          ? parseOptionalMonth(fields.deathMonth)
+          : undefined;
+      let dateEndDay =
+        fields.type === "person" && config.showDateParts
+          ? parseOptionalDay(fields.deathDay)
+          : undefined;
+      if (dateEndDay != null && dateEndMonth == null) dateEndDay = null;
+
       const payload = {
         projectId,
         type: fields.type as "text",
@@ -155,6 +190,22 @@ export function CaptureForm({
             ? publishedYearEnd && publishedYearEnd > 0
               ? publishedYearEnd
               : null
+            : undefined,
+        dateStartMonth:
+          fields.type === "person" && config.showDateParts
+            ? dateStartMonth
+            : undefined,
+        dateStartDay:
+          fields.type === "person" && config.showDateParts
+            ? dateStartDay
+            : undefined,
+        dateEndMonth:
+          fields.type === "person" && config.showDateParts
+            ? dateEndMonth
+            : undefined,
+        dateEndDay:
+          fields.type === "person" && config.showDateParts
+            ? dateEndDay
             : undefined,
         pageStart: pageStart && pageStart > 0 ? pageStart : undefined,
         pageEnd: pageEnd && pageEnd > 0 ? pageEnd : undefined,
@@ -339,11 +390,11 @@ export function CaptureForm({
         {config.bookMetadataBox && !isBookChild && config.showYears && (
           <div className="space-y-2 rounded-xl border border-border/60 bg-surface-2/30 p-3">
             <p className="text-[0.72rem] font-medium text-muted-foreground">
-              Behandelter Zeitraum — welche historische Epoche das Buch abdeckt
+              Historischer Zeitraum — in welcher Epoche das Buch spielt
             </p>
             <p className="text-[0.7rem] leading-relaxed text-muted-foreground">
-              Von/bis mit v. Chr. oder n. Chr. — z. B. 330 n. Chr. bis 1453 n.
-              Chr. für Byzanz.
+              Von und Bis mit v. Chr. oder n. Chr. wählen — z. B. 330 n. Chr.
+              bis 1453 n. Chr.
             </p>
             {historicalYearFields}
           </div>
@@ -384,6 +435,41 @@ export function CaptureForm({
               />
             </Field>
           </div>
+        ) : config.showDateParts && fields.type === "person" ? (
+          <PersonLifeDateFields
+            birthYear={fields.yearStart}
+            birthMonth={fields.birthMonth}
+            birthDay={fields.birthDay}
+            birthEra={fields.eraStart}
+            deathYear={fields.yearEnd}
+            deathMonth={fields.deathMonth}
+            deathDay={fields.deathDay}
+            deathEra={fields.eraEnd}
+            onBirthYearChange={(value) =>
+              setFields((f) => ({ ...f, yearStart: value }))
+            }
+            onBirthMonthChange={(value) =>
+              setFields((f) => ({ ...f, birthMonth: value }))
+            }
+            onBirthDayChange={(value) =>
+              setFields((f) => ({ ...f, birthDay: value }))
+            }
+            onBirthEraChange={(value) =>
+              setFields((f) => ({ ...f, eraStart: value }))
+            }
+            onDeathYearChange={(value) =>
+              setFields((f) => ({ ...f, yearEnd: value }))
+            }
+            onDeathMonthChange={(value) =>
+              setFields((f) => ({ ...f, deathMonth: value }))
+            }
+            onDeathDayChange={(value) =>
+              setFields((f) => ({ ...f, deathDay: value }))
+            }
+            onDeathEraChange={(value) =>
+              setFields((f) => ({ ...f, eraEnd: value }))
+            }
+          />
         ) : (
           !config.bookMetadataBox && historicalYearFields
         )}

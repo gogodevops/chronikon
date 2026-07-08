@@ -190,6 +190,10 @@ model Entry {
   yearEnd       Int
   publishedYearStart Int?
   publishedYearEnd   Int?
+  dateStartMonth    Int?
+  dateStartDay      Int?
+  dateEndMonth      Int?
+  dateEndDay        Int?
   pageStart     Int?
   pageEnd       Int?
   sortOrder     Int?

@@ -25,6 +25,7 @@ import {
   deleteEntry,
   deleteRelation,
   deleteSource,
+  updateClaim,
   updateEntry,
 } from "@/actions/entries";
 import {
@@ -108,6 +109,10 @@ function toDetail(e: SerializedEntryDetail): EntryDetail {
     yearEnd: e.yearEnd,
     publishedYearStart: e.publishedYearStart,
     publishedYearEnd: e.publishedYearEnd,
+    dateStartMonth: e.dateStartMonth,
+    dateStartDay: e.dateStartDay,
+    dateEndMonth: e.dateEndMonth,
+    dateEndDay: e.dateEndDay,
     pageStart: e.pageStart,
     pageEnd: e.pageEnd,
     confidence: e.confidence,
@@ -564,6 +569,20 @@ export function AppShell({
     if (ok) refreshAfterAction();
   };
 
+  const handleClaimUpdate = async (claimId: string, data: unknown) => {
+    if (!canEdit) return;
+    const payload = data as Record<string, string>;
+    const ok = await runServerAction(() =>
+      updateClaim({
+        projectId: ctx.id,
+        id: claimId,
+        text: payload.text ?? "",
+        confidence: (payload.confidence as Confidence) ?? "likely",
+      }),
+    );
+    if (ok) refreshAfterAction();
+  };
+
   const handleClaimDelete = async (claimId: string) => {
     if (!canEdit) return;
     if (!window.confirm("Behauptung wirklich löschen?")) return;
@@ -710,11 +729,13 @@ export function AppShell({
             onSourceSubmit={handleSourceSubmit}
             onSourceDelete={handleSourceDelete}
             onClaimSubmit={handleClaimSubmit}
+            onClaimUpdate={handleClaimUpdate}
             onClaimDelete={handleClaimDelete}
             onRelationSubmit={handleRelationSubmit}
             onRelationDelete={handleRelationDelete}
             canEdit={canEdit}
             canDiscuss={canDiscussRole}
+            currentUserId={ctx.userId}
             canCreateEntry={canEdit}
             onNewEntry={() => router.push(`${basePath}/new`)}
             onCreateChildEntry={

@@ -5,6 +5,7 @@ import {
   formatPublicationYear,
   resolveBookStoredYears,
 } from "@/lib/historical-year-fields";
+import { formatPersonLifeRange } from "@/lib/person-date-fields";
 import { formatHistoricalYear } from "@/lib/timeline-years";
 
 export type EntryFormFieldConfig = {
@@ -23,6 +24,7 @@ export type EntryFormFieldConfig = {
   publishedYearStartLabel?: string;
   publishedYearEndLabel?: string;
   bookMetadataBox?: boolean;
+  showDateParts?: boolean;
 };
 
 export const ENTRY_FORM_CONFIG: Record<EntryType, EntryFormFieldConfig> = {
@@ -32,6 +34,7 @@ export const ENTRY_FORM_CONFIG: Record<EntryType, EntryFormFieldConfig> = {
     showAuthor: false,
     showPlaceName: false,
     showYears: true,
+    showDateParts: true,
     yearStartLabel: "Geboren (Jahr)",
     yearEndLabel: "Gestorben (Jahr)",
     yearEndOptional: true,
@@ -45,10 +48,10 @@ export const ENTRY_FORM_CONFIG: Record<EntryType, EntryFormFieldConfig> = {
     showPlaceName: false,
     showYears: true,
     showPublishedYears: true,
-    publishedYearStartLabel: "Erscheinungsjahr",
-    publishedYearEndLabel: "Bis (Auflage, optional)",
-    yearStartLabel: "Zeitraum von",
-    yearEndLabel: "Zeitraum bis",
+    publishedYearStartLabel: "Erscheinungsjahr (Druckjahr)",
+    publishedYearEndLabel: "Druckjahr bis (optional)",
+    yearStartLabel: "Von",
+    yearEndLabel: "Bis",
     yearEndOptional: true,
     bookMetadataBox: true,
   },
@@ -197,11 +200,29 @@ export function getEntryYearMetas(
   yearEnd?: number | null,
   publishedYearStart?: number | null,
   publishedYearEnd?: number | null,
+  dateParts?: {
+    dateStartMonth?: number | null;
+    dateStartDay?: number | null;
+    dateEndMonth?: number | null;
+    dateEndDay?: number | null;
+  },
 ): EntryYearMeta[] {
   const start = yearStart ?? 0;
   const end = yearEnd ?? 0;
 
   switch (type) {
+    case "person": {
+      const life = formatPersonLifeRange(
+        start,
+        dateParts?.dateStartMonth,
+        dateParts?.dateStartDay,
+        end,
+        dateParts?.dateEndMonth,
+        dateParts?.dateEndDay,
+      );
+      if (!life) return [];
+      return [{ show: true, pillLabel: "Lebensdaten", value: life }];
+    }
     case "book": {
       const resolved = resolveBookStoredYears({
         yearStart: start,
@@ -228,7 +249,7 @@ export function getEntryYearMetas(
       if (periodValue) {
         metas.push({
           show: true,
-          pillLabel: "Zeitraum",
+          pillLabel: "Historischer Zeitraum",
           value: periodValue,
         });
       }

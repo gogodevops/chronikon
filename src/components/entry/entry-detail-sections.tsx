@@ -71,6 +71,7 @@ export interface EntryDetailSectionsProps {
   onSourceSubmit?: (data: unknown) => void;
   onSourceDelete?: (sourceId: string) => void;
   onClaimSubmit?: (data: unknown) => void;
+  onClaimUpdate?: (claimId: string, data: unknown) => void;
   onClaimDelete?: (claimId: string) => void;
   onRelationSubmit?: (
     data: unknown,
@@ -82,6 +83,7 @@ export interface EntryDetailSectionsProps {
   ) => void;
   canEdit?: boolean;
   canDiscuss?: boolean;
+  currentUserId?: string;
   afterKern?: React.ReactNode;
   uploadStatus?: AttachmentUploadStatus;
 }
@@ -114,11 +116,13 @@ export function EntryDetailSections({
   onSourceSubmit,
   onSourceDelete,
   onClaimSubmit,
+  onClaimUpdate,
   onClaimDelete,
   onRelationSubmit,
   onRelationDelete,
   canEdit = true,
   canDiscuss = true,
+  currentUserId,
   afterKern,
   uploadStatus,
 }: EntryDetailSectionsProps) {
@@ -333,7 +337,13 @@ export function EntryDetailSections({
                 </h4>
                 <ClaimsList
                   claims={claims}
+                  currentUserId={currentUserId}
                   onDelete={onClaimDelete}
+                  onUpdate={
+                    onClaimUpdate
+                      ? (claimId, data) => onClaimUpdate(claimId, data)
+                      : undefined
+                  }
                   canEdit={canEdit}
                 />
                 {canEdit && onClaimSubmit && showClaimComposer && (

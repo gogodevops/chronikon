@@ -20,24 +20,45 @@ export interface ClaimFormData {
 
 export interface ClaimComposerProps {
   entryId: string;
+  claimId?: string;
+  initialText?: string;
+  initialConfidence?: ClaimFormData["confidence"];
+  title?: string;
+  submitLabel?: string;
   onSubmit?: (data: ClaimFormData) => void;
+  onCancel?: () => void;
 }
 
-export function ClaimComposer({ onSubmit }: ClaimComposerProps) {
-  const [text, setText] = React.useState("");
+export function ClaimComposer({
+  claimId,
+  initialText = "",
+  initialConfidence = "likely",
+  title = "Neue Behauptung",
+  submitLabel = "Behauptung speichern",
+  onSubmit,
+  onCancel,
+}: ClaimComposerProps) {
+  const [text, setText] = React.useState(initialText);
   const [confidence, setConfidence] =
-    React.useState<ClaimFormData["confidence"]>("likely");
+    React.useState<ClaimFormData["confidence"]>(initialConfidence);
+
+  React.useEffect(() => {
+    setText(initialText);
+    setConfidence(initialConfidence);
+  }, [initialText, initialConfidence, claimId]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!text.trim()) return;
     onSubmit?.({ text, confidence });
-    setText("");
-    setConfidence("likely");
+    if (!claimId) {
+      setText("");
+      setConfidence("likely");
+    }
   };
 
   return (
-    <ChComposer title="Neue Behauptung" icon={Scale} onSubmit={handleSubmit}>
+    <ChComposer title={title} icon={Scale} onSubmit={handleSubmit}>
       <Textarea
         placeholder='z.B. „Norwich stützt sich für Justinian vor allem auf Prokop."'
         value={text}
@@ -63,8 +84,13 @@ export function ClaimComposer({ onSubmit }: ClaimComposerProps) {
           </SelectContent>
         </Select>
         <Button type="submit" size="sm" disabled={!text.trim()}>
-          Behauptung speichern
+          {submitLabel}
         </Button>
+        {onCancel && (
+          <Button type="button" size="sm" variant="ghost" onClick={onCancel}>
+            Abbrechen
+          </Button>
+        )}
       </div>
     </ChComposer>
   );

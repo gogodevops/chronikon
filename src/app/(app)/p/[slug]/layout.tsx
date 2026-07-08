@@ -51,6 +51,7 @@ export default async function ProjectLayout({
       label: v.label,
     })),
     userRole: role,
+    userId: session.user.id,
     userName: user?.name ?? "Nutzer",
     userInitials: user?.avatarInitials ?? "??",
     userImage: user?.image,
